@@ -37,6 +37,13 @@ func HostEnv(goos string) Env {
 	return Env{GOOS: goos, UID: os.Getuid(), Getenv: os.Getenv}
 }
 
+// tmpRoot is where the runtime directory goes when the platform names no
+// better place. Literally /tmp, and deliberately not os.TempDir: that reads
+// $TMPDIR, which nix-shell and others set to a fresh directory per shell — so
+// the socket would move every time you opened a new one, and a running daemon
+// would be invisible to the next command.
+const tmpRoot = "/tmp"
+
 // RuntimeDir resolves the directory holding the socket, the pidfile, and the
 // daemon's log.
 //
@@ -58,7 +65,7 @@ func RuntimeDir(env Env) (string, error) {
 	if env.UID < 0 {
 		return "", errors.New("cannot resolve a runtime directory: no user id")
 	}
-	return filepath.Join(os.TempDir(), appDir+"-"+strconv.Itoa(env.UID)), nil
+	return filepath.Join(tmpRoot, appDir+"-"+strconv.Itoa(env.UID)), nil
 }
 
 // Socket resolves where the daemon listens. JARD_SOCKET names it outright, for
@@ -89,8 +96,26 @@ func runtimePath(env Env, name string) (string, error) {
 	return filepath.Join(dir, name), nil
 }
 
-// ensureRuntimeDir creates the runtime directory, private to its owner: the
-// socket in it is an unauthenticated door onto every sandbox.
+// ensureRuntimeDir creates the runtime directory, private to its owner, and
+// refuses one that is not.
+//
+// The socket inside it is an unauthenticated door onto every sandbox. The
+// default location is under /tmp, which anyone on the machine can write to, so
+// a directory already sitting on that path is checked rather than trusted:
+// MkdirAll is happy to reuse someone else's.
 func ensureRuntimeDir(path string) error {
-	return os.MkdirAll(filepath.Dir(path), 0o700)
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return err
+	}
+	info, err := os.Stat(dir)
+	if err != nil {
+		return err
+	}
+	if err := ownedPrivately(dir, info); err != nil {
+		return err
+	}
+	// an existing directory keeps the mode it was made with, which MkdirAll
+	// will not correct.
+	return os.Chmod(dir, 0o700)
 }

@@ -56,6 +56,33 @@ func TestSocketIgnoresARelativeRuntimeDir(t *testing.T) {
 	}
 }
 
+func TestSocketDoesNotMoveWithTMPDIR(t *testing.T) {
+	// nix-shell and friends point $TMPDIR at a fresh directory per shell.
+	// Resolving through it would put the socket somewhere new every time a
+	// shell opened, leaving a running daemon invisible to the next command.
+	t.Setenv("TMPDIR", "/var/folders/xx/nix-shell.AbC123/T")
+	first, err := Socket(env("darwin", nil))
+	if err != nil {
+		t.Fatalf("Socket: %v", err)
+	}
+
+	t.Setenv("TMPDIR", "/var/folders/xx/nix-shell.ZyX987/T")
+	second, err := Socket(env("darwin", nil))
+	if err != nil {
+		t.Fatalf("Socket: %v", err)
+	}
+
+	if first != second {
+		t.Errorf("the socket moved with TMPDIR: %q then %q", first, second)
+	}
+	if strings.Contains(first, "nix-shell") {
+		t.Errorf("Socket = %q, want a path that does not depend on TMPDIR", first)
+	}
+	if first != "/tmp/jardiniere-501/jardd.sock" {
+		t.Errorf("Socket = %q, want the stable per-user path", first)
+	}
+}
+
 func TestSocketFallsBackPerUser(t *testing.T) {
 	// macOS sets no XDG_RUNTIME_DIR. Two users on one machine must not land on
 	// the same socket, or either could drive the other's sandboxes.

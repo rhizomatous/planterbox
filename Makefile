@@ -14,8 +14,11 @@ lint:      ## static analysis (staticcheck, govet, errcheck, etc.)
 test:      ## unit tests
 	go test ./...
 
-build:     ## build the jard binary
+build:     ## build both binaries
+	# jardd comes too: jard autostarts it from beside itself, so a jard built
+	# without one cannot run a sandbox at all.
 	go build -ldflags "-X main.version=$(VERSION)" -o jard ./cmd/jard
+	go build -ldflags "-X main.version=$(VERSION)" -o jardd ./cmd/jardd
 
 proto:     ## regenerate the daemon's wire contract from jard.proto
 	protoc \
