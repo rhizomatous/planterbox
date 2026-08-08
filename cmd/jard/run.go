@@ -57,6 +57,12 @@ func runAgent(
 ) error {
 	agent, paths := splitAgentAndPaths(args)
 
+	// asked before the sandbox exists, so the answer is in force the first
+	// time it reaches for anything rather than one run later.
+	if err := ensurePolicy(ctx, cmd, svc); err != nil {
+		return err
+	}
+
 	sb, created, err := resolveOrCreate(ctx, svc, flags, agent, paths, cwd)
 	if err != nil {
 		return err

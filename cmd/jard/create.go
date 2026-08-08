@@ -35,6 +35,9 @@ func newCreateCmd(g *globals) *cobra.Command {
 				return err
 			}
 			return g.withService(cmd, func(ctx context.Context, svc api.Service) error {
+				if err := ensurePolicy(ctx, cmd, svc); err != nil {
+					return err
+				}
 				sb, err := svc.Create(ctx, spec)
 				if err != nil {
 					return err

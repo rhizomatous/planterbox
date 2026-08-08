@@ -1,6 +1,7 @@
 package main
 
 import (
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -210,18 +211,83 @@ func TestPolicyLogSaysWhenThereIsNothing(t *testing.T) {
 	}
 }
 
-func TestFirstRunWithoutATerminalTakesTheBalancedDefault(t *testing.T) {
-	// a script running `jard policy ls` must not stop on a question nobody is
-	// there to answer.
-	fake := api.NewFake()
+func TestReadingThePolicyNeverWritesOne(t *testing.T) {
+	// asking what the policy is, or what it would do, must not be the thing
+	// that decides it. A question in the way of `jard policy ls` answers
+	// something the user did not ask.
+	for _, args := range [][]string{
+		{"policy", "ls"},
+		{"policy", "check", "example.com"},
+		{"policy", "log"},
+	} {
+		fake := api.NewFake()
+		if _, err := runCLI(t, fake, args...); err != nil {
+			t.Fatalf("%v: %v", args, err)
+		}
+		if fake.NetworkPolicy != nil {
+			t.Errorf("%v stored a policy: %+v", args, fake.NetworkPolicy)
+		}
+		if slices.Contains(fake.Calls, "SetPolicy") {
+			t.Errorf("%v called SetPolicy", args)
+		}
+	}
+}
 
-	if _, err := runCLI(t, fake, "policy", "ls"); err != nil {
-		t.Fatalf("policy ls with no policy set: %v", err)
+func TestReadingWithNoPolicyShowsTheDefaultThatApplies(t *testing.T) {
+	// "no policy" is not "no rules": the default is in force, and a sandbox
+	// created right now would run under it.
+	out, err := runCLI(t, api.NewFake(), "policy", "check", "api.anthropic.com")
+	if err != nil {
+		t.Fatalf("policy check: %v", err)
+	}
+	if !strings.Contains(out, "allowed") {
+		t.Errorf("output = %q, want the default's answer", out)
+	}
+	if !strings.Contains(out, "no policy chosen yet") {
+		t.Errorf("output = %q, want it to say the default is standing in", out)
+	}
+}
+
+func TestEditingWithNoPolicyStartsFromTheDefault(t *testing.T) {
+	// the answer to `jard policy allow x` is to allow x, not to ask which
+	// preset it should be allowed under.
+	fake := api.NewFake()
+	if _, err := runCLI(t, fake, "policy", "allow", "x.test"); err != nil {
+		t.Fatalf("policy allow: %v", err)
 	}
 	if fake.NetworkPolicy == nil {
-		t.Fatal("the chooser should have stored a policy")
+		t.Fatal("the rule was not stored")
 	}
 	if fake.NetworkPolicy.Preset != proxy.PresetBalanced {
-		t.Errorf("preset = %q, want balanced", fake.NetworkPolicy.Preset)
+		t.Errorf("preset = %q, want the default", fake.NetworkPolicy.Preset)
+	}
+	if len(fake.NetworkPolicy.Rules) != 1 {
+		t.Errorf("rules = %+v, want the one just added", fake.NetworkPolicy.Rules)
+	}
+}
+
+func TestCreatingASandboxSettlesThePolicyFirst(t *testing.T) {
+	// this is the moment the answer starts mattering. Without a terminal the
+	// default is taken rather than the command stopping on a question nobody
+	// is there to answer.
+	fake := api.NewFake()
+	if _, err := runCLI(t, fake, "create", "shell", t.TempDir(), "--name", "probe"); err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	if fake.NetworkPolicy == nil {
+		t.Fatal("a sandbox was created without a policy ever being settled")
+	}
+	if fake.NetworkPolicy.Preset != proxy.PresetBalanced {
+		t.Errorf("preset = %q, want the default", fake.NetworkPolicy.Preset)
+	}
+}
+
+func TestCreatingASandboxLeavesAChosenPolicyAlone(t *testing.T) {
+	fake := withPolicy(proxy.New(proxy.PresetLockedDown))
+	if _, err := runCLI(t, fake, "create", "shell", t.TempDir(), "--name", "probe"); err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	if fake.NetworkPolicy.Preset != proxy.PresetLockedDown {
+		t.Errorf("preset = %q, want the one already chosen", fake.NetworkPolicy.Preset)
 	}
 }

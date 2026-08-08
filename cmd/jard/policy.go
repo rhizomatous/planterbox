@@ -47,7 +47,7 @@ func newPolicyLsCmd(g *globals) *cobra.Command {
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return g.withService(cmd, func(ctx context.Context, svc api.Service) error {
-				p, err := policyOrWizard(ctx, cmd, svc)
+				p, err := effectivePolicy(ctx, cmd, svc)
 				if err != nil {
 					return err
 				}
@@ -91,7 +91,7 @@ func newPolicyDenyCmd(g *globals) *cobra.Command {
 // same pattern so that `allow` after `deny` means what it looks like.
 func editRules(g *globals, cmd *cobra.Command, patterns []string, allow bool) error {
 	return g.withService(cmd, func(ctx context.Context, svc api.Service) error {
-		p, err := policyOrWizard(ctx, cmd, svc)
+		p, err := policyForEditing(ctx, cmd, svc)
 		if err != nil {
 			return err
 		}
@@ -125,7 +125,7 @@ func newPolicyRmCmd(g *globals) *cobra.Command {
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return g.withService(cmd, func(ctx context.Context, svc api.Service) error {
-				p, err := policyOrWizard(ctx, cmd, svc)
+				p, err := effectivePolicy(ctx, cmd, svc)
 				if err != nil {
 					return err
 				}
@@ -161,7 +161,7 @@ func newPolicyCheckCmd(g *globals) *cobra.Command {
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return g.withService(cmd, func(ctx context.Context, svc api.Service) error {
-				p, err := policyOrWizard(ctx, cmd, svc)
+				p, err := effectivePolicy(ctx, cmd, svc)
 				if err != nil {
 					return err
 				}
@@ -219,7 +219,7 @@ func newPolicyPresetCmd(g *globals) *cobra.Command {
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return g.withService(cmd, func(ctx context.Context, svc api.Service) error {
-				p, err := policyOrWizard(ctx, cmd, svc)
+				p, err := effectivePolicy(ctx, cmd, svc)
 				if err != nil {
 					return err
 				}
@@ -247,17 +247,32 @@ func newPolicyPresetCmd(g *globals) *cobra.Command {
 	}
 }
 
-// policyOrWizard reads the policy, running the first-run chooser when there
-// isn't one yet.
-func policyOrWizard(ctx context.Context, cmd *cobra.Command, svc api.Service) (proxy.Policy, error) {
+// effectivePolicy reads the policy that is in force, which is the default when
+// none has been chosen.
+//
+// It never writes. Asking what the policy is, or what it would do, should not
+// be the thing that decides it — and a question in the way of `jard policy ls`
+// answers something the user did not ask.
+func effectivePolicy(ctx context.Context, cmd *cobra.Command, svc api.Service) (proxy.Policy, error) {
 	p, err := svc.Policy(ctx)
-	if err == nil {
+	switch {
+	case err == nil:
 		return p, nil
-	}
-	if !errors.Is(err, api.ErrNoPolicy) {
+	case !errors.Is(err, api.ErrNoPolicy):
 		return proxy.Policy{}, err
 	}
-	return choosePolicy(ctx, cmd, svc)
+	_, _ = lipgloss.Fprintln(cmd.ErrOrStderr(), ui.Faint.Render(
+		"no policy chosen yet, so the default applies. Creating a sandbox will ask."))
+	return proxy.New(defaultPreset), nil
+}
+
+// policyForEditing reads the policy a rule is about to be added to, starting
+// from the default when there is none.
+//
+// No question here either: the answer to `jard policy allow x` is to allow x,
+// not to ask which preset it should be allowed under.
+func policyForEditing(ctx context.Context, cmd *cobra.Command, svc api.Service) (proxy.Policy, error) {
+	return effectivePolicy(ctx, cmd, svc)
 }
 
 // validPattern rejects a rule that would never match, which is otherwise a

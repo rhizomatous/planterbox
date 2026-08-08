@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
@@ -14,14 +15,34 @@ import (
 	"github.com/rhizomatous/jardiniere/internal/ui"
 )
 
-// choosePolicy asks which posture to start from, the first time anything needs
-// a policy, and stores the answer.
+// defaultPreset is what applies until someone chooses otherwise.
+const defaultPreset = proxy.PresetBalanced
+
+// ensurePolicy asks which posture to start from, once, before the first
+// sandbox exists — which is the moment the answer starts mattering, and the
+// only moment the user is plainly thinking about giving an agent a network.
 //
-// Without a terminal it takes the balanced default rather than failing. A
-// script that runs `jard run` should not stop on a question nobody is there to
-// answer, and balanced is the option the prompt recommends anyway.
+// Asking anywhere else gets it wrong in both directions: a question in front
+// of `jard policy ls` answers something nobody asked, and a sandbox created
+// without ever being asked gets a policy by default that the user never saw.
+//
+// Without a terminal it takes the default rather than failing. A script
+// running `jard run` should not stop on a question nobody is there to answer.
+func ensurePolicy(ctx context.Context, cmd *cobra.Command, svc api.Service) error {
+	if _, err := svc.Policy(ctx); err == nil {
+		return nil
+	} else if !errors.Is(err, api.ErrNoPolicy) {
+		// a store we cannot read is the caller's problem to report, not
+		// something to paper over with a prompt.
+		return nil
+	}
+	_, err := choosePolicy(ctx, cmd, svc)
+	return err
+}
+
+// choosePolicy asks which posture to start from and stores the answer.
 func choosePolicy(ctx context.Context, cmd *cobra.Command, svc api.Service) (proxy.Policy, error) {
-	preset := proxy.PresetBalanced
+	preset := defaultPreset
 
 	if isTerminal(os.Stdin) {
 		var err error
