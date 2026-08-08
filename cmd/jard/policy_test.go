@@ -233,18 +233,33 @@ func TestReadingThePolicyNeverWritesOne(t *testing.T) {
 	}
 }
 
-func TestReadingWithNoPolicyShowsTheDefaultThatApplies(t *testing.T) {
-	// "no policy" is not "no rules": the default is in force, and a sandbox
-	// created right now would run under it.
+func TestAnUnwrittenPolicyIsNotASpecialCase(t *testing.T) {
+	// the default preset is the policy until someone says otherwise, and it is
+	// what the proxy enforces. Whether a file exists yet is jard's business,
+	// so nothing about it belongs in the answer.
 	out, err := runCLI(t, api.NewFake(), "policy", "check", "api.anthropic.com")
 	if err != nil {
 		t.Fatalf("policy check: %v", err)
 	}
 	if !strings.Contains(out, "allowed") {
-		t.Errorf("output = %q, want the default's answer", out)
+		t.Errorf("output = %q, want the answer the default gives", out)
 	}
-	if !strings.Contains(out, "no policy chosen yet") {
-		t.Errorf("output = %q, want it to say the default is standing in", out)
+	for _, noise := range []string{"no policy", "not chosen", "yet", "default applies"} {
+		if strings.Contains(out, noise) {
+			t.Errorf("output = %q, want nothing about whether a policy was written", out)
+		}
+	}
+
+	// and `ls` reads the same way: a preset and its rules, with no caveat.
+	out, err = runCLI(t, api.NewFake(), "policy", "ls")
+	if err != nil {
+		t.Fatalf("policy ls: %v", err)
+	}
+	if !strings.Contains(out, "balanced") {
+		t.Errorf("output = %q, want the preset in force", out)
+	}
+	if strings.Contains(out, "no policy") {
+		t.Errorf("output = %q, want no caveat about it being unwritten", out)
 	}
 }
 
