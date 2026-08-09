@@ -1,0 +1,138 @@
+package runner
+
+import (
+	"context"
+	"fmt"
+	"strconv"
+	"strings"
+
+	"github.com/rhizomatous/jardiniere/internal/api"
+)
+
+// A sandbox cannot publish its own ports.
+//
+// It is alone on an internal network, which is what leaves it with no route
+// out — and, in the other direction, unreachable from the host. A runtime does
+// not report that as a conflict: `--publish` on a container attached to an
+// internal network exits zero, starts the container, and creates no mapping.
+// Measured against OrbStack, the port simply does not appear.
+//
+// So ingress takes the shape egress already has. A forwarder container sits on
+// both sides: it publishes the host ports for real, because it is on an
+// ordinary network, and carries each one to the sandbox over the internal one.
+const (
+	// portsNet is the ordinary network a forwarder publishes from.
+	//
+	// Separate from the relay's own: the two carry traffic in opposite
+	// directions and nothing belongs on both. Any non-internal network grants
+	// its members a route out, which a forwarder has no use for — it dials
+	// only the addresses on its command line, and holds no policy that could
+	// be talked out of it.
+	portsNet = "jard-ports"
+)
+
+// PortsContainer is the forwarder publishing a sandbox's ports.
+func PortsContainer(sandbox string) string { return containerPrefix + sandbox + "-ports" }
+
+// relayRef is the image both forwarders run, the published one unless
+// overridden.
+func (o *OCI) relayRef() string {
+	if o.relayImage != "" {
+		return o.relayImage
+	}
+	return DefaultRelayImage
+}
+
+// PortsInvocation renders the command running a sandbox's port forwarder. It is
+// pure, so the mapping it builds is testable without a runtime.
+func (o *OCI) PortsInvocation(sandbox string, ports []api.Port) Invocation {
+	args := []string{
+		"run", "--detach",
+		"--name", PortsContainer(sandbox),
+		"--label", "jard.sandbox=" + sandbox,
+		"--label", "jard.ports=true",
+		"--network", portsNet,
+	}
+	for _, p := range ports {
+		args = append(args, "--publish", publishSpec(p))
+	}
+	args = append(args, o.relayRef())
+
+	// the forwarder listens on the sandbox-side port number, since that is
+	// what its own published mapping delivers to, and carries it to the same
+	// port on the sandbox.
+	for _, p := range ports {
+		port := strconv.Itoa(p.Sandbox)
+		args = append(args, "-forward", ":"+port+"="+ContainerName(sandbox)+":"+port)
+	}
+	return o.invoke(args...)
+}
+
+// Publish makes a sandbox's ports reachable from the host, replacing whatever
+// was published for it before.
+//
+// The forwarder is replaced rather than adjusted. Its mappings are fixed when
+// it starts, which is the same constraint that stops a sandbox publishing for
+// itself — but a forwarder holds nothing, so replacing one costs only the
+// connections it was carrying.
+func (o *OCI) Publish(ctx context.Context, sandbox string, ports []api.Port) error {
+	// with egress off a sandbox is on an ordinary network and publishes for
+	// itself, which is what --dry-run and the in-process path render.
+	if o.egressUpstream == "" {
+		return nil
+	}
+	for _, p := range ports {
+		if strings.EqualFold(p.Proto, "udp") {
+			return fmt.Errorf("cannot publish %d:%d/udp: the forwarder that carries ports "+
+				"into a sandbox is TCP-only", p.Host, p.Sandbox)
+		}
+	}
+	if err := o.Unpublish(ctx, sandbox); err != nil {
+		return err
+	}
+	if len(ports) == 0 {
+		return nil
+	}
+
+	if err := o.ensurePortsNetwork(ctx); err != nil {
+		return err
+	}
+	if _, err := o.exec.Output(ctx, o.PortsInvocation(sandbox, ports)); err != nil {
+		return fmt.Errorf("publishing ports for %s: %w", sandbox, err)
+	}
+	// being published is only half of it; reaching the sandbox means being on
+	// its network too.
+	_, err := o.exec.Output(ctx, o.invoke("network", "connect",
+		SandboxNetwork(sandbox), PortsContainer(sandbox)))
+	if err != nil && !isAlreadyExists(err) && !isAlreadyConnected(err) {
+		return fmt.Errorf("attaching the port forwarder to %s: %w", SandboxNetwork(sandbox), err)
+	}
+	return nil
+}
+
+// Unpublish takes a sandbox's ports back off the host, tolerating one that was
+// never published.
+//
+// It runs on stop as well as on removal. A forwarder left behind would hold
+// its host ports bound against a sandbox that is no longer listening, which
+// denies them to whatever wants them next and answers on them meanwhile.
+func (o *OCI) Unpublish(ctx context.Context, sandbox string) error {
+	// with egress off a sandbox is on an ordinary network and publishes for
+	// itself, which is what --dry-run and the in-process path render.
+	if o.egressUpstream == "" {
+		return nil
+	}
+	_, err := o.exec.Output(ctx, o.invoke("rm", "--force", PortsContainer(sandbox)))
+	if err != nil && !isNotFound(err) {
+		return fmt.Errorf("removing the port forwarder for %s: %w", sandbox, err)
+	}
+	return nil
+}
+
+func (o *OCI) ensurePortsNetwork(ctx context.Context) error {
+	_, err := o.exec.Output(ctx, o.invoke("network", "create", portsNet))
+	if err != nil && !isAlreadyExists(err) {
+		return err
+	}
+	return nil
+}

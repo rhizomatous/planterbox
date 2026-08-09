@@ -18,7 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `jard run`, `create`, `ls`, `start`, `stop`, `rm`, `inspect`, `exec`, `cp`, and `agents`. A command that takes a sandbox name defaults to the one for the current directory.
 - Reattach by workspace path or by `--name`, so `jard run` finds the right sandbox from inside a repo or from anywhere.
 - Multiple workspaces, bind-mounted at their host paths. The first is the primary; later ones take a `:ro` suffix. `jard run ~/work/frontend ~/work/backend:ro`.
-- Resource limits and published ports at create time: `--cpus`, `-m/--memory`, `-p/--publish`, `-e/--env`.
+- Resource limits and published ports at create time: `--cpus`, `-m/--memory`, `-p/--publish`, `-e/--env`. Published ports are TCP. A sandbox is alone on a private network and cannot publish for itself, so its ports are carried by a forwarder alongside it, and that forwarder speaks TCP only.
 - `--` passes everything after it to the agent verbatim, and the agent's exit status becomes jard's.
 - Base images for claude, codex, opencode, and a bare shell, published to `ghcr.io/rhizomatous/jard-<agent>`. `--image` starts from something else.
 - `jard rm` refuses a running sandbox unless `--force` is given.

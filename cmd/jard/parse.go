@@ -54,11 +54,12 @@ func resolve(path, base string) (string, error) {
 }
 
 // parsePort reads a port argument: "host:sandbox", or a bare port meaning the
-// same on both sides. Either form takes an optional "/tcp" or "/udp".
+// same on both sides. Either form takes an optional "/tcp", which is the
+// only protocol a sandbox can publish.
 func parsePort(arg string) (api.Port, error) {
 	spec, proto, hasProto := strings.Cut(arg, "/")
-	if hasProto && proto != "tcp" && proto != "udp" {
-		return api.Port{}, fmt.Errorf("port %q: protocol must be tcp or udp", arg)
+	if hasProto && proto != "tcp" {
+		return api.Port{}, fmt.Errorf("port %q: only tcp ports can be published", arg)
 	}
 	if proto == "tcp" {
 		proto = "" // the default; storing it would only make records noisier

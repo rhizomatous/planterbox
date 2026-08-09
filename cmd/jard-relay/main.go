@@ -1,14 +1,18 @@
-// Command jard-relay carries a sandbox's egress to the proxy on the host.
+// Command jard-relay carries traffic across a sandbox's network boundary.
 //
-// It exists because of where the proxy has to live. Policy and, later, stored
-// credentials belong to the host daemon — a container cannot read the OS
-// keychain — but a sandbox on an internal network has no route to the host at
-// all. This runs in a container attached to both, and forwards to exactly one
-// address.
+// It exists because of what an internal network does. A sandbox is alone on
+// one, which is what leaves it with no route out — and also with no route in,
+// and no way to reach the host. Anything that has to cross that line runs here,
+// in a container attached to both sides.
 //
-// It is deliberately incurious: it reads no bytes, makes no decisions, and can
-// reach nowhere but the proxy. Everything that decides anything is on the far
-// side of it. See docs/concessions.md for why this piece exists.
+// It serves both directions. Egress: one forward from the sandbox network to
+// the proxy on the host, which is where policy and the connection log live.
+// Ingress: one forward per published port, from a host-published port to the
+// sandbox, because a runtime silently drops --publish on an internal network.
+//
+// It is deliberately incurious. It reads no bytes, makes no decisions, and can
+// reach only the addresses it was started with. Everything that decides
+// anything is on the far side of it. See docs/concessions.md.
 package main
 
 import (
@@ -19,11 +23,41 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"syscall"
 )
 
 var version = "dev"
+
+// forward is one listening address and the single place it carries traffic to.
+type forward struct {
+	listen   string
+	upstream string
+}
+
+// forwards collects the repeatable -forward flag.
+type forwards []forward
+
+func (f *forwards) String() string {
+	parts := make([]string, 0, len(*f))
+	for _, fwd := range *f {
+		parts = append(parts, fwd.listen+"="+fwd.upstream)
+	}
+	return strings.Join(parts, ",")
+}
+
+// Set reads "LISTEN=UPSTREAM". The listen side is split on the last "=" so an
+// upstream is free to contain one, and both halves must be present: a forward
+// missing either end would listen on everything or dial nothing.
+func (f *forwards) Set(s string) error {
+	listen, upstream, ok := strings.Cut(s, "=")
+	if !ok || listen == "" || upstream == "" {
+		return fmt.Errorf("expected LISTEN=UPSTREAM, got %q", s)
+	}
+	*f = append(*f, forward{listen: listen, upstream: upstream})
+	return nil
+}
 
 func main() { os.Exit(run()) }
 
@@ -31,10 +65,12 @@ func run() int {
 	var (
 		listen      string
 		upstream    string
+		pairs       forwards
 		showVersion bool
 	)
-	flag.StringVar(&listen, "listen", ":8080", "address to accept sandbox connections on")
-	flag.StringVar(&upstream, "upstream", "", "the host proxy to forward to, as host:port")
+	flag.StringVar(&listen, "listen", ":8080", "address to accept connections on, with -upstream")
+	flag.StringVar(&upstream, "upstream", "", "the single address to forward to, as host:port")
+	flag.Var(&pairs, "forward", "an additional LISTEN=UPSTREAM forward (repeatable)")
 	flag.BoolVar(&showVersion, "version", false, "print the version and exit")
 	flag.Parse()
 
@@ -42,39 +78,70 @@ func run() int {
 		fmt.Println("jard-relay", version)
 		return 0
 	}
-	if upstream == "" {
-		log.Println("jard-relay: -upstream is required")
+	if upstream != "" {
+		pairs = append(pairs, forward{listen: listen, upstream: upstream})
+	}
+	if len(pairs) == 0 {
+		log.Println("jard-relay: nothing to forward: pass -upstream or -forward")
 		return 2
 	}
 
-	lis, err := net.Listen("tcp", listen)
-	if err != nil {
-		log.Printf("jard-relay: listening on %s: %v", listen, err)
-		return 1
+	listeners := make([]net.Listener, 0, len(pairs))
+	for _, fwd := range pairs {
+		lis, err := net.Listen("tcp", fwd.listen)
+		if err != nil {
+			log.Printf("jard-relay: listening on %s: %v", fwd.listen, err)
+			closeAll(listeners)
+			return 1
+		}
+		listeners = append(listeners, lis)
+		log.Printf("jard-relay: %s -> %s", fwd.listen, fwd.upstream)
 	}
-	defer func() { _ = lis.Close() }()
-	log.Printf("jard-relay: %s -> %s", listen, upstream)
 
-	// closing the listener is what ends Accept, so the signal handler does
+	// closing the listeners is what ends Accept, so the signal handler does
 	// that rather than exiting out from under connections in flight.
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-signals
-		_ = lis.Close()
+		closeAll(listeners)
 	}()
 
+	var wg sync.WaitGroup
+	for i, lis := range listeners {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			accept(lis, pairs[i].upstream)
+		}()
+	}
+	wg.Wait()
+	return 0
+}
+
+// accept serves one listener until it closes.
+func accept(lis net.Listener, upstream string) {
 	for {
 		conn, err := lis.Accept()
 		if err != nil {
-			return 0 // the listener closed, which is how this stops
+			return // the listener closed, which is how this stops
 		}
-		go forward(conn, upstream)
+		go forwardConn(conn, upstream)
 	}
 }
 
-// forward joins one accepted connection to a fresh upstream one.
-func forward(client net.Conn, upstream string) {
+func closeAll(listeners []net.Listener) {
+	for _, lis := range listeners {
+		_ = lis.Close()
+	}
+}
+
+// forwardConn joins one accepted connection to a fresh upstream one.
+//
+// The upstream is dialled per connection rather than held open, so a forward
+// outlives whatever it points at: a sandbox that is not running yet refuses
+// this connection and serves the next one once it is.
+func forwardConn(client net.Conn, upstream string) {
 	defer func() { _ = client.Close() }()
 
 	server, err := net.Dial("tcp", upstream)

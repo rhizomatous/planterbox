@@ -16,13 +16,15 @@ type Fake struct {
 	Err error
 	// Calls records method names in the order they were called.
 	Calls []string
+	// Published is what each sandbox currently has on the host.
+	Published map[string][]api.Port
 }
 
 var _ Runner = (*Fake)(nil)
 
 // NewFake returns an empty fake runner.
 func NewFake() *Fake {
-	return &Fake{States: map[ID]api.State{}}
+	return &Fake{States: map[ID]api.State{}, Published: map[string][]api.Port{}}
 }
 
 func (f *Fake) record(name string) error {
@@ -56,6 +58,28 @@ func (f *Fake) Remove(_ context.Context, id ID, _ string, _ bool) error {
 		return err
 	}
 	delete(f.States, id)
+	return nil
+}
+
+// Publish records a sandbox's published ports.
+func (f *Fake) Publish(_ context.Context, sandbox string, ports []api.Port) error {
+	if err := f.record("Publish"); err != nil {
+		return err
+	}
+	if len(ports) == 0 {
+		delete(f.Published, sandbox)
+		return nil
+	}
+	f.Published[sandbox] = ports
+	return nil
+}
+
+// Unpublish drops them.
+func (f *Fake) Unpublish(_ context.Context, sandbox string) error {
+	if err := f.record("Unpublish"); err != nil {
+		return err
+	}
+	delete(f.Published, sandbox)
 	return nil
 }
 

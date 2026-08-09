@@ -150,8 +150,11 @@ func (o *OCI) Remove(ctx context.Context, id ID, sandbox string, force bool) err
 		return err
 	}
 	// the network goes last: it cannot be removed while anything is still
-	// attached to it.
+	// attached to it, and the port forwarder is one of those things.
 	if o.egressUpstream != "" {
+		if err := o.Unpublish(ctx, sandbox); err != nil {
+			return err
+		}
 		if err := o.RemoveNetwork(ctx, sandbox); err != nil {
 			return err
 		}
@@ -310,8 +313,13 @@ func (o *OCI) CreateInvocation(spec api.Spec) Invocation {
 	for _, k := range sortedKeys(env) {
 		args = append(args, "--env", k+"="+env[k])
 	}
-	for _, p := range spec.Ports {
-		args = append(args, "--publish", publishSpec(p))
+	// only when the sandbox is on an ordinary network. On an internal one a
+	// runtime accepts --publish and silently creates no mapping, so ports are
+	// carried by a forwarder instead. See ports.go.
+	if o.egressUpstream == "" {
+		for _, p := range spec.Ports {
+			args = append(args, "--publish", publishSpec(p))
+		}
 	}
 
 	args = append(args, spec.Image)

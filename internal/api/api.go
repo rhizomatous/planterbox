@@ -134,7 +134,7 @@ type Resources struct {
 type Port struct {
 	Host    int    `json:"host"`
 	Sandbox int    `json:"sandbox"`
-	Proto   string `json:"proto,omitempty"` // "tcp" (default) or "udp"
+	Proto   string `json:"proto,omitempty"` // "tcp", which is also the default
 }
 
 // State is what jard observed about a sandbox. It is derived from the

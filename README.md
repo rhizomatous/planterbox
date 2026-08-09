@@ -183,6 +183,8 @@ The first path is the primary: it's the working directory, and the path `jard ru
 jard create --cpus 4 -m 8GiB -p 3000 -p 8080:80 -e NODE_ENV=development
 ```
 
+Published ports are TCP. A sandbox is alone on a private network, so it can't publish a port itself — jard runs a small forwarder alongside it that holds the host port and carries it in, and that forwarder speaks TCP only.
+
 These are create-time settings. Passing them to `jard run` for a sandbox that already exists warns rather than silently doing nothing — recreate the sandbox to change them.
 
 ### seeing what it would do

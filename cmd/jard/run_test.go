@@ -79,7 +79,7 @@ func TestCreateAppliesFlags(t *testing.T) {
 	_, err := runCLI(t, fake, "create", "shell", dir, other+":ro",
 		"--name", "custom", "--image", "acme/base:2",
 		"--cpus", "4", "-m", "8GiB",
-		"-p", "3000", "-p", "5353:53/udp",
+		"-p", "3000", "-p", "5353:53",
 		"-e", "FOO=bar", "-e", "EMPTY=")
 	if err != nil {
 		t.Fatalf("create: %v", err)
@@ -92,8 +92,8 @@ func TestCreateAppliesFlags(t *testing.T) {
 	if spec.Resources.CPUs != 4 || spec.Resources.Memory != 8<<30 {
 		t.Errorf("resources = %+v, want 4 cpus and 8GiB", spec.Resources)
 	}
-	if len(spec.Ports) != 2 || spec.Ports[1].Proto != "udp" {
-		t.Errorf("ports = %+v, want both, with the udp protocol kept", spec.Ports)
+	if len(spec.Ports) != 2 || spec.Ports[1].Sandbox != 53 {
+		t.Errorf("ports = %+v, want both, with the mapping kept", spec.Ports)
 	}
 	if spec.Env["FOO"] != "bar" {
 		t.Errorf("env = %v, want FOO=bar", spec.Env)

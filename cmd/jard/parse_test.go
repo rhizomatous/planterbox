@@ -60,7 +60,6 @@ func TestParsePort(t *testing.T) {
 	}{
 		{"3000", api.Port{Host: 3000, Sandbox: 3000}},
 		{"8080:80", api.Port{Host: 8080, Sandbox: 80}},
-		{"5353:53/udp", api.Port{Host: 5353, Sandbox: 53, Proto: "udp"}},
 		{"80/tcp", api.Port{Host: 80, Sandbox: 80}},
 		{"65535", api.Port{Host: 65535, Sandbox: 65535}},
 	}

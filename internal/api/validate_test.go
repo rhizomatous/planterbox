@@ -18,7 +18,7 @@ func TestValidateAcceptsAWellFormedSpec(t *testing.T) {
 	spec := valid()
 	spec.Agent = "claude"
 	spec.Env = map[string]string{"FOO": "bar", "EMPTY_VALUE": ""}
-	spec.Ports = []Port{{Host: 3000, Sandbox: 3000}, {Host: 5353, Sandbox: 53, Proto: "udp"}}
+	spec.Ports = []Port{{Host: 3000, Sandbox: 3000}, {Host: 5353, Sandbox: 53, Proto: "tcp"}}
 	spec.Resources = Resources{CPUs: 2.5, Memory: 8 << 30}
 	if err := spec.Validate(); err != nil {
 		t.Errorf("Validate: %v", err)
@@ -171,5 +171,20 @@ func TestAgentsIsACopy(t *testing.T) {
 	got[0].Name = "clobbered"
 	if Agents()[0].Name == "clobbered" {
 		t.Error("Agents returned the package's own slice")
+	}
+}
+
+// A sandbox is alone on an internal network and cannot publish for itself, so
+// its ports ride a tcp forwarder. Refusing udp here means the create fails
+// rather than the start.
+func TestValidateRejectsUDPPorts(t *testing.T) {
+	spec := valid()
+	spec.Ports = []Port{{Host: 5353, Sandbox: 53, Proto: "udp"}}
+	err := spec.Validate()
+	if err == nil {
+		t.Fatal("Validate accepted a udp port; only tcp can be published")
+	}
+	if !strings.Contains(err.Error(), "tcp") {
+		t.Errorf("error = %q, want it to name the protocol that does work", err)
 	}
 }

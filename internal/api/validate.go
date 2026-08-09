@@ -101,10 +101,16 @@ func validatePorts(ports []Port) error {
 		if !validPort(p.Host) || !validPort(p.Sandbox) {
 			return fmt.Errorf("port %d:%d is out of range 1-65535", p.Host, p.Sandbox)
 		}
+		// tcp only, for now. A sandbox is alone on an internal network and
+		// cannot publish for itself, so its ports are carried by a forwarder
+		// beside it — and that forwarder speaks tcp. Refused here rather than
+		// at start, so it is the create that fails and says why.
 		switch p.Proto {
-		case "", "tcp", "udp":
+		case "", "tcp":
+		case "udp":
+			return fmt.Errorf("port %d:%d/udp: only tcp ports can be published", p.Host, p.Sandbox)
 		default:
-			return fmt.Errorf("port protocol %q must be tcp or udp", p.Proto)
+			return fmt.Errorf("port protocol %q must be tcp", p.Proto)
 		}
 	}
 	return nil

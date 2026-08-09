@@ -99,17 +99,32 @@ func (s *Service) Inspect(ctx context.Context, ref api.Ref) (api.Sandbox, error)
 	return sb, nil
 }
 
-// Start boots a created or stopped sandbox.
+// Start boots a created or stopped sandbox, and publishes its ports.
+//
+// Publishing happens on every start rather than at create time. A sandbox is
+// alone on an internal network, where a runtime accepts --publish and creates
+// nothing, so the mapping lives in a forwarder beside the sandbox instead of
+// in the sandbox's own container.
 func (s *Service) Start(ctx context.Context, ref api.Ref) error {
 	return s.act(ctx, ref, func(sb api.Sandbox, id runner.ID) error {
-		return s.runner.Start(ctx, id, sb.Spec.Name)
+		if err := s.runner.Start(ctx, id, sb.Spec.Name); err != nil {
+			return err
+		}
+		return s.runner.Publish(ctx, sb.Spec.Name, sb.Spec.Ports)
 	})
 }
 
 // Stop halts a running sandbox, leaving its contents intact.
+//
+// Its ports come off the host with it. A forwarder outliving the sandbox would
+// hold those ports bound and answer on them, against something no longer
+// listening.
 func (s *Service) Stop(ctx context.Context, ref api.Ref) error {
-	return s.act(ctx, ref, func(_ api.Sandbox, id runner.ID) error {
-		return s.runner.Stop(ctx, id)
+	return s.act(ctx, ref, func(sb api.Sandbox, id runner.ID) error {
+		if err := s.runner.Stop(ctx, id); err != nil {
+			return err
+		}
+		return s.runner.Unpublish(ctx, sb.Spec.Name)
 	})
 }
 
