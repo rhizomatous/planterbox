@@ -72,7 +72,10 @@ func runAgent(
 	}
 
 	if sb.State.Status != api.StatusRunning {
-		if err := svc.Start(ctx, api.ByName(sb.Spec.Name)); err != nil {
+		switch err := svc.Start(ctx, api.ByName(sb.Spec.Name)); {
+		case errors.Is(err, api.ErrPortsUnavailable):
+			startedWithoutPorts(cmd, sb.Spec.Name, err)
+		case err != nil:
 			return err
 		}
 	}
@@ -128,9 +131,19 @@ func resolveOrCreate(
 	if err != nil {
 		return api.Sandbox{}, false, err
 	}
+	ports, err := flags.parsePorts()
+	if err != nil {
+		return api.Sandbox{}, false, err
+	}
 	sb, err = svc.Create(ctx, spec)
 	if err != nil {
 		return api.Sandbox{}, false, err
+	}
+	if len(ports) > 0 {
+		if err := svc.Publish(ctx, api.ByName(sb.Spec.Name), ports); err != nil {
+			return api.Sandbox{}, false, err
+		}
+		sb.Ports = ports
 	}
 	return sb, true, nil
 }
@@ -156,6 +169,14 @@ func runRef(flags *specFlags, paths []string, cwd string) (api.Ref, error) {
 // sandbox that already exists. They are fixed at create time, so silently
 // dropping them would leave the user believing a limit was applied.
 func warnIgnoredFlags(cmd *cobra.Command, flags *specFlags, sb api.Sandbox) {
+	// --publish is not fixed at create time any more: ports live beside the
+	// sandbox rather than in its container, so they have a command of their own.
+	if cmd.Flags().Changed("publish") {
+		_, _ = fmt.Fprintln(cmd.ErrOrStderr(), ui.Warn.Render(fmt.Sprintf(
+			"--publish was ignored: %s already exists. Use `jard ports` to change what it publishes",
+			sb.Spec.Name)))
+	}
+
 	set := flags.changed(cmd)
 	// --name selects the sandbox rather than configuring it.
 	set = slicesDelete(set, "--name")

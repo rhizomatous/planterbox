@@ -32,12 +32,32 @@ func (f *specFlags) bind(cmd *cobra.Command) {
 	fl.StringArrayVarP(&f.env, "env", "e", nil, "environment variable, NAME=VALUE (repeatable)")
 }
 
+// parsePorts reads the --publish flags.
+//
+// Separate from buildSpec because ports are not part of a spec: they are not
+// baked into the container, and can be changed on a sandbox that already
+// exists. `create` and `run` publish them as a second step.
+func (f *specFlags) parsePorts() ([]api.Port, error) {
+	ports := make([]api.Port, 0, len(f.ports))
+	for _, p := range f.ports {
+		port, err := parsePort(p)
+		if err != nil {
+			return nil, err
+		}
+		ports = append(ports, port)
+	}
+	if err := api.ValidatePorts(ports); err != nil {
+		return nil, err
+	}
+	return ports, nil
+}
+
 // changed reports whether any create-time flag was set. `run` uses this to warn
 // when settings are given for a sandbox that already exists, since they are
 // fixed at create time and would otherwise be silently ignored.
 func (f *specFlags) changed(cmd *cobra.Command) []string {
 	var set []string
-	for _, name := range []string{"name", "image", "cpus", "memory", "publish", "env"} {
+	for _, name := range []string{"name", "image", "cpus", "memory", "env"} {
 		if cmd.Flags().Changed(name) {
 			set = append(set, "--"+name)
 		}
@@ -80,14 +100,6 @@ func (f *specFlags) buildSpec(agent string, paths []string, cwd string) (api.Spe
 	spec.Name = f.name
 	if spec.Name == "" {
 		spec.Name = api.SandboxName(workspaces[0].Host)
-	}
-
-	for _, p := range f.ports {
-		port, err := parsePort(p)
-		if err != nil {
-			return api.Spec{}, err
-		}
-		spec.Ports = append(spec.Ports, port)
 	}
 
 	for _, e := range f.env {

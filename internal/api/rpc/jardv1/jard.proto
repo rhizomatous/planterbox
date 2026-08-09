@@ -19,6 +19,7 @@ service Sandboxes {
   rpc Stop(StopRequest) returns (StopResponse);
   rpc Remove(RemoveRequest) returns (RemoveResponse);
   rpc Copy(CopyRequest) returns (CopyResponse);
+  rpc Publish(PublishRequest) returns (PublishResponse);
 
   // Stats streams samples until the sandbox stops or the client goes away.
   rpc Stats(StatsRequest) returns (stream Sample);
@@ -61,6 +62,12 @@ message Decision {
   string sandbox = 7;
 }
 
+message PublishRequest {
+  Ref ref = 1;
+  repeated Port ports = 2;
+}
+message PublishResponse {}
+
 message GetPolicyRequest {}
 message GetPolicyResponse { Policy policy = 1; }
 
@@ -70,7 +77,7 @@ message SetPolicyResponse {}
 message ConnectionsRequest { uint64 since = 1; }
 message ConnectionsResponse { repeated Decision decisions = 1; }
 
-// Spec is a sandbox's durable definition, fixed when it is created.
+// Spec is what a sandbox's container was built from, fixed when it is created.
 message Spec {
   string name = 1;
   string agent = 2;
@@ -78,7 +85,7 @@ message Spec {
   repeated Workspace workspaces = 4;
   Resources resources = 5;
   map<string, string> env = 6;
-  repeated Port ports = 7;
+  reserved 7; // was ports, which are not part of the container
   google.protobuf.Timestamp created_at = 8;
 }
 
@@ -98,7 +105,7 @@ message Resources {
 message Port {
   int32 host = 1;
   int32 sandbox = 2;
-  string proto = 3; // "tcp" (default) or "udp"
+  string proto = 3; // "tcp", which is also the default
 }
 
 // State is what jard last observed about a sandbox.
@@ -113,10 +120,11 @@ message State {
   int32 exit_code = 4;
 }
 
-// Sandbox is a stored spec paired with its observed state.
+// Sandbox is a stored spec, its observed state, and the ports it publishes.
 message Sandbox {
   Spec spec = 1;
   State state = 2;
+  repeated Port ports = 3;
 }
 
 // Ref identifies a sandbox, by name or by a workspace path it was created for.

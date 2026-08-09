@@ -88,6 +88,14 @@ func (s *Server) Copy(ctx context.Context, req *jardv1.CopyRequest) (*jardv1.Cop
 	return &jardv1.CopyResponse{}, nil
 }
 
+// Publish replaces the ports a sandbox publishes on the host.
+func (s *Server) Publish(ctx context.Context, req *jardv1.PublishRequest) (*jardv1.PublishResponse, error) {
+	if err := s.svc.Publish(ctx, apiRef(req.GetRef()), apiPorts(req.GetPorts())); err != nil {
+		return nil, wireError(err)
+	}
+	return &jardv1.PublishResponse{}, nil
+}
+
 // Stats relays samples until the underlying feed closes or the client hangs up.
 //
 // The stream's own context is what cancels the feed, so a client that

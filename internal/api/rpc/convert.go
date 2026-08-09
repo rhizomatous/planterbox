@@ -31,14 +31,36 @@ func protoSpec(s api.Spec) *jardv1.Spec {
 	for _, w := range s.Workspaces {
 		spec.Workspaces = append(spec.Workspaces, &jardv1.Workspace{Host: w.Host, ReadOnly: w.ReadOnly})
 	}
-	for _, p := range s.Ports {
-		spec.Ports = append(spec.Ports, &jardv1.Port{
+	return spec
+}
+
+// protoPorts and apiPorts carry a sandbox's published ports, which live beside
+// the spec rather than in it.
+func protoPorts(ports []api.Port) []*jardv1.Port {
+	out := make([]*jardv1.Port, 0, len(ports))
+	for _, p := range ports {
+		out = append(out, &jardv1.Port{
 			Host:    int32(p.Host),
 			Sandbox: int32(p.Sandbox),
 			Proto:   p.Proto,
 		})
 	}
-	return spec
+	return out
+}
+
+func apiPorts(ports []*jardv1.Port) []api.Port {
+	if len(ports) == 0 {
+		return nil
+	}
+	out := make([]api.Port, 0, len(ports))
+	for _, p := range ports {
+		out = append(out, api.Port{
+			Host:    int(p.GetHost()),
+			Sandbox: int(p.GetSandbox()),
+			Proto:   p.GetProto(),
+		})
+	}
+	return out
 }
 
 func apiSpec(p *jardv1.Spec) api.Spec {
@@ -57,13 +79,6 @@ func apiSpec(p *jardv1.Spec) api.Spec {
 	}
 	for _, w := range p.GetWorkspaces() {
 		s.Workspaces = append(s.Workspaces, api.Workspace{Host: w.GetHost(), ReadOnly: w.GetReadOnly()})
-	}
-	for _, port := range p.GetPorts() {
-		s.Ports = append(s.Ports, api.Port{
-			Host:    int(port.GetHost()),
-			Sandbox: int(port.GetSandbox()),
-			Proto:   port.GetProto(),
-		})
 	}
 	return s
 }
@@ -90,14 +105,14 @@ func apiState(p *jardv1.State) api.State {
 }
 
 func protoSandbox(sb api.Sandbox) *jardv1.Sandbox {
-	return &jardv1.Sandbox{Spec: protoSpec(sb.Spec), State: protoState(sb.State)}
+	return &jardv1.Sandbox{Spec: protoSpec(sb.Spec), State: protoState(sb.State), Ports: protoPorts(sb.Ports)}
 }
 
 func apiSandbox(p *jardv1.Sandbox) api.Sandbox {
 	if p == nil {
 		return api.Sandbox{}
 	}
-	return api.Sandbox{Spec: apiSpec(p.GetSpec()), State: apiState(p.GetState())}
+	return api.Sandbox{Spec: apiSpec(p.GetSpec()), State: apiState(p.GetState()), Ports: apiPorts(p.GetPorts())}
 }
 
 func protoRef(r api.Ref) *jardv1.Ref {

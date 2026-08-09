@@ -341,3 +341,122 @@ func TestOpenWithoutRuntimeStillLists(t *testing.T) {
 		t.Error("Create without a runtime should fail")
 	}
 }
+
+func TestPublishRecordsWithoutStartingAForwarder(t *testing.T) {
+	svc, rn := testService(t)
+	ctx := context.Background()
+	if _, err := svc.Create(ctx, spec("demo")); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	ports := []api.Port{{Host: 8080, Sandbox: 80}}
+	if err := svc.Publish(ctx, api.ByName("demo"), ports); err != nil {
+		t.Fatalf("Publish: %v", err)
+	}
+
+	// recorded, and it survives a reread.
+	sb, err := svc.Inspect(ctx, api.ByName("demo"))
+	if err != nil {
+		t.Fatalf("Inspect: %v", err)
+	}
+	if len(sb.Ports) != 1 || sb.Ports[0] != ports[0] {
+		t.Errorf("ports = %+v, want %+v", sb.Ports, ports)
+	}
+	// but nothing was published: a forwarder standing by for a sandbox that is
+	// not running would hold the host port against it.
+	if _, ok := rn.Published["demo"]; ok {
+		t.Error("a stopped sandbox had its ports bound on the host")
+	}
+}
+
+func TestPublishOnARunningSandboxTakesEffectAtOnce(t *testing.T) {
+	svc, rn := testService(t)
+	ctx := context.Background()
+	if _, err := svc.Create(ctx, spec("demo")); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	if err := svc.Start(ctx, api.ByName("demo")); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+
+	ports := []api.Port{{Host: 8080, Sandbox: 80}}
+	if err := svc.Publish(ctx, api.ByName("demo"), ports); err != nil {
+		t.Fatalf("Publish: %v", err)
+	}
+	if got := rn.Published["demo"]; len(got) != 1 || got[0] != ports[0] {
+		t.Errorf("published = %+v, want %+v", got, ports)
+	}
+}
+
+// Ports are recorded on the sandbox, so a start has to put them back.
+func TestStartRepublishesAndStopTakesThemDown(t *testing.T) {
+	svc, rn := testService(t)
+	ctx := context.Background()
+	if _, err := svc.Create(ctx, spec("demo")); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	if err := svc.Publish(ctx, api.ByName("demo"), []api.Port{{Host: 8080, Sandbox: 80}}); err != nil {
+		t.Fatalf("Publish: %v", err)
+	}
+
+	if err := svc.Start(ctx, api.ByName("demo")); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	if len(rn.Published["demo"]) != 1 {
+		t.Errorf("published = %+v, want the recorded ports back on the host", rn.Published["demo"])
+	}
+
+	if err := svc.Stop(ctx, api.ByName("demo")); err != nil {
+		t.Fatalf("Stop: %v", err)
+	}
+	if _, ok := rn.Published["demo"]; ok {
+		t.Error("a stopped sandbox still holds its host ports")
+	}
+	// the record keeps them, so the next start puts them back.
+	sb, err := svc.Inspect(ctx, api.ByName("demo"))
+	if err != nil {
+		t.Fatalf("Inspect: %v", err)
+	}
+	if len(sb.Ports) != 1 {
+		t.Errorf("ports = %+v, want them still recorded after a stop", sb.Ports)
+	}
+}
+
+// A sandbox whose ports could not be published has still started, and the
+// record has to say so — otherwise the next command acts on a stale status.
+func TestStartRecordsRunningEvenWhenPublishingFails(t *testing.T) {
+	svc, rn := testService(t)
+	ctx := context.Background()
+	if _, err := svc.Create(ctx, spec("demo")); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	if err := svc.Publish(ctx, api.ByName("demo"), []api.Port{{Host: 8080, Sandbox: 80}}); err != nil {
+		t.Fatalf("Publish: %v", err)
+	}
+
+	rn.PublishErr = errors.New("port is already allocated")
+	err := svc.Start(ctx, api.ByName("demo"))
+	if !errors.Is(err, api.ErrPortsUnavailable) {
+		t.Fatalf("Start err = %v, want ErrPortsUnavailable", err)
+	}
+
+	rn.PublishErr = nil
+	sb, err := svc.Inspect(ctx, api.ByName("demo"))
+	if err != nil {
+		t.Fatalf("Inspect: %v", err)
+	}
+	if sb.State.Status != api.StatusRunning {
+		t.Errorf("status = %q, want running: the sandbox started, only its ports did not", sb.State.Status)
+	}
+}
+
+func TestPublishValidates(t *testing.T) {
+	svc, _ := testService(t)
+	ctx := context.Background()
+	if _, err := svc.Create(ctx, spec("demo")); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	if err := svc.Publish(ctx, api.ByName("demo"), []api.Port{{Host: 0, Sandbox: 80}}); err == nil {
+		t.Error("Publish accepted an out-of-range host port")
+	}
+}

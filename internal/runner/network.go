@@ -10,8 +10,9 @@ import (
 
 // Sandboxes reach the outside through one narrow path and no other.
 //
-// Each sandbox gets its own internal network: no route off the host, and no
-// route to another sandbox. The only thing else on it is the relay, which is
+// Each sandbox gets its own network, and with egress control on it is an
+// internal one: no route off the host, and no route to another sandbox. The
+// only thing else on it is the relay, which is
 // attached to every sandbox network and to one ordinary network of its own, and
 // which forwards to the proxy on the host and nowhere else.
 //
@@ -32,7 +33,7 @@ const (
 	DefaultRelayImage = "ghcr.io/rhizomatous/jard-relay:latest"
 )
 
-// SandboxNetwork is the internal network a sandbox is alone on.
+// SandboxNetwork is the network a sandbox is alone on.
 func SandboxNetwork(sandbox string) string { return containerPrefix + sandbox + "-net" }
 
 // ProxyEnv is what a sandbox is told about its way out.
@@ -59,9 +60,17 @@ func ProxyEnv(sandbox string) map[string]string {
 }
 
 // CreateNetworkInvocation renders the command creating a sandbox's network.
+//
+// Every sandbox gets one, whether or not egress control is on. Only the
+// --internal flag turns on the isolation; the network itself is what lets the
+// port forwarder find the sandbox by name, which the runtime's embedded DNS
+// does on a user-defined network and not on the default bridge.
 func (o *OCI) CreateNetworkInvocation(sandbox string) Invocation {
-	return o.invoke("network", "create", "--internal",
-		"--label", "jard.sandbox="+sandbox, SandboxNetwork(sandbox))
+	args := []string{"network", "create"}
+	if o.egressUpstream != "" {
+		args = append(args, "--internal")
+	}
+	return o.invoke(append(args, "--label", "jard.sandbox="+sandbox, SandboxNetwork(sandbox))...)
 }
 
 // RemoveNetworkInvocation renders the command removing it.

@@ -48,7 +48,8 @@ the daemon normally, in-process for `--dry-run` and `--state-dir`.
 
 ## Things that will bite you
 
-- **A sandbox's definition is fixed at create time.** `Spec` is written once and reread on every reattach. Anything that should be changeable needs a deliberate story for changing it.
+- **Most of a sandbox's definition is fixed at create time.** `Spec` is what the container was built from: it is written once, reread on every reattach, and changing any of it means building a different container — which costs everything the old one held outside its home volume. Published ports are the exception, and live on `Sandbox` rather than `Spec`, because they are not on the container at all: a sandbox cannot publish for itself, so its ports are carried by a forwarder beside it that is rebuilt on every start regardless. Anything else that should be changeable needs the same kind of story.
+- **A sandbox cannot publish its own ports.** `--publish` on a container attached to an internal network is not an error — the runtime exits zero and creates no mapping. `internal/runner/ports.go` carries them instead, and that is also why `Spec` has no ports in it.
 - **`/home/agent` is a volume mount point.** A volume takes its contents from the image only on first use, so anything the image puts under `/home/agent` is frozen the moment a sandbox is first started. Agent binaries go in `/usr/local`.
 - **`rm --volumes` does not remove named volumes,** only anonymous ones. The home volume needs its own `volume rm`, or every removed sandbox leaks its disk.
 - **Workspace paths cannot contain `:`.** A mount spec is colon-delimited, so such a path silently binds somewhere else. `Spec.Validate` rejects it; keep it that way.

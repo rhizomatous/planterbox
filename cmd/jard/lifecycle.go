@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -78,7 +79,12 @@ func newStartCmd(g *globals) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return act(g, cmd, args, "started", ui.OK,
 				func(ctx context.Context, svc api.Service, ref api.Ref) error {
-					return svc.Start(ctx, ref)
+					err := svc.Start(ctx, ref)
+					if errors.Is(err, api.ErrPortsUnavailable) {
+						startedWithoutPorts(cmd, ref.Name, err)
+						return nil
+					}
+					return err
 				})
 		},
 	}

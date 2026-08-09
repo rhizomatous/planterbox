@@ -92,8 +92,8 @@ func TestCreateAppliesFlags(t *testing.T) {
 	if spec.Resources.CPUs != 4 || spec.Resources.Memory != 8<<30 {
 		t.Errorf("resources = %+v, want 4 cpus and 8GiB", spec.Resources)
 	}
-	if len(spec.Ports) != 2 || spec.Ports[1].Sandbox != 53 {
-		t.Errorf("ports = %+v, want both, with the mapping kept", spec.Ports)
+	if ports := fake.Sandboxes[0].Ports; len(ports) != 2 || ports[1].Sandbox != 53 {
+		t.Errorf("ports = %+v, want both, with the mapping kept", ports)
 	}
 	if spec.Env["FOO"] != "bar" {
 		t.Errorf("env = %v, want FOO=bar", spec.Env)

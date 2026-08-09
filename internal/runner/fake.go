@@ -18,6 +18,9 @@ type Fake struct {
 	Calls []string
 	// Published is what each sandbox currently has on the host.
 	Published map[string][]api.Port
+	// PublishErr, when set, fails only Publish — which is the case worth
+	// telling apart, since a sandbox whose ports were refused has still started.
+	PublishErr error
 }
 
 var _ Runner = (*Fake)(nil)
@@ -65,6 +68,9 @@ func (f *Fake) Remove(_ context.Context, id ID, _ string, _ bool) error {
 func (f *Fake) Publish(_ context.Context, sandbox string, ports []api.Port) error {
 	if err := f.record("Publish"); err != nil {
 		return err
+	}
+	if f.PublishErr != nil {
+		return f.PublishErr
 	}
 	if len(ports) == 0 {
 		delete(f.Published, sandbox)

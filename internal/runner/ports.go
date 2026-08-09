@@ -2,7 +2,9 @@ package runner
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -76,11 +78,6 @@ func (o *OCI) PortsInvocation(sandbox string, ports []api.Port) Invocation {
 // itself — but a forwarder holds nothing, so replacing one costs only the
 // connections it was carrying.
 func (o *OCI) Publish(ctx context.Context, sandbox string, ports []api.Port) error {
-	// with egress off a sandbox is on an ordinary network and publishes for
-	// itself, which is what --dry-run and the in-process path render.
-	if o.egressUpstream == "" {
-		return nil
-	}
 	for _, p := range ports {
 		if strings.EqualFold(p.Proto, "udp") {
 			return fmt.Errorf("cannot publish %d:%d/udp: the forwarder that carries ports "+
@@ -98,7 +95,10 @@ func (o *OCI) Publish(ctx context.Context, sandbox string, ports []api.Port) err
 		return err
 	}
 	if _, err := o.exec.Output(ctx, o.PortsInvocation(sandbox, ports)); err != nil {
-		return fmt.Errorf("publishing ports for %s: %w", sandbox, err)
+		// a run that fails partway still leaves the container record behind,
+		// holding nothing and cluttering `docker ps -a`.
+		_ = o.Unpublish(ctx, sandbox)
+		return publishFailure(err, ports)
 	}
 	// being published is only half of it; reaching the sandbox means being on
 	// its network too.
@@ -117,11 +117,6 @@ func (o *OCI) Publish(ctx context.Context, sandbox string, ports []api.Port) err
 // its host ports bound against a sandbox that is no longer listening, which
 // denies them to whatever wants them next and answers on them meanwhile.
 func (o *OCI) Unpublish(ctx context.Context, sandbox string) error {
-	// with egress off a sandbox is on an ordinary network and publishes for
-	// itself, which is what --dry-run and the in-process path render.
-	if o.egressUpstream == "" {
-		return nil
-	}
 	_, err := o.exec.Output(ctx, o.invoke("rm", "--force", PortsContainer(sandbox)))
 	if err != nil && !isNotFound(err) {
 		return fmt.Errorf("removing the port forwarder for %s: %w", sandbox, err)
@@ -135,4 +130,42 @@ func (o *OCI) ensurePortsNetwork(ctx context.Context) error {
 		return err
 	}
 	return nil
+}
+
+// bindConflict matches a runtime reporting a host port it could not take.
+// Docker and podman word the rest of the failure differently; both say this.
+var bindConflict = regexp.MustCompile(`[Bb]ind for (\S+?) failed`)
+
+// publishFailure trims a runtime's answer down to the part worth reading.
+//
+// A bind conflict arrives as the daemon's message, the endpoint's id, a blank
+// line, and a suggestion to run `docker run --help`. None of that belongs in
+// front of someone who published a port that was already taken, and the whole
+// of it lands in a warning printed under a sandbox that started fine.
+func publishFailure(err error, ports []api.Port) error {
+	first, _, _ := strings.Cut(err.Error(), "\n")
+	first = strings.TrimSpace(first)
+
+	if m := bindConflict.FindStringSubmatch(first); m != nil {
+		// the address carries the port, and the host part is whatever the
+		// runtime binds on rather than anything the user asked for.
+		addr := m[1]
+		if i := strings.LastIndex(addr, ":"); i >= 0 {
+			addr = addr[i+1:]
+		}
+		return fmt.Errorf("host port %s is already in use", addr)
+	}
+	if strings.Contains(first, "already allocated") || strings.Contains(first, "address already in use") {
+		return fmt.Errorf("a host port is already in use, of %s", portList(ports))
+	}
+	return errors.New(first)
+}
+
+// portList names the host ports a publish asked for.
+func portList(ports []api.Port) string {
+	out := make([]string, 0, len(ports))
+	for _, p := range ports {
+		out = append(out, strconv.Itoa(p.Host))
+	}
+	return strings.Join(out, ", ")
 }

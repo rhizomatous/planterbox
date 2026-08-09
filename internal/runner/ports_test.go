@@ -50,39 +50,29 @@ func TestPortsInvocationRunsTheRelayImage(t *testing.T) {
 	}
 }
 
-// A sandbox on an internal network must not carry --publish itself: the
-// runtime accepts it, creates no mapping, and says nothing.
-func TestCreateDoesNotPublishOnAnInternalNetwork(t *testing.T) {
-	spec := api.Spec{Name: "demo", Image: "base:1", Ports: []api.Port{{Host: 3000, Sandbox: 3000}}}
+// Every sandbox is alone on its own network, whether or not egress control is
+// on. Only the isolation is conditional — the network itself is what lets the
+// forwarder find the sandbox by name.
+func TestEverySandboxGetsItsOwnNetwork(t *testing.T) {
+	spec := api.Spec{Name: "demo", Image: "base:1"}
 
-	withEgress := portsOCI(&scriptedExecutor{}).CreateInvocation(spec)
-	if got := allAfter(withEgress.Args, "--publish"); len(got) != 0 {
-		t.Errorf("--publish = %v, want none: an internal network drops it silently", got)
-	}
-	if net, ok := argsAfter(withEgress.Args, "--network"); !ok || net != SandboxNetwork("demo") {
-		t.Errorf("--network = %q, want the sandbox's private network", net)
-	}
-
-	// with egress off there is no internal network, so the sandbox publishes
-	// for itself. This is the --dry-run and in-process path.
-	direct := testOCI().CreateInvocation(spec)
-	if got := allAfter(direct.Args, "--publish"); !slices.Equal(got, []string{"3000:3000"}) {
-		t.Errorf("--publish = %v, want the sandbox publishing directly", got)
-	}
-}
-
-func TestPublishIsInertWithoutEgress(t *testing.T) {
-	exec := &scriptedExecutor{}
-	o := testOCI(WithExecutor(exec))
-
-	if err := o.Publish(context.Background(), "demo", []api.Port{{Host: 1, Sandbox: 1}}); err != nil {
-		t.Fatalf("Publish: %v", err)
-	}
-	if err := o.Unpublish(context.Background(), "demo"); err != nil {
-		t.Fatalf("Unpublish: %v", err)
-	}
-	if len(exec.ran) != 0 {
-		t.Errorf("ran %v, want nothing: the sandbox published for itself at create", exec.ran)
+	for _, tc := range []struct {
+		name     string
+		o        *OCI
+		internal bool
+	}{
+		{"with egress control", portsOCI(&scriptedExecutor{}), true},
+		{"without", testOCI(), false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if net, ok := argsAfter(tc.o.CreateInvocation(spec).Args, "--network"); !ok || net != SandboxNetwork("demo") {
+				t.Errorf("--network = %q, want the sandbox's own network", net)
+			}
+			create := tc.o.CreateNetworkInvocation("demo")
+			if got := slices.Contains(create.Args, "--internal"); got != tc.internal {
+				t.Errorf("--internal = %v, want %v", got, tc.internal)
+			}
+		})
 	}
 }
 
@@ -169,4 +159,59 @@ func TestUnpublishToleratesNothingPublished(t *testing.T) {
 	if err := portsOCI(exec).Unpublish(context.Background(), "demo"); err != nil {
 		t.Errorf("Unpublish: %v, want a missing forwarder to be tolerated", err)
 	}
+}
+
+// A bind conflict comes back as several lines of runtime chatter around one
+// useful fact, and it lands in a warning under a sandbox that started fine.
+func TestPublishFailureIsReadable(t *testing.T) {
+	docker := errors.New("docker run: docker: Error response from daemon: failed to set up " +
+		"container networking: driver failed programming external connectivity on endpoint " +
+		"jard-demo-ports (b557c7307104): Bind for 0.0.0.0:19090 failed: port is already allocated\n" +
+		"\nRun 'docker run --help' for more information (exit status 125)")
+
+	got := publishFailure(docker, []api.Port{{Host: 19090, Sandbox: 9090}}).Error()
+	if got != "host port 19090 is already in use" {
+		t.Errorf("publishFailure = %q, want the port and the reason and nothing else", got)
+	}
+}
+
+func TestPublishFailurePassesThroughWhatItCannotRead(t *testing.T) {
+	got := publishFailure(errors.New("docker run: no such image\nsecond line"), nil).Error()
+	if got != "docker run: no such image" {
+		t.Errorf("publishFailure = %q, want the first line intact", got)
+	}
+}
+
+// A run that fails leaves a container record behind, holding nothing.
+func TestPublishClearsUpAfterAFailedForwarder(t *testing.T) {
+	exec := &failOnceExecutor{err: errors.New("Bind for 0.0.0.0:19090 failed: port is already allocated")}
+	err := portsOCI(exec).Publish(context.Background(), "demo", []api.Port{{Host: 19090, Sandbox: 9090}})
+	if err == nil {
+		t.Fatal("Publish succeeded against a taken port")
+	}
+
+	var removals int
+	for _, inv := range exec.ran {
+		if strings.HasPrefix(strings.Join(inv.Args, " "), "rm --force jard-demo-ports") {
+			removals++
+		}
+	}
+	// once before the run, and once after it failed.
+	if removals != 2 {
+		t.Errorf("removed the forwarder %d times, want the failed one cleared up too", removals)
+	}
+}
+
+// failOnceExecutor fails only the `run`, as a bind conflict does.
+type failOnceExecutor struct {
+	scriptedExecutor
+	err error
+}
+
+func (f *failOnceExecutor) Output(ctx context.Context, inv Invocation) ([]byte, error) {
+	out, err := f.scriptedExecutor.Output(ctx, inv)
+	if len(inv.Args) > 0 && inv.Args[0] == "run" {
+		return nil, f.err
+	}
+	return out, err
 }

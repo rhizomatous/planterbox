@@ -127,6 +127,22 @@ func (f *Fake) Copy(_ context.Context, src, dst Path) error {
 	return nil
 }
 
+// Publish records a sandbox's published ports.
+func (f *Fake) Publish(_ context.Context, ref Ref, ports []Port) error {
+	if err := f.record("Publish"); err != nil {
+		return err
+	}
+	if err := ValidatePorts(ports); err != nil {
+		return err
+	}
+	i, ok := f.find(ref)
+	if !ok {
+		return ErrNotFound
+	}
+	f.Sandboxes[i].Ports = ports
+	return nil
+}
+
 // Stats replays [Fake.Samples] once and closes, so a caller ranging over the
 // channel terminates rather than waiting on a live runtime.
 func (f *Fake) Stats(_ context.Context, ref Ref) (<-chan Stats, error) {

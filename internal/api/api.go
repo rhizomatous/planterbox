@@ -28,6 +28,10 @@ var (
 	// ErrNoPolicy means no egress policy has been chosen yet, which is how a
 	// first run knows to ask.
 	ErrNoPolicy = errors.New("no network policy has been set")
+	// ErrPortsUnavailable means a sandbox's ports could not be published,
+	// usually because the host already has something on one of them. It is
+	// separate because a start that hits it has still started the sandbox.
+	ErrPortsUnavailable = errors.New("ports could not be published")
 )
 
 // Service is everything jard can do to a sandbox.
@@ -50,6 +54,10 @@ type Service interface {
 	// Copy moves files between the host and a sandbox. Exactly one of src and
 	// dst must name a sandbox, and that is the sandbox operated on.
 	Copy(ctx context.Context, src, dst Path) error
+	// Publish replaces the set of ports a sandbox publishes on the host. It
+	// takes effect at once on a running sandbox, and on next start otherwise.
+	// An empty list publishes nothing.
+	Publish(ctx context.Context, ref Ref, ports []Port) error
 	// Stats streams resource samples for a running sandbox until it stops or
 	// ctx is cancelled. Callers must drain the channel or cancel ctx.
 	Stats(ctx context.Context, ref Ref) (<-chan Stats, error)
@@ -91,7 +99,12 @@ func (r Ref) String() string {
 	}
 }
 
-// Spec is a sandbox's durable definition.
+// Spec is what a sandbox's container was built from, and it does not change.
+//
+// Everything in it is an argument to the runtime's create: changing any of it
+// means building a different container, which costs everything the old one held
+// outside its home volume. Ports are deliberately absent — they are not part of
+// the container at all. See [Sandbox.Ports].
 type Spec struct {
 	Name       string            `json:"name"`
 	Agent      string            `json:"agent,omitempty"`
@@ -99,7 +112,6 @@ type Spec struct {
 	Workspaces []Workspace       `json:"workspaces,omitempty"`
 	Resources  Resources         `json:"resources,omitzero"`
 	Env        map[string]string `json:"env,omitempty"`
-	Ports      []Port            `json:"ports,omitempty"`
 	CreatedAt  time.Time         `json:"created_at"`
 }
 
@@ -158,10 +170,15 @@ const (
 	StatusMissing Status = "missing" // recorded here, gone from the runtime
 )
 
-// Sandbox is a stored spec paired with its observed state.
+// Sandbox is a stored spec, the state jard last observed, and the ports the
+// sandbox publishes.
 type Sandbox struct {
 	Spec  Spec  `json:"spec"`
 	State State `json:"state"`
+	// Ports are published on the host while the sandbox runs. Unlike Spec they
+	// can change at any time: a sandbox cannot publish for itself, so its ports
+	// live in a forwarder beside it that is rebuilt on every start anyway.
+	Ports []Port `json:"ports,omitempty"`
 }
 
 // ExecRequest describes a command to run inside a sandbox.

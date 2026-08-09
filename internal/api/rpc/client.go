@@ -99,6 +99,12 @@ func (c *Client) Copy(ctx context.Context, src, dst api.Path) error {
 	return localError(err)
 }
 
+// Publish replaces the ports a sandbox publishes on the host.
+func (c *Client) Publish(ctx context.Context, ref api.Ref, ports []api.Port) error {
+	_, err := c.svc.Publish(ctx, &jardv1.PublishRequest{Ref: protoRef(ref), Ports: protoPorts(ports)})
+	return localError(err)
+}
+
 // Stats relays the daemon's samples onto a channel, matching the in-process
 // contract: the channel closes when the feed ends or ctx is cancelled.
 func (c *Client) Stats(ctx context.Context, ref api.Ref) (<-chan api.Stats, error) {

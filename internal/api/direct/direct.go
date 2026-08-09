@@ -106,12 +106,18 @@ func (s *Service) Inspect(ctx context.Context, ref api.Ref) (api.Sandbox, error)
 // nothing, so the mapping lives in a forwarder beside the sandbox instead of
 // in the sandbox's own container.
 func (s *Service) Start(ctx context.Context, ref api.Ref) error {
-	return s.act(ctx, ref, func(sb api.Sandbox, id runner.ID) error {
-		if err := s.runner.Start(ctx, id, sb.Spec.Name); err != nil {
-			return err
-		}
-		return s.runner.Publish(ctx, sb.Spec.Name, sb.Spec.Ports)
+	var started api.Sandbox
+	err := s.act(ctx, ref, func(sb api.Sandbox, id runner.ID) error {
+		started = sb
+		return s.runner.Start(ctx, id, sb.Spec.Name)
 	})
+	if err != nil {
+		return err
+	}
+	// publishing is separate from the start, and after the state is written.
+	// A sandbox whose ports were refused is running all the same, and a record
+	// that said otherwise would be the lie.
+	return s.publish(ctx, started)
 }
 
 // Stop halts a running sandbox, leaving its contents intact.
@@ -152,6 +158,38 @@ func (s *Service) Exec(ctx context.Context, ref api.Ref, req api.ExecRequest, st
 		return api.ExecResult{}, err
 	}
 	return s.runner.Exec(ctx, containerID(sb), req, streams)
+}
+
+// Publish replaces the ports a sandbox publishes on the host.
+//
+// The record is written first and the forwarder brought into line after, so
+// the set survives a restart even if the runtime refuses it now. A sandbox
+// that is not running gets the record only: there is nothing to forward to
+// yet, and a forwarder standing by would hold the host ports against it.
+func (s *Service) Publish(ctx context.Context, ref api.Ref, ports []api.Port) error {
+	if err := api.ValidatePorts(ports); err != nil {
+		return err
+	}
+	sb, err := s.find(ref)
+	if err != nil {
+		return err
+	}
+	sb.Ports = ports
+	if err := s.store.Put(sb); err != nil {
+		return err
+	}
+	if s.observe(ctx, sb).Status != api.StatusRunning {
+		return nil
+	}
+	return s.publish(ctx, sb)
+}
+
+// publish brings the forwarder into line with what the record says.
+func (s *Service) publish(ctx context.Context, sb api.Sandbox) error {
+	if err := s.runner.Publish(ctx, sb.Spec.Name, sb.Ports); err != nil {
+		return fmt.Errorf("%w: %w", api.ErrPortsUnavailable, err)
+	}
+	return nil
 }
 
 // Copy moves files between the host and a sandbox, named by whichever side of

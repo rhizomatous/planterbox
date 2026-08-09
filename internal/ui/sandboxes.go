@@ -116,7 +116,7 @@ func RenderSandboxFields(sb api.Sandbox, now time.Time) string {
 		lines = append(lines, row("limits", fmt.Sprintf("%s cpu, %s memory",
 			cpuLabel(r.CPUs), api.FormatBytes(r.Memory))))
 	}
-	for i, p := range sb.Spec.Ports {
+	for i, p := range sb.Ports {
 		key := "ports"
 		if i > 0 {
 			key = ""
@@ -129,6 +129,27 @@ func RenderSandboxFields(sb api.Sandbox, now time.Time) string {
 			key = ""
 		}
 		lines = append(lines, row(key, k+"="+sb.Spec.Env[k]))
+	}
+	return strings.Join(lines, "\n")
+}
+
+// RenderPorts lists what a sandbox publishes on the host.
+//
+// A stopped sandbox's ports are recorded but not bound, and saying so is the
+// difference between "nothing is listening" and "jard forgot".
+func RenderPorts(sb api.Sandbox) string {
+	if len(sb.Ports) == 0 {
+		return Faint.Render(sb.Spec.Name + " publishes no ports")
+	}
+
+	lines := make([]string, 0, len(sb.Ports)+1)
+	for _, p := range sb.Ports {
+		lines = append(lines, "  "+Value.Render(fmt.Sprintf("%d", p.Host))+
+			Faint.Render(" → ")+fmt.Sprintf("%d%s", p.Sandbox, protoLabel(p.Proto)))
+	}
+	if sb.State.Status != api.StatusRunning {
+		lines = append(lines, Faint.Render(fmt.Sprintf(
+			"  published when %s starts", sb.Spec.Name)))
 	}
 	return strings.Join(lines, "\n")
 }

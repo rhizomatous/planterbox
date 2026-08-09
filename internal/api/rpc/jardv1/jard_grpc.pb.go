@@ -26,6 +26,7 @@ const (
 	Sandboxes_Stop_FullMethodName        = "/jard.v1.Sandboxes/Stop"
 	Sandboxes_Remove_FullMethodName      = "/jard.v1.Sandboxes/Remove"
 	Sandboxes_Copy_FullMethodName        = "/jard.v1.Sandboxes/Copy"
+	Sandboxes_Publish_FullMethodName     = "/jard.v1.Sandboxes/Publish"
 	Sandboxes_Stats_FullMethodName       = "/jard.v1.Sandboxes/Stats"
 	Sandboxes_Exec_FullMethodName        = "/jard.v1.Sandboxes/Exec"
 	Sandboxes_GetPolicy_FullMethodName   = "/jard.v1.Sandboxes/GetPolicy"
@@ -50,6 +51,7 @@ type SandboxesClient interface {
 	Stop(ctx context.Context, in *StopRequest, opts ...grpc.CallOption) (*StopResponse, error)
 	Remove(ctx context.Context, in *RemoveRequest, opts ...grpc.CallOption) (*RemoveResponse, error)
 	Copy(ctx context.Context, in *CopyRequest, opts ...grpc.CallOption) (*CopyResponse, error)
+	Publish(ctx context.Context, in *PublishRequest, opts ...grpc.CallOption) (*PublishResponse, error)
 	// Stats streams samples until the sandbox stops or the client goes away.
 	Stats(ctx context.Context, in *StatsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Sample], error)
 	// Exec runs a command in a sandbox with its stdio streamed both ways. The
@@ -142,6 +144,16 @@ func (c *sandboxesClient) Copy(ctx context.Context, in *CopyRequest, opts ...grp
 	return out, nil
 }
 
+func (c *sandboxesClient) Publish(ctx context.Context, in *PublishRequest, opts ...grpc.CallOption) (*PublishResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PublishResponse)
+	err := c.cc.Invoke(ctx, Sandboxes_Publish_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *sandboxesClient) Stats(ctx context.Context, in *StatsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Sample], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &Sandboxes_ServiceDesc.Streams[0], Sandboxes_Stats_FullMethodName, cOpts...)
@@ -221,6 +233,7 @@ type SandboxesServer interface {
 	Stop(context.Context, *StopRequest) (*StopResponse, error)
 	Remove(context.Context, *RemoveRequest) (*RemoveResponse, error)
 	Copy(context.Context, *CopyRequest) (*CopyResponse, error)
+	Publish(context.Context, *PublishRequest) (*PublishResponse, error)
 	// Stats streams samples until the sandbox stops or the client goes away.
 	Stats(*StatsRequest, grpc.ServerStreamingServer[Sample]) error
 	// Exec runs a command in a sandbox with its stdio streamed both ways. The
@@ -263,6 +276,9 @@ func (UnimplementedSandboxesServer) Remove(context.Context, *RemoveRequest) (*Re
 }
 func (UnimplementedSandboxesServer) Copy(context.Context, *CopyRequest) (*CopyResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Copy not implemented")
+}
+func (UnimplementedSandboxesServer) Publish(context.Context, *PublishRequest) (*PublishResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Publish not implemented")
 }
 func (UnimplementedSandboxesServer) Stats(*StatsRequest, grpc.ServerStreamingServer[Sample]) error {
 	return status.Error(codes.Unimplemented, "method Stats not implemented")
@@ -426,6 +442,24 @@ func _Sandboxes_Copy_Handler(srv interface{}, ctx context.Context, dec func(inte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Sandboxes_Publish_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PublishRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SandboxesServer).Publish(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Sandboxes_Publish_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SandboxesServer).Publish(ctx, req.(*PublishRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Sandboxes_Stats_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(StatsRequest)
 	if err := stream.RecvMsg(m); err != nil {
@@ -532,6 +566,10 @@ var Sandboxes_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Copy",
 			Handler:    _Sandboxes_Copy_Handler,
+		},
+		{
+			MethodName: "Publish",
+			Handler:    _Sandboxes_Publish_Handler,
 		},
 		{
 			MethodName: "GetPolicy",

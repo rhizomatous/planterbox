@@ -85,10 +85,8 @@ func HomeVolume(sandbox string) string { return containerPrefix + sandbox + "-ho
 func (o *OCI) Create(ctx context.Context, spec api.Spec) (ID, error) {
 	// the network comes first: the container is created onto it, and a create
 	// naming a network that does not exist fails outright.
-	if o.egressUpstream != "" {
-		if err := o.EnsureNetwork(ctx, spec.Name); err != nil {
-			return "", err
-		}
+	if err := o.EnsureNetwork(ctx, spec.Name); err != nil {
+		return "", err
 	}
 	if _, err := o.exec.Output(ctx, o.CreateInvocation(spec)); err != nil {
 		return "", err
@@ -151,13 +149,11 @@ func (o *OCI) Remove(ctx context.Context, id ID, sandbox string, force bool) err
 	}
 	// the network goes last: it cannot be removed while anything is still
 	// attached to it, and the port forwarder is one of those things.
-	if o.egressUpstream != "" {
-		if err := o.Unpublish(ctx, sandbox); err != nil {
-			return err
-		}
-		if err := o.RemoveNetwork(ctx, sandbox); err != nil {
-			return err
-		}
+	if err := o.Unpublish(ctx, sandbox); err != nil {
+		return err
+	}
+	if err := o.RemoveNetwork(ctx, sandbox); err != nil {
+		return err
 	}
 	return nil
 }
@@ -301,25 +297,18 @@ func (o *OCI) CreateInvocation(spec api.Spec) Invocation {
 		args = append(args, "--memory", strconv.FormatInt(spec.Resources.Memory, 10))
 	}
 
-	// the sandbox is alone on a network with no route out. Its only company
-	// is the relay, and the proxy environment is what points at it.
+	// a sandbox is always alone on its own network. With egress control on
+	// that network has no route out, and the proxy environment points at the
+	// relay, which is the only other thing on it.
+	args = append(args, "--network", SandboxNetwork(spec.Name))
 	env := spec.Env
 	if o.egressUpstream != "" {
-		args = append(args, "--network", SandboxNetwork(spec.Name))
 		env = withProxyEnv(env, spec.Name)
 	}
 
 	// map order is random; sort so the rendered command is stable.
 	for _, k := range sortedKeys(env) {
 		args = append(args, "--env", k+"="+env[k])
-	}
-	// only when the sandbox is on an ordinary network. On an internal one a
-	// runtime accepts --publish and silently creates no mapping, so ports are
-	// carried by a forwarder instead. See ports.go.
-	if o.egressUpstream == "" {
-		for _, p := range spec.Ports {
-			args = append(args, "--publish", publishSpec(p))
-		}
 	}
 
 	args = append(args, spec.Image)

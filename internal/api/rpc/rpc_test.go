@@ -59,7 +59,6 @@ func detailed() api.Spec {
 		},
 		Resources: api.Resources{CPUs: 4, Memory: 2 << 30},
 		Env:       map[string]string{"FOO": "bar"},
-		Ports:     []api.Port{{Host: 3000, Sandbox: 3000, Proto: "udp"}},
 		CreatedAt: time.Date(2026, 8, 4, 12, 0, 0, 0, time.UTC),
 	}
 }
@@ -81,9 +80,6 @@ func TestSpecSurvivesTheRoundTrip(t *testing.T) {
 	}
 	if got.Resources != want.Resources {
 		t.Errorf("resources = %+v, want %+v", got.Resources, want.Resources)
-	}
-	if len(got.Ports) != 1 || got.Ports[0] != want.Ports[0] {
-		t.Errorf("ports = %+v, want %+v", got.Ports, want.Ports)
 	}
 	if got.Env["FOO"] != "bar" {
 		t.Errorf("env = %v, want FOO=bar", got.Env)
@@ -451,5 +447,27 @@ func TestConnectionsCarryTheirDecisions(t *testing.T) {
 	}
 	if len(since) != 1 || since[0].Seq != 2 {
 		t.Errorf("Connections(1) = %+v, want only the newer one", since)
+	}
+}
+
+// Ports ride on the sandbox rather than the spec, so they need their own trip.
+func TestPortsSurviveTheRoundTrip(t *testing.T) {
+	client := dial(t, api.NewFake())
+	ctx := context.Background()
+
+	if _, err := client.Create(ctx, detailed()); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	want := []api.Port{{Host: 3000, Sandbox: 3000}, {Host: 8080, Sandbox: 80, Proto: "tcp"}}
+	if err := client.Publish(ctx, api.ByName("myrepo"), want); err != nil {
+		t.Fatalf("Publish: %v", err)
+	}
+
+	sb, err := client.Inspect(ctx, api.ByName("myrepo"))
+	if err != nil {
+		t.Fatalf("Inspect: %v", err)
+	}
+	if len(sb.Ports) != len(want) || sb.Ports[0] != want[0] || sb.Ports[1] != want[1] {
+		t.Errorf("ports = %+v, want %+v", sb.Ports, want)
 	}
 }

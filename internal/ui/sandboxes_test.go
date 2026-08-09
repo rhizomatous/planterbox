@@ -112,11 +112,11 @@ func detailed() api.Sandbox {
 				{Host: "/home/viv/shared", ReadOnly: true},
 			},
 			Resources: api.Resources{CPUs: 4, Memory: 2 << 30},
-			Ports:     []api.Port{{Host: 3000, Sandbox: 3000}},
 			Env:       map[string]string{"FOO": "bar"},
 			CreatedAt: now.Add(-2 * time.Hour),
 		},
 		State: api.State{Status: api.StatusRunning},
+		Ports: []api.Port{{Host: 3000, Sandbox: 3000}},
 	}
 }
 

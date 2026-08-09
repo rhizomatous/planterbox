@@ -94,15 +94,11 @@ func TestCreateInvocationWorkspacesBindAtHostPaths(t *testing.T) {
 	}
 }
 
-func TestCreateInvocationResourcesAndPorts(t *testing.T) {
+func TestCreateInvocationResources(t *testing.T) {
 	inv := testOCI().CreateInvocation(api.Spec{
 		Name:      "demo",
 		Image:     "base:1",
 		Resources: api.Resources{CPUs: 2.5, Memory: 8 << 30},
-		Ports: []api.Port{
-			{Host: 3000, Sandbox: 3000},
-			{Host: 5353, Sandbox: 53, Proto: "udp"},
-		},
 	})
 
 	if cpus, _ := argsAfter(inv.Args, "--cpus"); cpus != "2.5" {
@@ -111,9 +107,9 @@ func TestCreateInvocationResourcesAndPorts(t *testing.T) {
 	if mem, _ := argsAfter(inv.Args, "--memory"); mem != "8589934592" {
 		t.Errorf("--memory = %q, want the byte count", mem)
 	}
-	ports := allAfter(inv.Args, "--publish")
-	if len(ports) != 2 || ports[0] != "3000:3000" || ports[1] != "5353:53/udp" {
-		t.Errorf("--publish = %v, want [3000:3000 5353:53/udp]", ports)
+	// ports are never on the container: it cannot publish for itself.
+	if got := allAfter(inv.Args, "--publish"); len(got) != 0 {
+		t.Errorf("--publish = %v, want none — ports live in a forwarder", got)
 	}
 }
 
@@ -235,12 +231,16 @@ func TestDryRunRendersWithoutExecuting(t *testing.T) {
 	if id != "jard-demo" {
 		t.Errorf("id = %q, want jard-demo", id)
 	}
-	line := out.String()
-	if !strings.HasPrefix(line, "/usr/bin/docker create --name jard-demo") {
-		t.Errorf("rendered %q, want the create command line", line)
+	// the network comes first: a create naming one that does not exist fails.
+	lines := strings.Split(strings.TrimSpace(out.String()), "\n")
+	if len(lines) != 2 || !strings.HasPrefix(lines[0], "/usr/bin/docker network create") {
+		t.Fatalf("rendered %q, want the network created before the container", out.String())
 	}
-	if !strings.HasSuffix(strings.TrimSpace(line), "base:1 sleep infinity") {
-		t.Errorf("rendered %q, want it to end with the image and idle command", line)
+	if !strings.HasPrefix(lines[1], "/usr/bin/docker create --name jard-demo") {
+		t.Errorf("rendered %q, want the create command line", lines[1])
+	}
+	if !strings.HasSuffix(lines[1], "base:1 sleep infinity") {
+		t.Errorf("rendered %q, want it to end with the image and idle command", lines[1])
 	}
 }
 
@@ -265,6 +265,11 @@ func TestDryRunCoversEveryMutation(t *testing.T) {
 		"stop jard-demo",
 		"rm --volumes --force jard-demo",
 		"volume rm jard-demo-home",
+		// a sandbox's own belongings go with it: the forwarder holding its
+		// ports, and the network both of them were on.
+		"rm --force jard-demo-ports",
+		"network disconnect --force jard-demo-net jard-relay",
+		"network rm jard-demo-net",
 	}
 	if len(lines) != len(want) {
 		t.Fatalf("rendered %d lines, want %d:\n%s", len(lines), len(want), out.String())
@@ -283,9 +288,6 @@ func TestRemoveDeletesTheHomeVolumeSeparately(t *testing.T) {
 	if err := testOCI(WithExecutor(e)).Remove(context.Background(), "jard-demo", "demo", false); err != nil {
 		t.Fatalf("Remove: %v", err)
 	}
-	if len(e.ran) != 2 {
-		t.Fatalf("ran %d invocations, want the container and the volume", len(e.ran))
-	}
 	if got := strings.Join(e.ran[1].Args, " "); got != "volume rm jard-demo-home" {
 		t.Errorf("second invocation = %q, want the home volume removed by name", got)
 	}
@@ -301,9 +303,6 @@ func TestRemoveNamesTheVolumeAfterTheSandboxNotTheContainer(t *testing.T) {
 	e := &scriptedExecutor{}
 	if err := testOCI(WithExecutor(e)).Remove(context.Background(), hash, "demo", false); err != nil {
 		t.Fatalf("Remove: %v", err)
-	}
-	if len(e.ran) != 2 {
-		t.Fatalf("ran %d invocations, want the container and the volume", len(e.ran))
 	}
 	if got := strings.Join(e.ran[1].Args, " "); got != "volume rm jard-demo-home" {
 		t.Errorf("second invocation = %q, want the volume named after the sandbox", got)
@@ -467,16 +466,19 @@ func TestEgressEnvOverridesWhateverTheSpecAsksFor(t *testing.T) {
 	}
 }
 
-func TestWithoutEgressNothingChanges(t *testing.T) {
-	// --dry-run and the in-process path have no daemon holding a proxy, so
-	// they must render exactly what they did before egress control existed.
-	inv := testOCI().CreateInvocation(api.Spec{Name: "demo", Image: "base:1"})
+func TestWithoutEgressNothingIsRestricted(t *testing.T) {
+	// --dry-run and the in-process path have no daemon holding a proxy. The
+	// sandbox still gets a network of its own — that is what its port
+	// forwarder resolves it on — but nothing about it is restricted, and
+	// there is no proxy to point the sandbox at.
+	o := testOCI()
+	inv := o.CreateInvocation(api.Spec{Name: "demo", Image: "base:1"})
 
-	if _, ok := argsAfter(inv.Args, "--network"); ok {
-		t.Error("no network should be named when egress control is off")
-	}
 	if env := strings.Join(allAfter(inv.Args, "--env"), " "); strings.Contains(env, "PROXY") {
 		t.Errorf("no proxy environment should be set: %q", env)
+	}
+	if joined := strings.Join(o.CreateNetworkInvocation("demo").Args, " "); strings.Contains(joined, "--internal") {
+		t.Errorf("network create %q must not be internal: there is no proxy to be the way out", joined)
 	}
 }
 

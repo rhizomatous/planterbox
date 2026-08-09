@@ -18,7 +18,6 @@ func TestValidateAcceptsAWellFormedSpec(t *testing.T) {
 	spec := valid()
 	spec.Agent = "claude"
 	spec.Env = map[string]string{"FOO": "bar", "EMPTY_VALUE": ""}
-	spec.Ports = []Port{{Host: 3000, Sandbox: 3000}, {Host: 5353, Sandbox: 53, Proto: "tcp"}}
 	spec.Resources = Resources{CPUs: 2.5, Memory: 8 << 30}
 	if err := spec.Validate(); err != nil {
 		t.Errorf("Validate: %v", err)
@@ -123,9 +122,7 @@ func TestValidateRejectsBadPorts(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			spec := valid()
-			spec.Ports = []Port{tc.in}
-			if err := spec.Validate(); err == nil {
+			if err := ValidatePorts([]Port{tc.in}); err == nil {
 				t.Errorf("port %+v should be rejected", tc.in)
 			}
 		})
@@ -175,16 +172,23 @@ func TestAgentsIsACopy(t *testing.T) {
 }
 
 // A sandbox is alone on an internal network and cannot publish for itself, so
-// its ports ride a tcp forwarder. Refusing udp here means the create fails
-// rather than the start.
+// its ports ride a tcp forwarder. Refusing udp when the ports are asked for
+// means the command naming the port is the one that fails.
 func TestValidateRejectsUDPPorts(t *testing.T) {
-	spec := valid()
-	spec.Ports = []Port{{Host: 5353, Sandbox: 53, Proto: "udp"}}
-	err := spec.Validate()
+	err := ValidatePorts([]Port{{Host: 5353, Sandbox: 53, Proto: "udp"}})
 	if err == nil {
 		t.Fatal("Validate accepted a udp port; only tcp can be published")
 	}
 	if !strings.Contains(err.Error(), "tcp") {
 		t.Errorf("error = %q, want it to name the protocol that does work", err)
+	}
+}
+
+// A host port can only be published once; two rules for the same one is a
+// mistake the runtime would report much later and much less clearly.
+func TestValidatePortsRejectsADuplicateHostPort(t *testing.T) {
+	err := ValidatePorts([]Port{{Host: 8080, Sandbox: 80}, {Host: 8080, Sandbox: 3000}})
+	if err == nil {
+		t.Fatal("ValidatePorts accepted the same host port twice")
 	}
 }

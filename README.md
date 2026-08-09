@@ -177,15 +177,26 @@ jard run ~/work/frontend ~/work/backend ~/work/design-docs:ro
 
 The first path is the primary: it's the working directory, and the path `jard run` reattaches by. Workspaces are fixed when the sandbox is created.
 
-### resource limits and ports
+### resource limits, environment, and ports
 
 ```sh
 jard create --cpus 4 -m 8GiB -p 3000 -p 8080:80 -e NODE_ENV=development
 ```
 
-Published ports are TCP. A sandbox is alone on a private network, so it can't publish a port itself — jard runs a small forwarder alongside it that holds the host port and carries it in, and that forwarder speaks TCP only.
+`--cpus`, `-m`, and `-e` are create-time settings. Passing them to `jard run` for a sandbox that already exists warns rather than silently doing nothing — recreate the sandbox to change them.
 
-These are create-time settings. Passing them to `jard run` for a sandbox that already exists warns rather than silently doing nothing — recreate the sandbox to change them.
+Ports are not. They can change at any time:
+
+```sh
+jard ports                          # what this directory's sandbox publishes
+jard ports --publish 3000
+jard ports --publish 8080:80 --publish 5432
+jard ports api --unpublish 3000
+```
+
+A change takes effect immediately on a running sandbox, and on next start otherwise.
+
+The reason ports are different is worth knowing, because it shows up if you go looking in `docker ps`. A sandbox is alone on a private network and can't publish a port itself — a runtime accepts `--publish` there and silently creates no mapping. So jard runs a small forwarder alongside each sandbox that holds the host ports and carries them in. It's rebuilt on every start, which is why ports aren't fixed the way the rest of a sandbox's definition is. It speaks TCP, so published ports are TCP.
 
 ### seeing what it would do
 

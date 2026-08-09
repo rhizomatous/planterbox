@@ -34,6 +34,10 @@ func newCreateCmd(g *globals) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			ports, err := flags.parsePorts()
+			if err != nil {
+				return err
+			}
 			return g.withService(cmd, func(ctx context.Context, svc api.Service) error {
 				if err := ensurePolicy(ctx, cmd, svc); err != nil {
 					return err
@@ -41,6 +45,14 @@ func newCreateCmd(g *globals) *cobra.Command {
 				sb, err := svc.Create(ctx, spec)
 				if err != nil {
 					return err
+				}
+				// ports are not part of the spec, so they are a second call.
+				// The sandbox is not running yet, so this only records them.
+				if len(ports) > 0 {
+					if err := svc.Publish(ctx, api.ByName(sb.Spec.Name), ports); err != nil {
+						return err
+					}
+					sb.Ports = ports
 				}
 				_, err = lipgloss.Fprintln(cmd.OutOrStdout(), ui.RenderCreated(sb))
 				return err

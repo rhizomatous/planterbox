@@ -147,6 +147,11 @@ func (m *Model) toggleSelected() tea.Cmd {
 	}
 	return func() tea.Msg {
 		err := m.svc.Start(context.Background(), api.ByName(name))
+		// the sandbox is up either way; only its ports are not, and the
+		// dashboard should not show a start as having failed.
+		if errors.Is(err, api.ErrPortsUnavailable) {
+			return actionMsg{verb: "started, without its ports", name: name}
+		}
 		return actionMsg{verb: "started", name: name, err: err}
 	}
 }

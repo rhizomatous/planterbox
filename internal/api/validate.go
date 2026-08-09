@@ -57,9 +57,6 @@ func (s Spec) Validate() error {
 	if err := validateEnv(s.Env); err != nil {
 		return err
 	}
-	if err := validatePorts(s.Ports); err != nil {
-		return err
-	}
 	return validateResources(s.Resources)
 }
 
@@ -96,15 +93,24 @@ func validateEnv(env map[string]string) error {
 	return nil
 }
 
-func validatePorts(ports []Port) error {
+// ValidatePorts checks a set of ports before it is published. It is separate
+// from [Spec.Validate] because ports are not part of a spec: they can be
+// changed on a sandbox that already exists.
+func ValidatePorts(ports []Port) error {
+	seen := make(map[int]bool, len(ports))
 	for _, p := range ports {
 		if !validPort(p.Host) || !validPort(p.Sandbox) {
 			return fmt.Errorf("port %d:%d is out of range 1-65535", p.Host, p.Sandbox)
 		}
+		if seen[p.Host] {
+			return fmt.Errorf("host port %d is published twice", p.Host)
+		}
+		seen[p.Host] = true
 		// tcp only, for now. A sandbox is alone on an internal network and
 		// cannot publish for itself, so its ports are carried by a forwarder
-		// beside it — and that forwarder speaks tcp. Refused here rather than
-		// at start, so it is the create that fails and says why.
+		// beside it — and that forwarder speaks tcp. Refused when the ports are
+		// asked for rather than when they are started, so the command naming
+		// the port is the one that fails.
 		switch p.Proto {
 		case "", "tcp":
 		case "udp":

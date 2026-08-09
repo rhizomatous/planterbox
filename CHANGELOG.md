@@ -18,7 +18,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `jard run`, `create`, `ls`, `start`, `stop`, `rm`, `inspect`, `exec`, `cp`, and `agents`. A command that takes a sandbox name defaults to the one for the current directory.
 - Reattach by workspace path or by `--name`, so `jard run` finds the right sandbox from inside a repo or from anywhere.
 - Multiple workspaces, bind-mounted at their host paths. The first is the primary; later ones take a `:ro` suffix. `jard run ~/work/frontend ~/work/backend:ro`.
-- Resource limits and published ports at create time: `--cpus`, `-m/--memory`, `-p/--publish`, `-e/--env`. Published ports are TCP. A sandbox is alone on a private network and cannot publish for itself, so its ports are carried by a forwarder alongside it, and that forwarder speaks TCP only.
+- Resource limits, environment, and published ports at create time: `--cpus`, `-m/--memory`, `-p/--publish`, `-e/--env`.
+- `jard ports` shows what a sandbox publishes, and `--publish`/`--unpublish` change it. Unlike the settings fixed when a sandbox is created, ports can change at any time: a change applies at once to a running sandbox and on next start otherwise. Published ports are TCP — a sandbox is alone on a private network and cannot publish for itself, so its ports are carried by a forwarder alongside it, rebuilt on every start, and that forwarder speaks TCP only.
 - `--` passes everything after it to the agent verbatim, and the agent's exit status becomes jard's.
 - Base images for claude, codex, opencode, and a bare shell, published to `ghcr.io/rhizomatous/jard-<agent>`. `--image` starts from something else.
 - `jard rm` refuses a running sandbox unless `--force` is given.
@@ -36,6 +37,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Sessions are now owned by the daemon, which holds the terminal on your behalf. `jard exec` and attaching from the dashboard behave as before.
 - Create-time settings passed to `jard run` for a sandbox that already exists now warn, rather than being silently ignored.
 - Workspaces are mounted read-write by default.
+- Published ports have moved off a sandbox's spec, since they are not part of the container it builds. `jard inspect` reports them as before; sandboxes created by an earlier build of this release lose theirs, and `jard ports --publish` puts them back without recreating anything.
 
 ### Removed
 
