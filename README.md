@@ -243,7 +243,17 @@ Worth knowing: `.git/hooks/` doesn't show up in `git diff`. If you review only t
 
 ### network
 
-Not yet. Egress is currently unrestricted, and host-enforced network policy is the next thing being built. Until then, assume a sandbox can reach anything your machine can.
+A sandbox is alone on a private network with no route out. The only way it reaches anything is jard's proxy, which checks every request against [the policy](#network-policy) you set on the host. An agent that ignores `HTTP_PROXY` doesn't get around that — there's no route to get around it with.
+
+The limits, plainly: the guarantee rests on your runtime implementing `--internal` the way it documents, and jard doesn't verify that it does. Egress control is off entirely under `--dry-run` and `--state-dir`, neither of which has a daemon holding a proxy.
+
+### your credentials are inside the sandbox
+
+An API key you pass with `-e` lives in the sandbox, and anything running there can read it. There is no secret store yet — [concessions](./docs/concessions.md) has why, and what it would take to build one.
+
+Two consequences worth knowing. The value is written to jard's state directory as plaintext and baked into the container, so revoking it upstream removes it from neither. And a spec is fixed at create time, so changing a key means removing the sandbox and recreating it.
+
+Network policy is what bounds the damage: a stolen key still has to leave through the proxy, and only to a host you've allowed.
 
 ## development
 

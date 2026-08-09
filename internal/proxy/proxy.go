@@ -22,19 +22,6 @@ const dialTimeout = 30 * time.Second
 // reach. It is separate from a policy denial: no rule can permit these.
 var ErrBlocked = errors.New("resolves only to addresses a sandbox may not reach")
 
-// Handling is how an allowed request is carried.
-//
-// Only Tunnel exists today. Phase 4 injects credentials, which means
-// terminating TLS for the hosts that have any — and that is a second case
-// here, not a replacement: a pinned certificate breaks under interception, and
-// a host with no credentials to add gains nothing from being decrypted.
-type Handling int
-
-const (
-	// Tunnel copies bytes without looking inside them.
-	Tunnel Handling = iota
-)
-
 // Server is the filtering forward proxy. Sandboxes reach it as their only way
 // out, and it decides every request against the policy.
 type Server struct {
@@ -141,8 +128,8 @@ func (s *Server) serveConnect(w http.ResponseWriter, r *http.Request) {
 	tunnel(client, upstream)
 }
 
-// serveHTTP forwards a plain request. Nothing is encrypted here, so this is
-// already the shape credential injection will need: the request is in hand.
+// serveHTTP forwards a plain request, which arrives whole rather than as an
+// opaque tunnel.
 func (s *Server) serveHTTP(w http.ResponseWriter, r *http.Request) {
 	if !r.URL.IsAbs() {
 		http.Error(w, "expected an absolute URI, which is what a proxy is asked for", http.StatusBadRequest)

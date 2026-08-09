@@ -24,8 +24,8 @@ The plan's phase 3 says:
 > egress
 
 with the proxy daemon-resident, alongside the policy engine, the connection
-log, and (in phase 4) the OS keychain. The plan claims this gets us network
-parity with `sbx`:
+log, and — at the time — an OS keychain the proxy would inject credentials
+from. The plan claims this gets us network parity with `sbx`:
 
 > **network** — parity with `sbx` is achievable, because policy enforcement
 > lives in the host proxy rather than the isolation layer
@@ -86,17 +86,18 @@ where the plan wants them. A small dual-homed relay container bridges the gap:
 
     agent ─────────────► forwards only ────────► proxy ────► internet
                          to the host proxy         │
-                                                   ├─ policy + connection log
-                                                   └─ keychain (phase 4)
+                                                   └─ policy + connection log
 ```
 
 The sandbox reaches nothing but the relay. The relay reaches nothing but the
 host proxy. Egress enforcement still lives in one host-side place.
 
-Keeping the proxy on the host is not merely tidiness. Phase 4 injects
-credentials read from the OS keychain, so that raw values never enter the
-sandbox — and a container cannot read the macOS keychain. A proxy that had been
-pushed into a container would have to be undone to build phase 4.
+Keeping the proxy on the host is not merely tidiness, even though the thing
+that most needed it has since been deferred. Stored credentials want to be
+injected at the proxy so that raw values never enter the sandbox, and a
+container cannot read the macOS keychain — so a proxy pushed into a container
+would have to be dragged back out to build them. See
+[credentials live inside the sandbox](#credentials-live-inside-the-sandbox).
 
 ### what it costs
 
@@ -127,3 +128,121 @@ something inside a VM, so an internal network can very likely reach a host
 proxy directly. We use one topology on both platforms because two is twice the
 surface to get wrong, and bugs collect in whichever half is used less — but if
 the Linux path ever needs to be native, it is probably a short change.
+
+## credentials live inside the sandbox
+
+**status:** deferred, at phase 4.
+**forced by:** no stable macOS signing identity, and the cost of TLS
+interception weighed against what storage alone would buy.
+
+### what we wanted
+
+The plan's phase 4 was credentials:
+
+> OS keychain storage (`jard secret set|ls|rm|import`) and header injection at
+> the proxy, so raw values never enter the sandbox
+
+with a done-when that named the point of the exercise:
+
+> a sandbox can reach the Anthropic API with no `ANTHROPIC_API_KEY` anywhere
+> inside it
+
+The threat is a compromised agent — a prompt injection, a malicious dependency
+— reading your API key and using it or exfiltrating it. A key the sandbox never
+holds cannot be taken from it.
+
+### what is actually true
+
+Four things, which together turn one phase into a much larger one.
+
+**Signing is a hard prerequisite, and it is not ours to satisfy.** The plan
+already knew this and put it first: keychain ACLs bind to a binary's Designated
+Requirement, and an ad-hoc signature has no stable one, so every jard upgrade
+invalidates every ACL and re-prompts for every stored secret. Getting a stable
+DR means an Apple Developer Program membership and a Developer ID Application
+certificate. That is a purchase and an identity, not a piece of work.
+
+**cgo is off the table, so the keychain is awkward to reach at all.**
+`.goreleaser.yaml` sets `CGO_ENABLED=0` and cross-compiles darwin binaries on
+an ubuntu runner, so the Security framework is not linkable. What is left is
+shelling out to `/usr/bin/security`, which takes the secret on argv where other
+processes running as you can see it, or hand-rolled FFI that CI — also ubuntu —
+could never exercise.
+
+**The daemon needs unattended reads, which undoes most of what the keychain is
+for.** `jardd` injects without a human present, so any ACL that prompts is
+fatal to it. Unattended means a permissive ACL, and a permissive ACL means any
+process running as you can read the item without being asked. What survives is
+encryption at rest and unavailability while the machine is locked. Real, but a
+good deal less than "the OS protects your keys" suggests.
+
+**Injection into HTTPS means intercepting it.** The headline case,
+`api.anthropic.com`, is CONNECT-tunnelled — the proxy copies bytes it cannot
+read. Adding a header means terminating TLS: a jard CA, leaf certificates
+minted per host, and then getting the sandbox to trust it. That last part is
+the expensive one. It needs a bind-mounted root, `update-ca-certificates` as
+root on every start, and `NODE_EXTRA_CA_CERTS`, `REQUESTS_CA_BUNDLE`,
+`CURL_CA_BUNDLE` and `GIT_SSL_CAINFO` besides, because node and python read
+their own bundles rather than the system store. It has to work against whatever
+`--image` was given. Almost none of it can be tested without a live runtime.
+
+And the fifth thing, which is why the phase was deferred rather than trimmed:
+**storage without injection does not address the threat.** A key resolved from
+the keychain and handed to the agent's environment is worth about what
+`-e ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY` is worth against an agent that has
+already been compromised. It is an ergonomics feature. Shipping it under the
+heading "credentials" would have implied a protection that was not there.
+
+### what we do instead
+
+Nothing. `-e NAME=VALUE` at create time remains the way to give a sandbox a
+key, and the README says plainly that the sandbox holds it.
+
+Egress policy is the mitigation that is actually in place: a stolen key still
+has to leave through the proxy, and it can only reach hosts the policy allows.
+That bounds exfiltration. It does not prevent the key being used from inside
+the sandbox against a host you have already allowed.
+
+### what it costs
+
+- **the sandbox holds live credentials.** Anything running in it can read them
+  out of its own environment. This is the gap the phase existed to close, and
+  it is open.
+- **a key cannot be rotated.** `-e` lands in `Spec.Env`, and a spec is fixed at
+  create time. Changing a key means `jard rm` and recreating the sandbox,
+  discarding everything it persists — which is the entire reason the sandbox is
+  persistent.
+- **it is plaintext on disk, and stays there.** The store writes the spec as
+  JSON under the state directory, and the runtime bakes it into the container.
+  Revoking the key upstream removes it from neither.
+- **one copy per sandbox.** Five sandboxes are five places to update.
+- **no registry credentials at all.** Pulling from a private registry has no
+  mechanism, which is unrelated to any of the above — those are used host-side
+  by the runner and never enter a sandbox.
+
+### what would let us revisit
+
+A **Developer ID certificate**, which unblocks the keychain, and with it the
+`macOS signing & notarization` entry in the plan's deferred list. Everything
+else follows from having somewhere trustworthy to put a secret.
+
+Two things worth knowing before starting again, so the next attempt does not
+re-derive them:
+
+**A useful subset lands well before interception does.** Resolving a secret at
+attach time and passing it in `ExecRequest.Env` — rather than freezing it into
+the spec at create — fixes rotation, the plaintext on disk, and the one-copy-
+per-sandbox problem, with no CA and no changes to the images. It makes no
+security claim, and should not be sold as one, but it removes three of the five
+costs above. Registry pull credentials are entirely unblocked by it, since they
+never reach a sandbox in the first place.
+
+**Base-URL redirection is much cheaper than interception, for the model APIs
+specifically.** Handing the sandbox `ANTHROPIC_BASE_URL` pointed at the relay
+means the request arrives at the proxy as plain HTTP, in the absolute-URI form
+`serveHTTP` already requires; the proxy adds the header and originates TLS
+itself. No CA, no cert trust, no image changes. It reaches the phase's stated
+done-when for Anthropic at a fraction of the cost. Its limits are real, and are
+why it is not a general answer: it covers only services with a configurable
+base URL, so `git push` and `npm publish` still need a token in the sandbox,
+and an agent that cannot read the key can still spend it by using the endpoint.

@@ -35,7 +35,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - The CLI and TUI now reach the sandbox layer only through a single `api.Service` interface, and normally reach it over a socket to the daemon rather than in-process. `--dry-run` and `--state-dir` stay in-process: the first must work with no runtime and no daemon at all, and the second names a store the running daemon does not own.
 - Sessions are now owned by the daemon, which holds the terminal on your behalf. `jard exec` and attaching from the dashboard behave as before.
 - Create-time settings passed to `jard run` for a sandbox that already exists now warn, rather than being silently ignored.
-- Workspaces are mounted read-write by default. Egress is unrestricted until host-enforced network policy lands.
+- Workspaces are mounted read-write by default.
 
 ### Removed
 
