@@ -249,7 +249,7 @@ func TestDryRunCoversEveryMutation(t *testing.T) {
 	o := testOCI(WithDryRun(&out))
 	ctx := context.Background()
 
-	if err := o.Start(ctx, "jard-demo"); err != nil {
+	if err := o.Start(ctx, "jard-demo", "demo"); err != nil {
 		t.Fatalf("Start: %v", err)
 	}
 	if err := o.Stop(ctx, "jard-demo"); err != nil {
@@ -415,7 +415,7 @@ func TestUnavailableFailsEveryOperation(t *testing.T) {
 	if _, err := r.Create(ctx, api.Spec{Name: "demo"}); !errors.Is(err, sentinel) {
 		t.Errorf("Create err = %v, want the detection error", err)
 	}
-	if err := r.Start(ctx, "jard-demo"); !errors.Is(err, sentinel) {
+	if err := r.Start(ctx, "jard-demo", "demo"); !errors.Is(err, sentinel) {
 		t.Errorf("Start err = %v, want the detection error", err)
 	}
 	if _, err := r.Inspect(ctx, "jard-demo"); !errors.Is(err, sentinel) {
@@ -553,5 +553,50 @@ func TestRemoveDetachesTheRelayBeforeDroppingTheNetwork(t *testing.T) {
 	}
 	if disconnect > remove {
 		t.Error("the detach must come before the removal, or the removal fails")
+	}
+}
+
+// A sandbox's network is named after the sandbox, but its container id is a
+// name only until the first start and a hash forever after. Deriving one from
+// the other left the relay attaching to a network that did not exist, so every
+// start after the first one failed.
+func TestStartAttachesTheRelayBySandboxName(t *testing.T) {
+	for _, tc := range []struct{ name, id string }{
+		{"before the first start, when the id is the container's name", "jard-demo"},
+		{"after it, when the runtime has replaced that with a hash", "9f8c1b2a3d4e5f60718293a4b5c6d7e8f9012345678990abcdef0123456789ab"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			exec := &scriptedExecutor{out: []byte("true\n")}
+			o := testOCI(WithExecutor(exec), WithEgress("host.docker.internal:47821", ""))
+
+			if err := o.Start(context.Background(), ID(tc.id), "demo"); err != nil {
+				t.Fatalf("Start: %v", err)
+			}
+
+			var connect string
+			for _, inv := range exec.ran {
+				if len(inv.Args) >= 2 && inv.Args[0] == "network" && inv.Args[1] == "connect" {
+					connect = strings.Join(inv.Args, " ")
+				}
+			}
+			if !strings.Contains(connect, " "+SandboxNetwork("demo")+" ") {
+				t.Errorf("relay attached via %q, want the sandbox's own network %s",
+					connect, SandboxNetwork("demo"))
+			}
+		})
+	}
+}
+
+// The container itself is still addressed by whatever handle it was given.
+func TestStartAddressesTheContainerByItsRuntimeHandle(t *testing.T) {
+	exec := &scriptedExecutor{out: []byte("true\n")}
+	o := testOCI(WithExecutor(exec))
+
+	if err := o.Start(context.Background(), ID("deadbeef"), "demo"); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	last := exec.ran[len(exec.ran)-1]
+	if last.Args[0] != "start" || last.Args[len(last.Args)-1] != "deadbeef" {
+		t.Errorf("ran %v, want start against the container handle", last.Args)
 	}
 }

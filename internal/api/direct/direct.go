@@ -101,14 +101,14 @@ func (s *Service) Inspect(ctx context.Context, ref api.Ref) (api.Sandbox, error)
 
 // Start boots a created or stopped sandbox.
 func (s *Service) Start(ctx context.Context, ref api.Ref) error {
-	return s.act(ctx, ref, func(id runner.ID) error {
-		return s.runner.Start(ctx, id)
+	return s.act(ctx, ref, func(sb api.Sandbox, id runner.ID) error {
+		return s.runner.Start(ctx, id, sb.Spec.Name)
 	})
 }
 
 // Stop halts a running sandbox, leaving its contents intact.
 func (s *Service) Stop(ctx context.Context, ref api.Ref) error {
-	return s.act(ctx, ref, func(id runner.ID) error {
+	return s.act(ctx, ref, func(_ api.Sandbox, id runner.ID) error {
 		return s.runner.Stop(ctx, id)
 	})
 }
@@ -165,13 +165,16 @@ func (s *Service) Stats(ctx context.Context, ref api.Ref) (<-chan api.Stats, err
 // Close releases nothing: the direct service holds no long-lived handles.
 func (s *Service) Close() error { return nil }
 
-// act resolves a ref and applies fn to its container.
-func (s *Service) act(ctx context.Context, ref api.Ref, fn func(runner.ID) error) error {
+// act resolves a ref and applies fn to its container. fn gets the stored
+// sandbox as well as its runtime handle, because the two name different things:
+// the handle is whatever the runtime last called the container, while anything
+// jard created alongside it is named after the sandbox.
+func (s *Service) act(ctx context.Context, ref api.Ref, fn func(api.Sandbox, runner.ID) error) error {
 	sb, err := s.find(ref)
 	if err != nil {
 		return err
 	}
-	if err := fn(containerID(sb)); err != nil {
+	if err := fn(sb, containerID(sb)); err != nil {
 		return err
 	}
 	sb.State = s.observe(ctx, sb)

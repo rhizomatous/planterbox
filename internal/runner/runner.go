@@ -22,7 +22,7 @@ type ID string
 // Runner drives one container runtime.
 type Runner interface {
 	Create(ctx context.Context, spec api.Spec) (ID, error)
-	Start(ctx context.Context, id ID) error
+	Start(ctx context.Context, id ID, sandbox string) error
 	Stop(ctx context.Context, id ID) error
 	Remove(ctx context.Context, id ID, sandbox string, force bool) error
 	Exec(ctx context.Context, id ID, req api.ExecRequest, streams api.Streams) (api.ExecResult, error)

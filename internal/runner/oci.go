@@ -103,9 +103,13 @@ func (o *OCI) Create(ctx context.Context, spec api.Spec) (ID, error) {
 // The relay is ensured on every start, not once: it is shared between
 // sandboxes, and one removed by hand would otherwise leave the next sandbox
 // with no way out and nothing said about why.
-func (o *OCI) Start(ctx context.Context, id ID) error {
+//
+// The sandbox's name is a parameter rather than something read back out of id.
+// id is whatever the runtime last called the container, which is the name
+// before its first start and a hash after it — while the network, like the
+// home volume, is named after the sandbox and stays that way.
+func (o *OCI) Start(ctx context.Context, id ID, sandbox string) error {
 	if o.egressUpstream != "" {
-		sandbox := strings.TrimPrefix(string(id), containerPrefix)
 		if err := o.EnsureRelay(ctx, sandbox, o.relayImage, o.egressUpstream); err != nil {
 			return err
 		}

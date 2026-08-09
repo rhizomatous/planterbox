@@ -41,7 +41,7 @@ func (f *Fake) Create(_ context.Context, spec api.Spec) (ID, error) {
 }
 
 // Start marks a container running.
-func (f *Fake) Start(_ context.Context, id ID) error {
+func (f *Fake) Start(_ context.Context, id ID, _ string) error {
 	return f.setStatus("Start", id, api.StatusRunning)
 }
 
