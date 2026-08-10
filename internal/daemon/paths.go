@@ -20,6 +20,7 @@ const appDir = "jardiniere"
 // socketFile and pidFile live side by side in the runtime directory.
 const (
 	socketFile = "jardd.sock"
+	sshFile    = "jardd-ssh.sock"
 	pidFile    = "jardd.pid"
 	logFile    = "jardd.log"
 )
@@ -79,6 +80,16 @@ func Socket(env Env) (string, error) {
 		return "", err
 	}
 	return filepath.Join(dir, socketFile), nil
+}
+
+// SSHSocket resolves where the ssh gateway listens. JARD_SSH_SOCKET names it
+// outright, alongside JARD_SOCKET, so a daemon of your own is reachable both
+// ways.
+func SSHSocket(env Env) (string, error) {
+	if path := env.Getenv("JARD_SSH_SOCKET"); path != "" {
+		return path, nil
+	}
+	return runtimePath(env, sshFile)
 }
 
 // PidPath resolves the file recording the running daemon's process id.

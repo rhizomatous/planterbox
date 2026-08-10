@@ -110,6 +110,14 @@ would have to be dragged back out to build them. See
 - **it is not the isolation layer doing the work.** The guarantee rests on
   docker's network configuration being what we asked for. A runtime that
   implements `--internal` loosely weakens it, and we would not notice.
+- **the wall has a second side, and a third.** Nothing host-side can dial a
+  sandbox either, so two other things that would ordinarily be a `net.Dial`
+  are not. A published port is carried by a forwarder container attached to
+  both networks (`internal/runner/ports.go`), because a runtime accepts
+  `--publish` on an internal network and silently creates no mapping. And
+  `ssh -L` is served by running the dial *inside* the sandbox as an exec, with
+  bash's `/dev/tcp` opening the socket (`internal/sshd/forward.go`). Both work,
+  and both would collapse into an ordinary dial if the daemon ever had a route.
 
 ### what would let us revisit
 

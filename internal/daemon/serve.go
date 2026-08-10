@@ -18,6 +18,7 @@ import (
 	"github.com/rhizomatous/jardiniere/internal/api/direct"
 	"github.com/rhizomatous/jardiniere/internal/api/rpc"
 	"github.com/rhizomatous/jardiniere/internal/proxy"
+	"github.com/rhizomatous/jardiniere/internal/sshd"
 )
 
 // ErrAlreadyRunning means a daemon is already listening on the socket.
@@ -36,6 +37,8 @@ type Options struct {
 	// RelayImage overrides the published relay, for testing against one built
 	// locally.
 	RelayImage string
+	// SSHSocket overrides where the ssh gateway listens.
+	SSHSocket string
 	// Ready, when set, is called once the daemon is listening. Tests use it to
 	// learn when it is safe to connect.
 	Ready func()
@@ -94,6 +97,12 @@ func Serve(ctx context.Context, opts Options) error {
 		return err
 	}
 	defer stopProxy()
+
+	gateway, err := serveSSH(opts, svc)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = gateway.Close() }()
 
 	// the pidfile still goes down before the listener, so anything that finds
 	// the socket answering can rely on the record being there.
@@ -193,6 +202,21 @@ func pidPathFor(opts Options) (string, error) {
 	return PidPath(HostEnv(runtime.GOOS))
 }
 
+// sshPathFor puts the gateway's socket beside whichever socket this daemon is
+// using, for the same reason the pidfile goes there: a daemon on a socket of
+// its own must not reach into the default runtime directory and take the
+// gateway out from under the daemon that lives there.
+func sshPathFor(opts Options) (string, error) {
+	switch {
+	case opts.SSHSocket != "":
+		return opts.SSHSocket, nil
+	case opts.Socket != "":
+		return replaceBase(opts.Socket, sshFile), nil
+	default:
+		return SSHSocket(HostEnv(runtime.GOOS))
+	}
+}
+
 // replaceBase swaps a path's filename, keeping its directory.
 func replaceBase(path, name string) string {
 	return filepath.Join(filepath.Dir(path), name)
@@ -234,6 +258,23 @@ func serveProxy(ctx context.Context, addr string, svc *direct.Service, log *prox
 		defer cancel()
 		_ = srv.Shutdown(shutdown)
 	}, nil
+}
+
+// serveSSH starts the ssh gateway, which editors attach to sandboxes through.
+//
+// It listens on a unix socket rather than a port, so nothing about it is
+// reachable from off this machine, and its sessions are execs rather than
+// connections — which is what lets it reach a sandbox that has no route in.
+func serveSSH(opts Options, svc *direct.Service) (*sshd.Server, error) {
+	socket, err := sshPathFor(opts)
+	if err != nil {
+		return nil, err
+	}
+	return sshd.Serve(sshd.Options{
+		Socket:      socket,
+		HostKeyPath: svc.SSHHostKeyPath(),
+		Service:     svc,
+	})
 }
 
 // ProxyAddress reports where a daemon's egress proxy listens.

@@ -74,6 +74,14 @@ type Service interface {
 	Close() error
 }
 
+// SSHDomain is the suffix jard's ssh hosts carry. `myrepo.jard` is the sandbox
+// `myrepo`, and the suffix is what keeps a managed `Host *.jard` block in an
+// ssh config from matching anything else in it.
+const SSHDomain = "jard"
+
+// SSHHost is the ssh hostname for a sandbox.
+func SSHHost(sandbox string) string { return sandbox + "." + SSHDomain }
+
 // Ref identifies a sandbox, either by name or by a workspace path it was
 // created for.
 type Ref struct {

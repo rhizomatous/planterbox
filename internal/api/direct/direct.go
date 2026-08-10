@@ -281,6 +281,10 @@ func (s *Service) SetPolicy(_ context.Context, p proxy.Policy) error {
 	return s.store.SetPolicy(p)
 }
 
+// SSHHostKeyPath reports where the ssh gateway's identity is kept. The daemon
+// asks, because the store is what knows where anything durable goes.
+func (s *Service) SSHHostKeyPath() string { return s.store.SSHHostKeyPath() }
+
 // Connections returns the proxy's decisions recorded after since.
 //
 // A service with no proxy behind it reports none rather than failing: the

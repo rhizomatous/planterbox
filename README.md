@@ -136,6 +136,21 @@ Attaching leaves the dashboard and hands the terminal to the agent, the same as 
 
 Piped or run from a script, `jard` prints the `ls` table rather than trying to draw a dashboard into something that isn't a terminal.
 
+### ssh, and editors
+
+```sh
+jard setup ssh
+ssh myrepo.jard
+```
+
+`jard setup ssh` adds a managed block to `~/.ssh/config` — everything outside its markers is left alone, and re-running it rewrites the block in place. After that `<name>.jard` is a sandbox, to ssh and to anything that speaks ssh.
+
+Nothing listens on a port. ssh reaches the sandbox through a `ProxyCommand` onto a socket only you can open, and a session is an exec rather than a connection — which is how it reaches a sandbox that has no route in. There are no keys to manage either: the socket's permissions are what decide, so any key you already have is accepted and none is required.
+
+`ssh -L 8000:127.0.0.1:3000 myrepo.jard` reaches a service inside the sandbox without publishing it to the host at all. The other direction — `ssh -R` — is refused, since that would put the sandbox on a host port it didn't ask for.
+
+What a session may bring in from your shell is an allowlist: `TERM`, `LANG`, `LC_*`, `COLORTERM`, `TZ`. `PATH`, `NODE_OPTIONS`, `LD_PRELOAD` and anything credential-shaped stay on your machine.
+
 ## network policy
 
 A sandbox has no route to the internet. It sits alone on a private network whose only other occupant forwards to jard's proxy, and the proxy decides every request against a policy you set on the host. An agent that ignores `HTTP_PROXY` entirely does not get out; there is no route to ignore it with.

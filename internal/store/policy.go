@@ -21,6 +21,17 @@ const policyFile = "policy.json"
 // knows to ask.
 var ErrNoPolicy = errors.New("no network policy has been set")
 
+// hostKeyFile is the ssh gateway's identity. It sits beside the policy, in the
+// state directory rather than the runtime one: the runtime directory is under
+// /tmp on macOS, and a host key that changed on every reboot would trip every
+// client's known-hosts check.
+const hostKeyFile = "ssh_host_ed25519_key"
+
+// SSHHostKeyPath reports where the ssh gateway's identity is kept.
+func (s *Store) SSHHostKeyPath() string {
+	return filepath.Join(filepath.Dir(s.dir), hostKeyFile)
+}
+
 // PolicyPath reports where the policy is kept.
 func (s *Store) PolicyPath() string {
 	return filepath.Join(filepath.Dir(s.dir), policyFile)

@@ -35,6 +35,7 @@ All tooling is provided in Nix dev shell: **work inside it.**
 - `internal/store`: sandbox specs + state, on disk, XDG-respecting.
 - `internal/runner`: the `Runner` interface, runtime detection, and the OCI adapter.
 - `internal/proxy`: the egress policy engine, the filtering proxy, and the connection log. The engine is pure.
+- `internal/sshd`: the wish-based SSH gateway, on a unix socket. Sessions are execs, not connections.
 - `internal/tui`: the bubbletea dashboard, which bare `jard` opens.
 - `internal/ui`: Charm-based terminal output.
 - `images/`: one multi-stage Dockerfile, a build target per agent, published to ghcr.
@@ -49,6 +50,8 @@ the daemon normally, in-process for `--dry-run` and `--state-dir`.
 ## Things that will bite you
 
 - **Most of a sandbox's definition is fixed at create time.** `Spec` is what the container was built from: it is written once, reread on every reattach, and changing any of it means building a different container — which costs everything the old one held outside its home volume. Published ports are the exception, and live on `Sandbox` rather than `Spec`, because they are not on the container at all: a sandbox cannot publish for itself, so its ports are carried by a forwarder beside it that is rebuilt on every start regardless. Anything else that should be changeable needs the same kind of story.
+- **ssh has nowhere to put the sandbox's name, so `jard ssh-proxy` writes it first.** The protocol never sends the hostname the client typed, and a single `Host *.jard` block has no token to interpolate a username from. The name and a newline go ahead of the ssh bytes, and `ConnCallback` reads exactly that much — a byte at a time, because a buffered read would swallow the handshake with no way to give it back.
+- **`ssh -L` dials from inside the sandbox, not from the daemon.** The daemon has no route to a sandbox's network, the same wall the egress proxy met. `internal/sshd/forward.go` runs the dial as an exec, with bash's `/dev/tcp` opening the socket — a builtin, so it needs nothing installed that the image contract does not already promise.
 - **A sandbox cannot publish its own ports.** `--publish` on a container attached to an internal network is not an error — the runtime exits zero and creates no mapping. `internal/runner/ports.go` carries them instead, and that is also why `Spec` has no ports in it.
 - **`/home/agent` is a volume mount point.** A volume takes its contents from the image only on first use, so anything the image puts under `/home/agent` is frozen the moment a sandbox is first started. Agent binaries go in `/usr/local`.
 - **`rm --volumes` does not remove named volumes,** only anonymous ones. The home volume needs its own `volume rm`, or every removed sandbox leaks its disk.
