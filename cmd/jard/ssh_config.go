@@ -23,6 +23,14 @@ const (
 
 // sshConfigBlock renders the managed block.
 //
+// It offers no key and consults no agent. The gateway accepts any key and
+// requires none — the socket's permissions are what decide — so a client that
+// presents its whole keyring is handing credentials to something that will not
+// look at them. Left to itself ssh does exactly that.
+//
+// `IdentityFile none` rather than /dev/null, which is the other way to say it:
+// ssh reads /dev/null, fails to parse it, and says so on every connection.
+//
 // StrictHostKeyChecking is left on, against its own known-hosts file. The
 // gateway's key is stable — it lives in the state directory precisely so it
 // survives a reboot — so trust-on-first-use behaves the way it should, and
@@ -32,13 +40,25 @@ func sshConfigBlock(exe, knownHosts string) string {
 	return strings.Join([]string{
 		blockStart,
 		"Host *." + api.SSHDomain,
-		"    ProxyCommand " + shellQuote(exe) + " ssh-proxy %h",
+		// %n rather than %h: the sandbox is named by the hostname itself, and
+		// %h is what a HostName line would have replaced it with.
+		"    ProxyCommand " + shellQuote(exe) + " ssh-proxy %n",
 		"    User " + sandboxUser,
 		"    UserKnownHostsFile " + shellQuote(knownHosts),
 		"    StrictHostKeyChecking accept-new",
-		// there is no network here, and nothing on the far side that should be
-		// reaching back out through your agent.
+		"",
+		"    # The gateway accepts any key and needs none, so offer it nothing.",
+		"    # Otherwise ssh walks your agent and presents every key you own to a",
+		"    # connection that was never going to check them.",
+		"    IdentityAgent none",
+		"    IdentityFile none",
+		"    IdentitiesOnly yes",
 		"    ForwardAgent no",
+		"",
+		"    # A session gets its own proxy. Multiplexing would run several",
+		"    # through one, which is not a shape this has been built for.",
+		"    ControlMaster no",
+		"    ControlPath none",
 		blockEnd,
 		"",
 	}, "\n")

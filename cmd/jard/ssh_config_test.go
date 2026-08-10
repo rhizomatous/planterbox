@@ -12,14 +12,26 @@ func TestSSHConfigBlockShape(t *testing.T) {
 
 	for _, want := range []string{
 		"Host *.jard",
-		"ProxyCommand /usr/local/bin/jard ssh-proxy %h",
+		// %n, not %h: %h is what a HostName line would have replaced.
+		"ProxyCommand /usr/local/bin/jard ssh-proxy %n",
 		"UserKnownHostsFile /home/viv/.ssh/jard_known_hosts",
 		"StrictHostKeyChecking accept-new",
 		"ForwardAgent no",
+		// the gateway checks no key, so ssh should present none.
+		"IdentityAgent none",
+		"IdentityFile none",
+		"IdentitiesOnly yes",
+		"ControlMaster no",
+		"ControlPath none",
 	} {
 		if !strings.Contains(block, want) {
 			t.Errorf("block is missing %q:\n%s", want, block)
 		}
+	}
+	// /dev/null is the other way to offer no identity, and ssh warns about
+	// failing to parse it on every single connection.
+	if strings.Contains(block, "/dev/null") {
+		t.Error("the block points an IdentityFile at /dev/null, which ssh complains about")
 	}
 	// turning the host key check off would weaken something real to save one
 	// prompt, and the gateway's key is stable precisely so it need not.
@@ -31,7 +43,7 @@ func TestSSHConfigBlockShape(t *testing.T) {
 // A path with a space in it would otherwise be read as two arguments.
 func TestSSHConfigBlockQuotesAPathWithSpaces(t *testing.T) {
 	block := sshConfigBlock("/Applications/My Tools/jard", "/home/viv/.ssh/known")
-	if !strings.Contains(block, `ProxyCommand "/Applications/My Tools/jard" ssh-proxy %h`) {
+	if !strings.Contains(block, `ProxyCommand "/Applications/My Tools/jard" ssh-proxy %n`) {
 		t.Errorf("block does not quote the binary path:\n%s", block)
 	}
 }
