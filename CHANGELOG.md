@@ -6,14 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-08-12
+
 ### Added
 
 - `jard create --clone` gives a sandbox a copy of your repository instead of your repository. The original mounts read-only, the agent works in a clone under its own home, and nothing it does can reach your tree — including a `.git/hooks` script that would otherwise run on your machine the next time you commit.
 - A clone-mode sandbox becomes a `jard-<name>` remote in your repository, so `git fetch jard-<name>` brings its work back. The remote goes when the sandbox does. It reaches the clone over jard's ssh gateway, so `jard setup ssh` wants running first.
 - The clone keeps your repository's own remotes, minus any that name a local path, and calls the read-only original `host`. So `git push origin` in the sandbox reaches GitHub, and `git fetch host` picks up what you have done since.
-- `jard inspect` reports which mode a sandbox is in.
+- `jard inspect` reports which mode a sandbox is in, and the dashboard's create form asks which one you want — it cannot be changed afterwards.
 - Published ports can be bound to a specific host address rather than every interface.
-- The `balanced` preset now covers the model vendors' own endpoints, not only their model APIs. An agent signs in and checks what it is entitled to before it will start, and Claude Code stopped at `platform.claude.com` under the old list.
+
+### Fixed
+
+- Agents could not start under the `balanced` preset. It allowed the model APIs and nothing else belonging to the vendors, but an agent signs in and checks what it is entitled to before it will run at all — Claude Code stopped at `platform.claude.com` and reported a proxy that would not let it out. The vendors' own domains are now allowed beside their APIs.
 
 ## [0.4.0] - 2026-08-12
 
@@ -98,7 +103,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `jardiniere.toml` config file, supporting a custom `startup` command, `image` override, and network policy.
 - Kong-based CLI with `--version` and `--dry-run` flags.
 
-[Unreleased]: https://github.com/rhizomatous/jardiniere/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/rhizomatous/jardiniere/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/rhizomatous/jardiniere/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/rhizomatous/jardiniere/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/rhizomatous/jardiniere/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/rhizomatous/jardiniere/compare/v0.1.4...v0.2.0
