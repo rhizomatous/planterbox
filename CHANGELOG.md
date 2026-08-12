@@ -8,53 +8,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- Host-enforced network policy. A sandbox is alone on a private network with no route out; its only way to reach anything is jard's proxy, which checks every request against a policy set on the host with `jard policy`. An agent that ignores `HTTP_PROXY` gets nowhere — there is no route to ignore it with. Three presets to start from: `balanced` (the default), `open`, and `locked-down`.
-- The `balanced` preset covers an editor attaching over ssh, including the server it installs into the sandbox on first connect. Its telemetry is not covered, and stays denied.
-- `jard policy ls`, `allow`, `deny`, `rm`, `check`, `log`, and `preset`. Wildcards are written `*.example.com`, and cover subdomains but not the apex. A deny beats any allow covering the same host.
-- `ssh <name>.jard` opens a shell in a sandbox, and editors that speak ssh can attach to one. `jard setup ssh` adds a managed block to your ssh config; everything outside its markers is left alone. Nothing listens on a port: ssh reaches the sandbox through a `ProxyCommand` onto a socket only you can open, and a session is an exec rather than a connection. No keys to manage — the socket's permissions are what decide.
-- `ssh -L` reaches a service inside a sandbox without publishing it to the host. `ssh -R` is refused: that would put the sandbox on a host port nobody asked for.
-- What an ssh session carries in from your shell is an allowlist — `TERM`, `LANG`, `LC_*`, `COLORTERM`, `TZ`. `PATH`, `NODE_OPTIONS`, `LD_PRELOAD`, and anything credential-shaped stay on your machine.
-- A network panel in the dashboard, on `tab`: everything sandboxes have reached for and what was refused, with `a` to allow the selected host and `d` to deny it. The next request goes through with nothing restarted.
-- Private, loopback, and link-local addresses are never reachable, whatever the policy says — including a hostname that resolves into them.
-- A background daemon, `jardd`, which owns sandbox state and lifecycle. It starts on its own the first time a command needs it, so there is nothing to set up. `jard daemon start`, `stop`, and `status` are there for when you want to drive it deliberately.
-- A dashboard, which `jard` with no arguments now opens: every sandbox, its status, and live CPU and memory for the running ones. `c` creates one, `i` shows its details, `enter` attaches the agent, `x` opens a shell, `s` starts or stops, `r` removes, `?` lists the bindings.
-- Persistent sandboxes. `jard run` in a directory creates one the first time and reattaches to it every time after, with the packages, shell history, and agent state you left behind still in place.
-- `jard run`, `create`, `ls`, `start`, `stop`, `rm`, `inspect`, `exec`, `cp`, and `agents`. A command that takes a sandbox name defaults to the one for the current directory.
-- Reattach by workspace path or by `--name`, so `jard run` finds the right sandbox from inside a repo or from anywhere.
-- Multiple workspaces, bind-mounted at their host paths. The first is the primary; later ones take a `:ro` suffix. `jard run ~/work/frontend ~/work/backend:ro`.
-- Resource limits, environment, and published ports at create time: `--cpus`, `-m/--memory`, `-p/--publish`, `-e/--env`.
-- `jard ports` shows what a sandbox publishes, and `--publish`/`--unpublish` change it. Unlike the settings fixed when a sandbox is created, ports can change at any time: a change applies at once to a running sandbox and on next start otherwise. Published ports are TCP — a sandbox is alone on a private network and cannot publish for itself, so its ports are carried by a forwarder alongside it, rebuilt on every start, and that forwarder speaks TCP only.
-- `--` passes everything after it to the agent verbatim, and the agent's exit status becomes jard's.
-- Base images for claude, codex, opencode, and a bare shell, published to `ghcr.io/rhizomatous/jard-<agent>`. `--image` starts from something else.
-- `jard rm` refuses a running sandbox unless `--force` is given.
-- `jard ls`, listing sandboxes and their status. `--json` for scripting, `-q` for names only.
-- Sandbox definitions and state now persist on disk under an XDG-respecting directory. `--state-dir` or `JARD_STATE_DIR` overrides where.
+- Added a TUI dashboard, which `jard` with no arguments now opens. This displays each sandbox, its status, live CPU and memory for the running sandboxes, and interactive controls.
+- A dramatically expanded CLI, including `create`, `ls`, `start`, `stop`, `rm`, `inspect`, `exec`, `cp`, and `agents` commands.
+- Sandboxes are now persistent. `jard run` in a directory creates one the first time, then reattaches to it every time after. The packages, shell history, and agent state you left behind will still be in place. You may also reattach to a workspace by name.
+- Added a background daemon, `jardd`, which owns sandbox state and lifecycle.
+- Network policy has been overhauled, including a `jard policy` CLI command, `balanced` ( default) / `open` / `locked-down` presets, logging, and a dashboard.
+- SSH support via `jard setup ssh`. Run `ssh <name>.jard` to open a shell in a sandbox. VSCode over SSH is supported by default.
+- Support for setting resource limits, environment, and published ports at create time: `--cpus` / `-m/--memory` / `-p/--publish` / `-e/--env`.
+- Allow publishing ports from a sanbox with `jard ports`, including editing live sandboxes with `--publish`/`--unpublish`. Only TCP is supported.
+- Base images for claude, codex, opencode, and a bare shell.
 - Shell completions and man page generation.
 
 ### Changed
 
-- CLI moved from Kong to Cobra, and wrapped in Fang
-- A sandbox is defined by the flags given when it is created, and thereafter by its stored spec.
-- Help, errors, and `--version` are styled. Unknown flags produce usage rather than a stack of parser output.
-- A missing or unreachable container runtime no longer stops jard from starting. It fails on the first command that needs one, and `--dry-run` needs no runtime at all.
-- The CLI and TUI now reach the sandbox layer only through a single `api.Service` interface, and normally reach it over a socket to the daemon rather than in-process. `--dry-run` and `--state-dir` stay in-process: the first must work with no runtime and no daemon at all, and the second names a store the running daemon does not own.
-- Sessions are now owned by the daemon, which holds the terminal on your behalf. `jard exec` and attaching from the dashboard behave as before.
-- Create-time settings passed to `jard run` for a sandbox that already exists now warn, rather than being silently ignored.
-- Workspaces are mounted read-write by default.
-- Published ports have moved off a sandbox's spec, since they are not part of the container it builds. `jard inspect` reports them as before; sandboxes created by an earlier build of this release lose theirs, and `jard ports --publish` puts them back without recreating anything.
+- The primary workspace is now mounted read-write by default. Additional directories are mountred read-only.
+- CLI output is now styled, and rewritten to be more informative. Unknown flags produce usage rather than a stack of parser output.
 
 ### Removed
 
-- The `flake.nix` requirement, along with the `nix develop` entry and the shared `/nix` store volume.
-- Bare `jard` no longer starts a sandbox. It opens the dashboard, or prints the sandbox listing when there is no terminal to draw on.
-- The `jardiniere.toml` config file. Network policy is set host-side with `jard policy` in a later release, so that a repo cannot request its own egress permissions.
-- The `--dir`, `--startup`, `--mount`, `--network`, and `--allow` flags.
-- ssh-agent forwarding, host git identity injection, and seeding the agent's settings from the host. Nothing is seeded from the host now; a sandbox's contents come from its base image and from what you run inside it.
-- The tinyproxy allowlist sidecar, ahead of host-enforced network policy in a later release.
+- `jard` is no longer tied to Nix. There is no more `flake.nix` requirement, nor auto-entry to a Nix dev shell.
+- The `jardiniere.toml` config file is removed.
+- ssh-agent forwarding, host git identity injection, and seeding the agent's settings from the host are removed.s
 
 ### Fixed
 
-- `jard rm` now deletes the sandbox's home volume. It had been naming the volume after the container's runtime id rather than the sandbox, and once a sandbox had been started that id is a hash — so the removal quietly succeeded against a volume that never existed, and every removed sandbox left its whole disk behind. If you have used jard before this release, `docker volume ls | grep '^jard-'` will show the orphans; they are safe to delete.
+- `jard rm` refuses a running sandbox unless `--force` is given.
+- `jard rm` now correctly deletes the sandbox's home volume.
+- Create-time settings passed to `jard run` for a sandbox that already exists now warn, rather than being silently ignored.
 
 ## [0.3.0] - 2026-08-04
 
