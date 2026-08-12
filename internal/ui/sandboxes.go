@@ -112,6 +112,10 @@ func RenderSandboxFields(sb api.Sandbox, now time.Time) string {
 			lines = append(lines, row(key, ws.Host+mode))
 		}
 	}
+	if sb.Spec.Clone {
+		lines = append(lines, row("mode", "clone"+Faint.Render(
+			"  your repository is read-only; the agent works in "+sb.Spec.CloneDir())))
+	}
 	if r := sb.Spec.Resources; r.CPUs > 0 || r.Memory > 0 {
 		lines = append(lines, row("limits", fmt.Sprintf("%s cpu, %s memory",
 			cpuLabel(r.CPUs), api.FormatBytes(r.Memory))))

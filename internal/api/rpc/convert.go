@@ -26,6 +26,7 @@ func protoSpec(s api.Spec) *jardv1.Spec {
 		Image:     s.Image,
 		Resources: &jardv1.Resources{Cpus: s.Resources.CPUs, Memory: s.Resources.Memory},
 		Env:       s.Env,
+		Clone:     s.Clone,
 		CreatedAt: protoTime(s.CreatedAt),
 	}
 	for _, w := range s.Workspaces {
@@ -43,6 +44,7 @@ func protoPorts(ports []api.Port) []*jardv1.Port {
 			Host:    int32(p.Host),
 			Sandbox: int32(p.Sandbox),
 			Proto:   p.Proto,
+			Bind:    p.Bind,
 		})
 	}
 	return out
@@ -58,6 +60,7 @@ func apiPorts(ports []*jardv1.Port) []api.Port {
 			Host:    int(p.GetHost()),
 			Sandbox: int(p.GetSandbox()),
 			Proto:   p.GetProto(),
+			Bind:    p.GetBind(),
 		})
 	}
 	return out
@@ -72,6 +75,7 @@ func apiSpec(p *jardv1.Spec) api.Spec {
 		Agent:     p.GetAgent(),
 		Image:     p.GetImage(),
 		Env:       p.GetEnv(),
+		Clone:     p.GetClone(),
 		CreatedAt: apiTime(p.GetCreatedAt()),
 	}
 	if r := p.GetResources(); r != nil {

@@ -269,6 +269,25 @@ Committing, pushing, building, or just opening the project is enough to run them
 
 Worth knowing: `.git/hooks/` doesn't show up in `git diff`. If you review only the diff, you won't see it.
 
+If you'd rather not have that exposure, `--clone` removes it:
+
+```sh
+jard create --clone ~/work/myrepo
+```
+
+Your repository mounts **read-only** and the agent works in a private clone under its own home. Nothing it does reaches your tree — not a stray edit, and not a hook that would run on your machine later.
+
+Getting the work back is a fetch. jard adds the sandbox to your repository as a remote when it creates one, and removes it again on `jard rm`:
+
+```sh
+git fetch jard-myrepo
+git log jard-myrepo/some-branch
+```
+
+The clone keeps your own remotes too, minus any pointing at local paths, so `git push origin` from inside still reaches GitHub. The read-only original is there as `host`, so `git fetch host` picks up whatever you've done since.
+
+Two things to know. The remote reaches the clone over jard's ssh gateway, so run `jard setup ssh` first. And the clone lives at `/home/agent/<repo>` rather than your repository's own path — losing paths that match on both sides is the cost of the original being unreachable.
+
 ### network
 
 A sandbox is alone on a private network with no route out. The only way it reaches anything is jard's proxy, which checks every request against [the policy](#network-policy) you set on the host. An agent that ignores `HTTP_PROXY` doesn't get around that — there's no route to get around it with.

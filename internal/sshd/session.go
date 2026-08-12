@@ -41,7 +41,7 @@ func (s *Server) handle(sess ssh.Session) {
 	req := api.ExecRequest{
 		Cmd:         command(sess.RawCommand()),
 		Env:         allowedEnv(sess.Environ()),
-		Workdir:     sb.Spec.Primary().Host,
+		Workdir:     sb.Spec.Workdir(),
 		User:        agentUser,
 		Interactive: true,
 	}

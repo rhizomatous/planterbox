@@ -31,6 +31,8 @@ var sentinels = []struct {
 	{api.ErrNotImplemented, codes.Unimplemented},
 	{api.ErrNoPolicy, codes.Unavailable},
 	{api.ErrPortsUnavailable, codes.ResourceExhausted},
+	{api.ErrCloneFailed, codes.Aborted},
+	{api.ErrRemoteNotAdded, codes.DataLoss},
 	{context.Canceled, codes.Canceled},
 	{context.DeadlineExceeded, codes.DeadlineExceeded},
 }

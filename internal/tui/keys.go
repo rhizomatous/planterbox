@@ -124,7 +124,7 @@ func (m *Model) attachSelected(command sessionCommand) tea.Cmd {
 	m.attach = &AttachRequest{
 		Sandbox: sb.Spec.Name,
 		Cmd:     cmd,
-		Workdir: sb.Spec.Primary().Host,
+		Workdir: sb.Spec.Workdir(),
 	}
 	m.quitting = true
 	return tea.Quit

@@ -3,6 +3,7 @@ package runner
 import (
 	"context"
 	"errors"
+	"slices"
 	"strings"
 	"testing"
 
@@ -600,5 +601,45 @@ func TestStartAddressesTheContainerByItsRuntimeHandle(t *testing.T) {
 	last := exec.ran[len(exec.ran)-1]
 	if last.Args[0] != "start" || last.Args[len(last.Args)-1] != "deadbeef" {
 		t.Errorf("ran %v, want start against the container handle", last.Args)
+	}
+}
+
+// Clone mode's whole promise is that nothing the agent does reaches your
+// files, so every workspace mounts read-only — not just the one it clones.
+func TestCloneModeMountsEveryWorkspaceReadOnly(t *testing.T) {
+	spec := api.Spec{
+		Name:  "demo",
+		Image: "base:1",
+		Clone: true,
+		Workspaces: []api.Workspace{
+			{Host: "/home/viv/myrepo"},
+			{Host: "/home/viv/other"},
+		},
+	}
+	inv := testOCI().CreateInvocation(spec)
+
+	for _, mount := range allAfter(inv.Args, "--volume") {
+		if strings.HasPrefix(mount, "/home/viv/") && !strings.HasSuffix(mount, ":ro") {
+			t.Errorf("mount %q is writable in clone mode", mount)
+		}
+	}
+	if dir, _ := argsAfter(inv.Args, "--workdir"); dir != spec.CloneDir() {
+		t.Errorf("--workdir = %q, want the clone at %q", dir, spec.CloneDir())
+	}
+}
+
+// Without it, the workspace is writable and sits at its own path.
+func TestWithoutCloneTheWorkspaceIsWritable(t *testing.T) {
+	spec := api.Spec{
+		Name:       "demo",
+		Image:      "base:1",
+		Workspaces: []api.Workspace{{Host: "/home/viv/myrepo"}},
+	}
+	inv := testOCI().CreateInvocation(spec)
+	if got := allAfter(inv.Args, "--volume"); !slices.Contains(got, "/home/viv/myrepo:/home/viv/myrepo") {
+		t.Errorf("--volume = %v, want the workspace mounted read-write at its own path", got)
+	}
+	if dir, _ := argsAfter(inv.Args, "--workdir"); dir != "/home/viv/myrepo" {
+		t.Errorf("--workdir = %q, want the workspace itself", dir)
 	}
 }

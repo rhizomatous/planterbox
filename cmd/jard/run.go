@@ -94,7 +94,7 @@ func runAgent(
 
 	res, err := svc.Exec(ctx, api.ByName(sb.Spec.Name), api.ExecRequest{
 		Cmd:         append(append([]string{}, def.Command...), passthrough...),
-		Workdir:     sb.Spec.Primary().Host,
+		Workdir:     sb.Spec.Workdir(),
 		Interactive: true,
 		TTY:         tty,
 	}, streams)
@@ -136,7 +136,7 @@ func resolveOrCreate(
 		return api.Sandbox{}, false, err
 	}
 	sb, err = svc.Create(ctx, spec)
-	if err != nil {
+	if err != nil && !errors.Is(err, api.ErrRemoteNotAdded) {
 		return api.Sandbox{}, false, err
 	}
 	if len(ports) > 0 {

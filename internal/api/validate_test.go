@@ -192,3 +192,32 @@ func TestValidatePortsRejectsADuplicateHostPort(t *testing.T) {
 		t.Fatal("ValidatePorts accepted the same host port twice")
 	}
 }
+
+// Clone mode clones the primary workspace, so there has to be one.
+func TestValidateRejectsCloneWithNoWorkspace(t *testing.T) {
+	spec := valid()
+	spec.Workspaces = nil
+	spec.Clone = true
+	if err := spec.Validate(); err == nil {
+		t.Error("Validate accepted --clone with nothing to clone")
+	}
+}
+
+// The clone cannot live at the workspace's own path: the read-only mount of
+// the original is already there.
+func TestCloneDirAndWorkdir(t *testing.T) {
+	spec := valid()
+	spec.Workspaces = []Workspace{{Host: "/home/viv/myrepo"}}
+
+	if got := spec.Workdir(); got != "/home/viv/myrepo" {
+		t.Errorf("Workdir() = %q, want the workspace itself outside clone mode", got)
+	}
+
+	spec.Clone = true
+	if got := spec.CloneDir(); got != "/home/agent/myrepo" {
+		t.Errorf("CloneDir() = %q, want it under the home volume", got)
+	}
+	if got := spec.Workdir(); got != spec.CloneDir() {
+		t.Errorf("Workdir() = %q, want the clone — the original is read-only", got)
+	}
+}

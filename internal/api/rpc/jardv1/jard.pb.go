@@ -568,6 +568,7 @@ type Spec struct {
 	Resources     *Resources             `protobuf:"bytes,5,opt,name=resources,proto3" json:"resources,omitempty"`
 	Env           map[string]string      `protobuf:"bytes,6,rep,name=env,proto3" json:"env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	Clone         bool                   `protobuf:"varint,9,opt,name=clone,proto3" json:"clone,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -649,6 +650,13 @@ func (x *Spec) GetCreatedAt() *timestamppb.Timestamp {
 		return x.CreatedAt
 	}
 	return nil
+}
+
+func (x *Spec) GetClone() bool {
+	if x != nil {
+		return x.Clone
+	}
+	return false
 }
 
 // Workspace is a host directory bound into the sandbox at its own absolute path.
@@ -763,6 +771,7 @@ type Port struct {
 	Host          int32                  `protobuf:"varint,1,opt,name=host,proto3" json:"host,omitempty"`
 	Sandbox       int32                  `protobuf:"varint,2,opt,name=sandbox,proto3" json:"sandbox,omitempty"`
 	Proto         string                 `protobuf:"bytes,3,opt,name=proto,proto3" json:"proto,omitempty"` // "tcp", which is also the default
+	Bind          string                 `protobuf:"bytes,4,opt,name=bind,proto3" json:"bind,omitempty"`   // host address; empty is every interface
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -814,6 +823,13 @@ func (x *Port) GetSandbox() int32 {
 func (x *Port) GetProto() string {
 	if x != nil {
 		return x.Proto
+	}
+	return ""
+}
+
+func (x *Port) GetBind() string {
+	if x != nil {
+		return x.Bind
 	}
 	return ""
 }
@@ -2240,7 +2256,7 @@ const file_jard_proto_rawDesc = "" +
 	"\x12ConnectionsRequest\x12\x14\n" +
 	"\x05since\x18\x01 \x01(\x04R\x05since\"F\n" +
 	"\x13ConnectionsResponse\x12/\n" +
-	"\tdecisions\x18\x01 \x03(\v2\x11.jard.v1.DecisionR\tdecisions\"\xcf\x02\n" +
+	"\tdecisions\x18\x01 \x03(\v2\x11.jard.v1.DecisionR\tdecisions\"\xe5\x02\n" +
 	"\x04Spec\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05agent\x18\x02 \x01(\tR\x05agent\x12\x14\n" +
@@ -2251,7 +2267,8 @@ const file_jard_proto_rawDesc = "" +
 	"\tresources\x18\x05 \x01(\v2\x12.jard.v1.ResourcesR\tresources\x12(\n" +
 	"\x03env\x18\x06 \x03(\v2\x16.jard.v1.Spec.EnvEntryR\x03env\x129\n" +
 	"\n" +
-	"created_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x1a6\n" +
+	"created_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x14\n" +
+	"\x05clone\x18\t \x01(\bR\x05clone\x1a6\n" +
 	"\bEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\a\x10\b\"<\n" +
@@ -2260,11 +2277,12 @@ const file_jard_proto_rawDesc = "" +
 	"\tread_only\x18\x02 \x01(\bR\breadOnly\"7\n" +
 	"\tResources\x12\x12\n" +
 	"\x04cpus\x18\x01 \x01(\x01R\x04cpus\x12\x16\n" +
-	"\x06memory\x18\x02 \x01(\x03R\x06memory\"J\n" +
+	"\x06memory\x18\x02 \x01(\x03R\x06memory\"^\n" +
 	"\x04Port\x12\x12\n" +
 	"\x04host\x18\x01 \x01(\x05R\x04host\x12\x18\n" +
 	"\asandbox\x18\x02 \x01(\x05R\asandbox\x12\x14\n" +
-	"\x05proto\x18\x03 \x01(\tR\x05proto\"\x9a\x01\n" +
+	"\x05proto\x18\x03 \x01(\tR\x05proto\x12\x12\n" +
+	"\x04bind\x18\x04 \x01(\tR\x04bind\"\x9a\x01\n" +
 	"\x05State\x12\x16\n" +
 	"\x06status\x18\x01 \x01(\tR\x06status\x12!\n" +
 	"\fcontainer_id\x18\x02 \x01(\tR\vcontainerId\x129\n" +

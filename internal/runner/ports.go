@@ -56,7 +56,7 @@ func (o *OCI) PortsInvocation(sandbox string, ports []api.Port) Invocation {
 		"--network", portsNet,
 	}
 	for _, p := range ports {
-		args = append(args, "--publish", publishSpec(p))
+		args = append(args, "--publish", p.Address())
 	}
 	args = append(args, o.relayRef())
 

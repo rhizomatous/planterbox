@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"os"
 
 	"charm.land/lipgloss/v2"
@@ -43,7 +45,9 @@ func newCreateCmd(g *globals) *cobra.Command {
 					return err
 				}
 				sb, err := svc.Create(ctx, spec)
-				if err != nil {
+				if errors.Is(err, api.ErrRemoteNotAdded) {
+					_, _ = fmt.Fprintln(cmd.ErrOrStderr(), ui.Warn.Render(err.Error()))
+				} else if err != nil {
 					return err
 				}
 				// ports are not part of the spec, so they are a second call.

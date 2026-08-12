@@ -279,15 +279,20 @@ func (o *OCI) CreateInvocation(spec api.Spec) Invocation {
 	}
 
 	// workspaces bind in at their host paths, so paths resolve on both sides.
+	//
+	// Clone mode makes every one of them read-only, not just the one it
+	// clones. The promise is that nothing the agent does reaches your files,
+	// and a second workspace left writable would be a hole in it that nothing
+	// announces.
 	for _, ws := range spec.Workspaces {
 		mount := ws.Host + ":" + ws.Host
-		if ws.ReadOnly {
+		if ws.ReadOnly || spec.Clone {
 			mount += ":ro"
 		}
 		args = append(args, "--volume", mount)
 	}
-	if primary := spec.Primary(); primary.Host != "" {
-		args = append(args, "--workdir", primary.Host)
+	if workdir := spec.Workdir(); workdir != "" {
+		args = append(args, "--workdir", workdir)
 	}
 
 	if spec.Resources.CPUs > 0 {
@@ -404,15 +409,6 @@ func copyEndpoint(id ID, p api.Path) string {
 		return string(id) + ":" + p.Path
 	}
 	return p.Path
-}
-
-// publishSpec renders a port mapping as "host:sandbox[/proto]".
-func publishSpec(p api.Port) string {
-	s := strconv.Itoa(p.Host) + ":" + strconv.Itoa(p.Sandbox)
-	if p.Proto != "" && p.Proto != "tcp" {
-		s += "/" + p.Proto
-	}
-	return s
 }
 
 // sortedKeys returns m's keys in a stable order.

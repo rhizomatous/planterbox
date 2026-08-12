@@ -174,3 +174,25 @@ func TestFakeListIsACopy(t *testing.T) {
 		t.Error("List returned the fake's own slice")
 	}
 }
+
+func TestPortAddress(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		port Port
+		want string
+	}{
+		{"the ordinary case", Port{Host: 8080, Sandbox: 80}, "8080:80"},
+		// anything unauthenticated has to stay on this machine. Without the
+		// bind address a runtime publishes on every interface, which offers it
+		// to the whole network the host is on.
+		{"bound to loopback", Port{Host: 9418, Sandbox: 9418, Bind: "127.0.0.1"}, "127.0.0.1:9418:9418"},
+		{"a protocol that is not the default", Port{Host: 53, Sandbox: 53, Proto: "udp"}, "53:53/udp"},
+		{"tcp is left implicit", Port{Host: 80, Sandbox: 80, Proto: "tcp"}, "80:80"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := tc.port.Address(); got != tc.want {
+				t.Errorf("Address() = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}

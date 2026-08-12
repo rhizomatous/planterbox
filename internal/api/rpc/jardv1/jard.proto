@@ -87,6 +87,7 @@ message Spec {
   map<string, string> env = 6;
   reserved 7; // was ports, which are not part of the container
   google.protobuf.Timestamp created_at = 8;
+  bool clone = 9;
 }
 
 // Workspace is a host directory bound into the sandbox at its own absolute path.
@@ -106,6 +107,7 @@ message Port {
   int32 host = 1;
   int32 sandbox = 2;
   string proto = 3; // "tcp", which is also the default
+  string bind = 4;  // host address; empty is every interface
 }
 
 // State is what jard last observed about a sandbox.

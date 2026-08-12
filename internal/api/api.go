@@ -10,6 +10,8 @@ import (
 	"context"
 	"errors"
 	"io"
+	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/rhizomatous/jardiniere/internal/proxy"
@@ -28,6 +30,14 @@ var (
 	// ErrNoPolicy means no egress policy has been chosen yet, which is how a
 	// first run knows to ask.
 	ErrNoPolicy = errors.New("no network policy has been set")
+	// ErrRemoteNotAdded means a clone-mode sandbox was created but the remote
+	// pointing at it could not be written to your repository. The sandbox
+	// exists and works; the shortcut for fetching from it does not.
+	ErrRemoteNotAdded = errors.New("could not add the sandbox as a git remote")
+	// ErrCloneFailed means a clone-mode sandbox could not make its clone. It
+	// is separate because the sandbox is running and usable; what is missing
+	// is the copy the agent was meant to work in.
+	ErrCloneFailed = errors.New("could not make the sandbox's clone")
 	// ErrPortsUnavailable means a sandbox's ports could not be published,
 	// usually because the host already has something on one of them. It is
 	// separate because a start that hits it has still started the sandbox.
@@ -120,7 +130,36 @@ type Spec struct {
 	Workspaces []Workspace       `json:"workspaces,omitempty"`
 	Resources  Resources         `json:"resources,omitzero"`
 	Env        map[string]string `json:"env,omitempty"`
-	CreatedAt  time.Time         `json:"created_at"`
+	// Clone gives the sandbox a private clone of the primary workspace rather
+	// than write access to it. The host repository is mounted read-only and
+	// the agent works in a copy, so nothing it does can reach your tree — not
+	// a stray edit, and not a .git/hooks script that runs on your machine the
+	// next time you commit.
+	Clone     bool      `json:"clone,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// CloneDir is where a clone-mode sandbox keeps its copy of the primary
+// workspace.
+//
+// Under the home volume, so it persists, and not at the workspace's own path,
+// which the read-only mount of the original occupies. Clone mode gives up
+// paths that resolve identically on both sides; that is the cost of the
+// original being unreachable.
+func (s Spec) CloneDir() string {
+	primary := s.Primary().Host
+	if primary == "" {
+		return ""
+	}
+	return "/home/agent/" + filepath.Base(primary)
+}
+
+// Workdir is the directory a session opens in.
+func (s Spec) Workdir() string {
+	if s.Clone {
+		return s.CloneDir()
+	}
+	return s.Primary().Host
 }
 
 // Primary returns the sandbox's primary [Workspace], or the zero Workspace when
@@ -155,6 +194,23 @@ type Port struct {
 	Host    int    `json:"host"`
 	Sandbox int    `json:"sandbox"`
 	Proto   string `json:"proto,omitempty"` // "tcp", which is also the default
+	// Bind is the host address to publish on. Empty means every interface,
+	// which is what a runtime does by default and what someone publishing a
+	// dev server usually wants. "127.0.0.1" keeps it on this machine — which
+	// anything unauthenticated needs, and jard's own git-daemon uses.
+	Bind string `json:"bind,omitempty"`
+}
+
+// Address renders a port the way a runtime's --publish reads it.
+func (p Port) Address() string {
+	s := strconv.Itoa(p.Host) + ":" + strconv.Itoa(p.Sandbox)
+	if p.Bind != "" {
+		s = p.Bind + ":" + s
+	}
+	if p.Proto != "" && p.Proto != "tcp" {
+		s += "/" + p.Proto
+	}
+	return s
 }
 
 // State is what jard observed about a sandbox. It is derived from the

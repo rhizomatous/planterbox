@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"path"
 	"path/filepath"
@@ -56,6 +57,9 @@ func (s Spec) Validate() error {
 	}
 	if err := validateEnv(s.Env); err != nil {
 		return err
+	}
+	if s.Clone && s.Primary().Host == "" {
+		return errors.New("--clone needs a workspace to clone")
 	}
 	return validateResources(s.Resources)
 }

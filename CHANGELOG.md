@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- `jard create --clone` gives a sandbox a copy of your repository instead of your repository. The original mounts read-only, the agent works in a clone under its own home, and nothing it does can reach your tree — including a `.git/hooks` script that would otherwise run on your machine the next time you commit.
+- A clone-mode sandbox becomes a `jard-<name>` remote in your repository, so `git fetch jard-<name>` brings its work back. The remote goes when the sandbox does. It reaches the clone over jard's ssh gateway, so `jard setup ssh` wants running first.
+- The clone keeps your repository's own remotes, minus any that name a local path, and calls the read-only original `host`. So `git push origin` in the sandbox reaches GitHub, and `git fetch host` picks up what you have done since.
+- `jard inspect` reports which mode a sandbox is in.
+- Published ports can be bound to a specific host address rather than every interface.
+
 ## [0.4.0] - 2026-08-12
 
 ### Added

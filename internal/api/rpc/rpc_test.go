@@ -59,6 +59,7 @@ func detailed() api.Spec {
 		},
 		Resources: api.Resources{CPUs: 4, Memory: 2 << 30},
 		Env:       map[string]string{"FOO": "bar"},
+		Clone:     true,
 		CreatedAt: time.Date(2026, 8, 4, 12, 0, 0, 0, time.UTC),
 	}
 }
@@ -80,6 +81,9 @@ func TestSpecSurvivesTheRoundTrip(t *testing.T) {
 	}
 	if got.Resources != want.Resources {
 		t.Errorf("resources = %+v, want %+v", got.Resources, want.Resources)
+	}
+	if !got.Clone {
+		t.Error("clone mode did not survive the trip; a sandbox would quietly get a writable workspace")
 	}
 	if got.Env["FOO"] != "bar" {
 		t.Errorf("env = %v, want FOO=bar", got.Env)

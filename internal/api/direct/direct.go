@@ -74,6 +74,12 @@ func (s *Service) Create(ctx context.Context, spec api.Spec) (api.Sandbox, error
 	if err := s.store.Put(sb); err != nil {
 		return api.Sandbox{}, err
 	}
+	// a clone-mode sandbox becomes a remote in the repository it was made for,
+	// so its work can be fetched back. Not fatal: the sandbox is made either
+	// way, and this writes to a repository that belongs to the user.
+	if err := s.addHostRemote(ctx, sb); err != nil {
+		return sb, fmt.Errorf("%w: %w", api.ErrRemoteNotAdded, err)
+	}
 	return sb, nil
 }
 
@@ -114,6 +120,11 @@ func (s *Service) Start(ctx context.Context, ref api.Ref) error {
 	if err != nil {
 		return err
 	}
+	// the clone needs a running container to be made in, so it happens here
+	// rather than at create.
+	if err := s.ensureClone(ctx, started); err != nil {
+		return err
+	}
 	// publishing is separate from the start, and after the state is written.
 	// A sandbox whose ports were refused is running all the same, and a record
 	// that said otherwise would be the lie.
@@ -148,6 +159,9 @@ func (s *Service) Remove(ctx context.Context, ref api.Ref, force bool) error {
 	if err := s.runner.Remove(ctx, containerID(sb), sb.Spec.Name, force); err != nil {
 		return err
 	}
+	// the remote goes with the sandbox it pointed at; left behind it names a
+	// host that no longer answers.
+	s.dropHostRemote(ctx, sb)
 	return s.store.Delete(sb.Spec.Name)
 }
 

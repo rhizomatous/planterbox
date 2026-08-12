@@ -19,6 +19,7 @@ type specFlags struct {
 	memory string
 	ports  []string
 	env    []string
+	clone  bool
 }
 
 // bind registers the flags on cmd.
@@ -30,6 +31,8 @@ func (f *specFlags) bind(cmd *cobra.Command) {
 	fl.StringVarP(&f.memory, "memory", "m", "", "memory limit, e.g. 8GiB (default: unlimited)")
 	fl.StringArrayVarP(&f.ports, "publish", "p", nil, "publish a port, host:sandbox or a bare port (repeatable)")
 	fl.StringArrayVarP(&f.env, "env", "e", nil, "environment variable, NAME=VALUE (repeatable)")
+	fl.BoolVar(&f.clone, "clone", false,
+		"work in a private clone; mount your repository read-only instead of read-write")
 }
 
 // parsePorts reads the --publish flags.
@@ -57,7 +60,7 @@ func (f *specFlags) parsePorts() ([]api.Port, error) {
 // fixed at create time and would otherwise be silently ignored.
 func (f *specFlags) changed(cmd *cobra.Command) []string {
 	var set []string
-	for _, name := range []string{"name", "image", "cpus", "memory", "env"} {
+	for _, name := range []string{"name", "image", "cpus", "memory", "env", "clone"} {
 		if cmd.Flags().Changed(name) {
 			set = append(set, "--"+name)
 		}
@@ -92,6 +95,7 @@ func (f *specFlags) buildSpec(agent string, paths []string, cwd string) (api.Spe
 		Agent:      agent,
 		Image:      def.Image,
 		Workspaces: workspaces,
+		Clone:      f.clone,
 	}
 	if f.image != "" {
 		spec.Image = f.image
