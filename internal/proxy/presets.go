@@ -89,9 +89,17 @@ var balanced = []string{
 	"ports.ubuntu.com",
 	"dl-cdn.alpinelinux.org",
 
-	// editors attaching to a sandbox, and the CDNs they pull from
+	// editors attaching to a sandbox, and the CDNs they pull from. An editor
+	// installs its own server into the sandbox on first attach, so these are
+	// what stands between `balanced` and a remote-ssh session that hangs.
+	//
+	// Telemetry is deliberately absent. mobile.events.data.microsoft.com is
+	// what VS Code reaches for next and it stays denied: the preset allows the
+	// work, not the reporting of it, and nothing breaks without it.
 	"update.code.visualstudio.com",
+	"vscode.download.prss.microsoft.com",
 	"marketplace.visualstudio.com",
+	"*.vsassets.io",
 	"*.vscode-cdn.net",
 	"*.blob.core.windows.net",
 }

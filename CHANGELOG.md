@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - Host-enforced network policy. A sandbox is alone on a private network with no route out; its only way to reach anything is jard's proxy, which checks every request against a policy set on the host with `jard policy`. An agent that ignores `HTTP_PROXY` gets nowhere — there is no route to ignore it with. Three presets to start from: `balanced` (the default), `open`, and `locked-down`.
+- The `balanced` preset covers an editor attaching over ssh, including the server it installs into the sandbox on first connect. Its telemetry is not covered, and stays denied.
 - `jard policy ls`, `allow`, `deny`, `rm`, `check`, `log`, and `preset`. Wildcards are written `*.example.com`, and cover subdomains but not the apex. A deny beats any allow covering the same host.
 - `ssh <name>.jard` opens a shell in a sandbox, and editors that speak ssh can attach to one. `jard setup ssh` adds a managed block to your ssh config; everything outside its markers is left alone. Nothing listens on a port: ssh reaches the sandbox through a `ProxyCommand` onto a socket only you can open, and a session is an exec rather than a connection. No keys to manage — the socket's permissions are what decide.
 - `ssh -L` reaches a service inside a sandbox without publishing it to the host. `ssh -R` is refused: that would put the sandbox on a host port nobody asked for.

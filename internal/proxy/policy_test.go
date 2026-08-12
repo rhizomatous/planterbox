@@ -136,6 +136,36 @@ func TestBalancedAllowsTheWorkAnAgentActuallyDoes(t *testing.T) {
 	}
 }
 
+// An editor attaching to a sandbox installs its own server into it first, and
+// a preset that stops halfway through that is a preset that hangs.
+func TestBalancedAllowsAnEditorToAttach(t *testing.T) {
+	p := New(PresetBalanced)
+	for _, host := range []string{
+		"update.code.visualstudio.com",
+		"vscode.download.prss.microsoft.com",
+		"main.vscode-cdn.net",
+		"marketplace.visualstudio.com",
+		"gallerycdn.vsassets.io",
+	} {
+		if v := p.Check(Target{Host: host, Port: 443}); !v.Allowed {
+			t.Errorf("balanced denied %s: %s", host, v.Reason)
+		}
+	}
+}
+
+// Telemetry is not work. It stays denied, and nothing breaks for it.
+func TestBalancedDeniesEditorTelemetry(t *testing.T) {
+	p := New(PresetBalanced)
+	for _, host := range []string{
+		"mobile.events.data.microsoft.com",
+		"dc.services.visualstudio.com",
+	} {
+		if v := p.Check(Target{Host: host, Port: 443}); v.Allowed {
+			t.Errorf("balanced allowed telemetry to %s: %s", host, v.Reason)
+		}
+	}
+}
+
 func TestBalancedStillDeniesEverythingElse(t *testing.T) {
 	p := New(PresetBalanced)
 	for _, host := range []string{"example.com", "evil.test", "pastebin.com"} {
