@@ -86,7 +86,12 @@ homebrew_casks:
   - name: jard
     # publish only when a tap token is configured; otherwise skip so a
     # release never fails for a missing secret.
-    skip_upload: '{{ if .Env.HOMEBREW_TAP_TOKEN }}false{{ else }}true{{ end }}'
+    #
+    # `index .Env` rather than `.Env.HOMEBREW_TAP_TOKEN`: the latter errors on a
+    # variable that is absent rather than reading as empty, so a local
+    # `make release-check` failed here on a machine with no tap token — which is
+    # every machine, that being the point of a dry run.
+    skip_upload: '{{ if index .Env "HOMEBREW_TAP_TOKEN" }}false{{ else }}true{{ end }}'
     homepage: https://github.com/rhizomatous/jardiniere
     description: a Nix-based sandbox for running coding agents in isolated containers
     # the binary is unsigned/unnotarized; strip the quarantine flag so macOS

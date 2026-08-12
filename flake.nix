@@ -7,7 +7,7 @@
   outputs = { self, nixpkgs }:
     let
       # keep in sync with the latest release tag.
-      version = "0.3.0";
+      version = "0.4.0";
       forAllSystems = f:
         nixpkgs.lib.genAttrs [
           "x86_64-linux"
@@ -21,7 +21,7 @@
         pname = "jard";
         inherit version;
         src = ./.;
-        vendorHash = "sha256-gBHm7MLLPzZqt1tLtewNqhsaKdn0Ej98vjQ8Vnfizbg=";
+        vendorHash = "sha256-4eXMWglbQHP4kIjkIK0CYLU862/zRPFYUobmUYkdFfQ=";
         subPackages = [ "cmd/jard" "cmd/jardd" ];
         # inject the version into the same symbol the Makefile uses.
         ldflags = [ "-s" "-w" "-X" "main.version=${version}" ];
