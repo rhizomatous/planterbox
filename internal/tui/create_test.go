@@ -97,10 +97,10 @@ func TestFormAdvancesThroughItsFieldsAndSubmits(t *testing.T) {
 		t.Fatal("c should have opened the form")
 	}
 
-	// workspace → agent → name → submit.
-	for i := range 3 {
+	// workspace → agent → name → workspace access → submit.
+	for i := range 4 {
 		if m.create == nil {
-			t.Fatalf("the form closed after %d of 3 fields", i)
+			t.Fatalf("the form closed after %d of 4 fields", i)
 		}
 		m = enter(t, m)
 	}
@@ -266,5 +266,44 @@ func TestCreateKeyIsListedInHelp(t *testing.T) {
 	m = press(t, m, "?")
 	if !strings.Contains(view(m), "create") {
 		t.Errorf("help should list the create key:\n%s", view(m))
+	}
+}
+
+// Clone mode is fixed when a sandbox is made, so the dashboard has to be able
+// to choose it — and has to default to the same thing the CLI does.
+func TestFormDefaultsToADirectMountAndCanChooseClone(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		downFirst bool
+		want      bool
+	}{
+		{name: "left alone, the workspace stays writable", want: false},
+		{name: "moving down picks clone mode", downFirst: true, want: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Chdir(tempDir(t, "myrepo"))
+			fake := api.NewFake()
+
+			m := loaded(t, fake)
+			next, cmd := m.Update(tea.KeyPressMsg{Code: 'c', Text: "c"})
+			m = pump(t, next.(*Model), cmd)
+
+			// workspace → agent → name, then the access field.
+			for range 3 {
+				m = enter(t, m)
+			}
+			if tc.downFirst {
+				next, cmd := m.Update(tea.KeyPressMsg{Code: tea.KeyDown})
+				m = pump(t, next.(*Model), cmd)
+			}
+			enter(t, m) // submits; what it returns is of no further use
+
+			if len(fake.Sandboxes) != 1 {
+				t.Fatalf("sandboxes = %+v, want one", fake.Sandboxes)
+			}
+			if got := fake.Sandboxes[0].Spec.Clone; got != tc.want {
+				t.Errorf("clone = %v, want %v", got, tc.want)
+			}
+		})
 	}
 }

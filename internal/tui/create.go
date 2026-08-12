@@ -12,14 +12,19 @@ import (
 	"github.com/rhizomatous/jardiniere/internal/api"
 )
 
-// createForm collects what a new sandbox needs. Only the three fields with no
-// sensible default are asked for; resource limits and ports stay on the CLI,
-// where a flag is quicker than a form field.
+// createForm collects what a new sandbox needs.
+//
+// Only what has no sensible default, or cannot be changed later. Resource
+// limits stay on the CLI, where a flag is quicker than a form field, and ports
+// are not asked for at all because `jard ports` changes them whenever. Clone
+// mode is here because it is neither: it is fixed when the sandbox is made,
+// and it decides whether an agent can reach the files you keep outside it.
 type createForm struct {
 	form      *huh.Form
 	workspace string
 	agent     string
 	name      string
+	clone     bool
 }
 
 // newCreateForm builds the form, defaulting the workspace to the directory jard
@@ -45,6 +50,15 @@ func newCreateForm(cwd string) *createForm {
 				Description("leave blank to name it after the directory").
 				Value(&c.name).
 				Validate(validOptionalName),
+
+			huh.NewSelect[bool]().
+				Title("workspace access").
+				Description("clone mode cannot be changed later").
+				Options(
+					huh.NewOption("read-write — the agent edits your files directly", false),
+					huh.NewOption("clone — read-only, the agent works in its own copy", true),
+				).
+				Value(&c.clone),
 		),
 	)
 	return c
@@ -99,6 +113,7 @@ func (c *createForm) spec() (api.Spec, error) {
 		Agent:      c.agent,
 		Image:      def.Image,
 		Workspaces: []api.Workspace{{Host: abs}},
+		Clone:      c.clone,
 	}, nil
 }
 
@@ -152,6 +167,11 @@ func (m *Model) updateCreate(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m *Model) submitCreate(spec api.Spec) tea.Cmd {
 	return func() tea.Msg {
 		_, err := m.svc.Create(context.Background(), spec)
+		// the sandbox is made either way; what failed is writing a remote into
+		// a repository that is the user's, not ours.
+		if errors.Is(err, api.ErrRemoteNotAdded) {
+			return actionMsg{verb: "created, without a git remote", name: spec.Name}
+		}
 		return actionMsg{verb: "created", name: spec.Name, err: err}
 	}
 }
