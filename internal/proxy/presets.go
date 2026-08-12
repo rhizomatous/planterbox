@@ -43,9 +43,17 @@ func (p Preset) Allowances() []string {
 // plainly, redirects to https elsewhere — and a policy that breaks `apt update`
 // is one people turn off rather than narrow.
 var balanced = []string{
-	// model providers. locked-down is the preset that refuses these.
+	// model providers, and the vendors' own endpoints beside them. An agent
+	// talks to more than the model API — it signs in, checks what it is
+	// entitled to, and looks for its own updates — and a preset that allows
+	// only the API is one the agent will not start under.
+	//
+	// locked-down is the preset that refuses these.
 	"api.anthropic.com",
+	"anthropic.com", "*.anthropic.com",
+	"claude.com", "*.claude.com",
 	"api.openai.com",
+	"openai.com", "*.openai.com",
 	"generativelanguage.googleapis.com",
 
 	// source hosting, and the separate hosts git and release downloads use.

@@ -166,6 +166,24 @@ func TestBalancedDeniesEditorTelemetry(t *testing.T) {
 	}
 }
 
+// An agent does more than call the model API: it signs in and checks what it
+// is entitled to, and a preset that allows only the API is one it will not
+// start under. platform.claude.com is where Claude Code stopped.
+func TestBalancedAllowsAnAgentToStart(t *testing.T) {
+	p := New(PresetBalanced)
+	for _, host := range []string{
+		"api.anthropic.com",
+		"platform.claude.com",
+		"claude.com",
+		"statsig.anthropic.com",
+		"api.openai.com",
+	} {
+		if v := p.Check(Target{Host: host, Port: 443}); !v.Allowed {
+			t.Errorf("balanced denied %s: %s", host, v.Reason)
+		}
+	}
+}
+
 func TestBalancedStillDeniesEverythingElse(t *testing.T) {
 	p := New(PresetBalanced)
 	for _, host := range []string{"example.com", "evil.test", "pastebin.com"} {

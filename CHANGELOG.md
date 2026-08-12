@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - The clone keeps your repository's own remotes, minus any that name a local path, and calls the read-only original `host`. So `git push origin` in the sandbox reaches GitHub, and `git fetch host` picks up what you have done since.
 - `jard inspect` reports which mode a sandbox is in.
 - Published ports can be bound to a specific host address rather than every interface.
+- The `balanced` preset now covers the model vendors' own endpoints, not only their model APIs. An agent signs in and checks what it is entitled to before it will start, and Claude Code stopped at `platform.claude.com` under the old list.
 
 ## [0.4.0] - 2026-08-12
 
