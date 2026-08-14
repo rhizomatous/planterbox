@@ -177,9 +177,8 @@ func Stop(ctx context.Context, env Env) error {
 // another: the two speak a versioned contract to each other.
 func findDaemon() (string, error) {
 	if self, err := os.Executable(); err == nil {
-		beside := filepath.Join(filepath.Dir(self), binaryName)
-		if info, err := os.Stat(beside); err == nil && !info.IsDir() {
-			return beside, nil
+		if bin, ok := daemonNear(self); ok {
+			return bin, nil
 		}
 	}
 	path, err := exec.LookPath(binaryName)
@@ -187,6 +186,31 @@ func findDaemon() (string, error) {
 		return "", fmt.Errorf("cannot find %s, which plbx needs to run sandboxes: %w", binaryName, err)
 	}
 	return path, nil
+}
+
+// daemonNear reports the daemon sitting beside self, following a symlink to
+// look for it.
+//
+// A package manager puts plbx on $PATH as a link into wherever it really
+// unpacked the release: Homebrew links /opt/homebrew/bin/plbx to a Caskroom
+// directory holding both binaries. os.Executable does not resolve that link,
+// so the resolved directory is tried first — it is the one install the two
+// binaries actually share — and the as-invoked directory after it, for a plbx
+// reached by a link someone made themselves.
+func daemonNear(self string) (string, bool) {
+	dirs := []string{filepath.Dir(self)}
+	if resolved, err := filepath.EvalSymlinks(self); err == nil {
+		if dir := filepath.Dir(resolved); dir != dirs[0] {
+			dirs = append([]string{dir}, dirs...)
+		}
+	}
+	for _, dir := range dirs {
+		beside := filepath.Join(dir, binaryName)
+		if info, err := os.Stat(beside); err == nil && !info.IsDir() {
+			return beside, true
+		}
+	}
+	return "", false
 }
 
 // lastLogLine reads the final non-empty line of the daemon's log, which is

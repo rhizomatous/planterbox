@@ -328,3 +328,79 @@ func TestConnectReachesARunningDaemon(t *testing.T) {
 		t.Fatalf("List through the daemon: %v", err)
 	}
 }
+
+// TestDaemonNearFollowsASymlinkToTheRealInstall guards what a brew install
+// looks like: plbx on $PATH is a link into the Caskroom directory where both
+// binaries were unpacked, and nothing named plbxd sits beside the link.
+func TestDaemonNearFollowsASymlinkToTheRealInstall(t *testing.T) {
+	root := tempDir(t)
+	install := filepath.Join(root, "Caskroom", "plbx", "0.6.0")
+	bin := filepath.Join(root, "bin")
+	for _, dir := range []string{install, bin} {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatalf("MkdirAll %s: %v", dir, err)
+		}
+	}
+	for _, name := range []string{"plbx", binaryName} {
+		if err := os.WriteFile(filepath.Join(install, name), nil, 0o755); err != nil {
+			t.Fatalf("writing %s: %v", name, err)
+		}
+	}
+	link := filepath.Join(bin, "plbx")
+	if err := os.Symlink(filepath.Join(install, "plbx"), link); err != nil {
+		t.Fatalf("Symlink: %v", err)
+	}
+
+	got, ok := daemonNear(link)
+	if !ok {
+		t.Fatal("daemonNear found no daemon through the symlink")
+	}
+	if filepath.Dir(got) != install {
+		t.Errorf("daemonNear = %q, want one in %q", got, install)
+	}
+}
+
+// TestDaemonNearPrefersTheDirectNeighbour keeps a plbx run straight out of a
+// build directory finding the plbxd built next to it.
+func TestDaemonNearPrefersTheDirectNeighbour(t *testing.T) {
+	dir := tempDir(t)
+	self := filepath.Join(dir, "plbx")
+	for _, name := range []string{"plbx", binaryName} {
+		if err := os.WriteFile(filepath.Join(dir, name), nil, 0o755); err != nil {
+			t.Fatalf("writing %s: %v", name, err)
+		}
+	}
+	got, ok := daemonNear(self)
+	if !ok {
+		t.Fatal("daemonNear found no daemon beside plbx")
+	}
+	if got != filepath.Join(dir, binaryName) {
+		t.Errorf("daemonNear = %q, want %q", got, filepath.Join(dir, binaryName))
+	}
+}
+
+// TestDaemonNearReportsNothingWhenThereIsNoDaemon leaves the fallback to $PATH
+// as the only remaining route.
+func TestDaemonNearReportsNothingWhenThereIsNoDaemon(t *testing.T) {
+	dir := tempDir(t)
+	self := filepath.Join(dir, "plbx")
+	if err := os.WriteFile(self, nil, 0o755); err != nil {
+		t.Fatalf("writing plbx: %v", err)
+	}
+	if got, ok := daemonNear(self); ok {
+		t.Errorf("daemonNear = %q, want none", got)
+	}
+}
+
+// tempDir is t.TempDir with the symlinks resolved out of it. On macOS it hands
+// back a path under /var, which is itself a link to /private/var — so a test
+// comparing against a resolved path would fail on the wrapper rather than on
+// anything it meant to check.
+func tempDir(t *testing.T) string {
+	t.Helper()
+	dir, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatalf("resolving the temp dir: %v", err)
+	}
+	return dir
+}

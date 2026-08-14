@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- `plbx` looks for its daemon through a symlink as well as beside itself. A package manager puts `plbx` on `$PATH` as a link into wherever it really unpacked the release, and the directory the link lives in holds no `plbxd` — so the install the two binaries actually share was the one place never checked.
+
 ## [0.6.0] - 2026-08-14
 
 ### Changed
