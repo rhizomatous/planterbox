@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-08-14
+
 ### Fixed
 
 - **A Homebrew install could not run anything.** The cask linked `plbx` onto your `$PATH` and left `plbxd` sitting unlinked in the Caskroom, so every command stopped at `cannot find plbxd, which plbx needs to run sandboxes`. The cask now links both.
@@ -117,7 +119,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `jardiniere.toml` config file, supporting a custom `startup` command, `image` override, and network policy.
 - Kong-based CLI with `--version` and `--dry-run` flags.
 
-[Unreleased]: https://github.com/rhizomatous/planterbox/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/rhizomatous/planterbox/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/rhizomatous/planterbox/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/rhizomatous/planterbox/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/rhizomatous/planterbox/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/rhizomatous/planterbox/compare/v0.3.0...v0.4.0

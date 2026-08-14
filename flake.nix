@@ -7,7 +7,7 @@
   outputs = { self, nixpkgs }:
     let
       # keep in sync with the latest release tag.
-      version = "0.6.0";
+      version = "0.6.1";
       forAllSystems = f:
         nixpkgs.lib.genAttrs [
           "x86_64-linux"
