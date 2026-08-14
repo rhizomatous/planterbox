@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/rhizomatous/jardiniere/internal/api"
+	"github.com/rhizomatous/planterbox/internal/api"
 )
 
 // These drive hostExecutor against /bin/sh rather than a container runtime, so
@@ -110,7 +110,7 @@ func TestSessionKeepsStderrSeparateWithoutATTY(t *testing.T) {
 
 func TestSessionReportsTheCommandsExitCode(t *testing.T) {
 	for _, tty := range []bool{false, true} {
-		// a command exiting non-zero is its own answer, not a jard failure,
+		// a command exiting non-zero is its own answer, not a plbx failure,
 		// and that has to hold on both paths.
 		_, code := session(t, shell("exit 7"), api.Streams{}, tty)
 		if code != 7 {

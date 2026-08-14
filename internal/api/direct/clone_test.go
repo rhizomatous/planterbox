@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/rhizomatous/jardiniere/internal/api"
+	"github.com/rhizomatous/planterbox/internal/api"
 )
 
 // gitRepo makes a real repository to operate on. Clone mode writes to the
@@ -49,8 +49,8 @@ func TestHostRemoteAddedAndDropped(t *testing.T) {
 	if err := svc.addHostRemote(ctx, sb); err != nil {
 		t.Fatalf("addHostRemote: %v", err)
 	}
-	if got := remotes(t, repo); got != "jard-demo" {
-		t.Fatalf("remotes = %q, want jard-demo", got)
+	if got := remotes(t, repo); got != "plbx-demo" {
+		t.Fatalf("remotes = %q, want plbx-demo", got)
 	}
 
 	svc.dropHostRemote(ctx, sb)
@@ -72,7 +72,7 @@ func TestHostRemoteIsRewrittenNotDuplicated(t *testing.T) {
 			t.Fatalf("addHostRemote: %v", err)
 		}
 	}
-	if got := remotes(t, repo); got != "jard-demo" {
+	if got := remotes(t, repo); got != "plbx-demo" {
 		t.Errorf("remotes = %q, want exactly one", got)
 	}
 }

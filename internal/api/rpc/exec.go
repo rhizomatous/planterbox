@@ -12,8 +12,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/rhizomatous/jardiniere/internal/api"
-	"github.com/rhizomatous/jardiniere/internal/api/rpc/jardv1"
+	"github.com/rhizomatous/planterbox/internal/api"
+	"github.com/rhizomatous/planterbox/internal/api/rpc/plbxv1"
 )
 
 // Exec runs a command in a sandbox owned by the daemon, relaying this process's
@@ -41,14 +41,14 @@ func (c *Client) Exec(
 	}
 	send := &frameSender{stream: stream}
 
-	start := &jardv1.ExecStart{Ref: protoRef(ref), Request: protoExecRequest(req)}
+	start := &plbxv1.ExecStart{Ref: protoRef(ref), Request: protoExecRequest(req)}
 	// the opening dimensions ride along with the start frame, so the session is
 	// the right size from its first redraw rather than after the first resize.
 	if size, ok := firstSize(streams.Resize); ok {
 		start.Size = protoSize(size)
 	}
-	if err := send.frame(&jardv1.ExecClientFrame{
-		Frame: &jardv1.ExecClientFrame_Start{Start: start},
+	if err := send.frame(&plbxv1.ExecClientFrame{
+		Frame: &plbxv1.ExecClientFrame_Start{Start: start},
 	}); err != nil {
 		return api.ExecResult{}, localError(err)
 	}
@@ -61,7 +61,7 @@ func (c *Client) Exec(
 
 // receive plays the daemon's frames out to the local stdio until the session
 // reports how it ended.
-func receive(stream jardv1.Sandboxes_ExecClient, streams api.Streams) (api.ExecResult, error) {
+func receive(stream plbxv1.Sandboxes_ExecClient, streams api.Streams) (api.ExecResult, error) {
 	for {
 		frame, err := stream.Recv()
 		if err != nil {
@@ -73,15 +73,15 @@ func receive(stream jardv1.Sandboxes_ExecClient, streams api.Streams) (api.ExecR
 			return api.ExecResult{}, localError(err)
 		}
 		switch f := frame.GetFrame().(type) {
-		case *jardv1.ExecServerFrame_Stdout:
+		case *plbxv1.ExecServerFrame_Stdout:
 			if _, err := streams.Stdout.Write(f.Stdout); err != nil {
 				return api.ExecResult{}, err
 			}
-		case *jardv1.ExecServerFrame_Stderr:
+		case *plbxv1.ExecServerFrame_Stderr:
 			if _, err := streams.Stderr.Write(f.Stderr); err != nil {
 				return api.ExecResult{}, err
 			}
-		case *jardv1.ExecServerFrame_ExitCode:
+		case *plbxv1.ExecServerFrame_ExitCode:
 			return api.ExecResult{ExitCode: int(f.ExitCode)}, nil
 		}
 	}
@@ -100,15 +100,15 @@ func relayStdin(send *frameSender, stdin io.Reader) {
 		if n > 0 {
 			chunk := make([]byte, n)
 			copy(chunk, buf[:n])
-			if err := send.frame(&jardv1.ExecClientFrame{
-				Frame: &jardv1.ExecClientFrame_Stdin{Stdin: chunk},
+			if err := send.frame(&plbxv1.ExecClientFrame{
+				Frame: &plbxv1.ExecClientFrame_Stdin{Stdin: chunk},
 			}); err != nil {
 				return
 			}
 		}
 		if err != nil {
-			_ = send.frame(&jardv1.ExecClientFrame{
-				Frame: &jardv1.ExecClientFrame_StdinClose{StdinClose: &jardv1.ExecStdinClose{}},
+			_ = send.frame(&plbxv1.ExecClientFrame{
+				Frame: &plbxv1.ExecClientFrame_StdinClose{StdinClose: &plbxv1.ExecStdinClose{}},
 			})
 			return
 		}
@@ -123,8 +123,8 @@ func relayResize(ctx context.Context, send *frameSender, sizes <-chan api.Size) 
 			if !ok {
 				return
 			}
-			if err := send.frame(&jardv1.ExecClientFrame{
-				Frame: &jardv1.ExecClientFrame_Resize{Resize: protoSize(size)},
+			if err := send.frame(&plbxv1.ExecClientFrame{
+				Frame: &plbxv1.ExecClientFrame_Resize{Resize: protoSize(size)},
 			}); err != nil {
 				return
 			}
@@ -138,10 +138,10 @@ func relayResize(ctx context.Context, send *frameSender, sizes <-chan api.Size) 
 // separate goroutines, and a gRPC stream permits only one sender at a time.
 type frameSender struct {
 	mu     sync.Mutex
-	stream jardv1.Sandboxes_ExecClient
+	stream plbxv1.Sandboxes_ExecClient
 }
 
-func (s *frameSender) frame(f *jardv1.ExecClientFrame) error {
+func (s *frameSender) frame(f *plbxv1.ExecClientFrame) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.stream.Send(f)
@@ -150,7 +150,7 @@ func (s *frameSender) frame(f *jardv1.ExecClientFrame) error {
 // Exec runs a session on behalf of a client, wiring the stream to the service's
 // stdio. The daemon owns the session for its whole life, which is what lets it
 // hold the pty and what the SSH gateway will later attach to.
-func (s *Server) Exec(stream grpc.BidiStreamingServer[jardv1.ExecClientFrame, jardv1.ExecServerFrame]) error {
+func (s *Server) Exec(stream grpc.BidiStreamingServer[plbxv1.ExecClientFrame, plbxv1.ExecServerFrame]) error {
 	first, err := stream.Recv()
 	if err != nil {
 		return err
@@ -192,7 +192,7 @@ func (s *Server) Exec(stream grpc.BidiStreamingServer[jardv1.ExecClientFrame, ja
 // serveFrames feeds the client's input into the session until the stream ends.
 func serveFrames(
 	ctx context.Context,
-	stream grpc.BidiStreamingServer[jardv1.ExecClientFrame, jardv1.ExecServerFrame],
+	stream grpc.BidiStreamingServer[plbxv1.ExecClientFrame, plbxv1.ExecServerFrame],
 	stdin *io.PipeWriter,
 	sizes chan api.Size,
 ) {
@@ -205,13 +205,13 @@ func serveFrames(
 			return
 		}
 		switch f := frame.GetFrame().(type) {
-		case *jardv1.ExecClientFrame_Stdin:
+		case *plbxv1.ExecClientFrame_Stdin:
 			if _, err := stdin.Write(f.Stdin); err != nil {
 				return
 			}
-		case *jardv1.ExecClientFrame_StdinClose:
+		case *plbxv1.ExecClientFrame_StdinClose:
 			_ = stdin.Close()
-		case *jardv1.ExecClientFrame_Resize:
+		case *plbxv1.ExecClientFrame_Resize:
 			select {
 			case sizes <- apiSize(f.Resize):
 			case <-ctx.Done():
@@ -232,7 +232,7 @@ const (
 // serverFrames serialises the daemon's writes back to one client.
 type serverFrames struct {
 	mu     sync.Mutex
-	stream grpc.BidiStreamingServer[jardv1.ExecClientFrame, jardv1.ExecServerFrame]
+	stream grpc.BidiStreamingServer[plbxv1.ExecClientFrame, plbxv1.ExecServerFrame]
 }
 
 func (s *serverFrames) writer(kind frameKind) io.Writer {
@@ -243,11 +243,11 @@ func (s *serverFrames) writer(kind frameKind) io.Writer {
 		chunk := make([]byte, len(p))
 		copy(chunk, p)
 
-		frame := &jardv1.ExecServerFrame{}
+		frame := &plbxv1.ExecServerFrame{}
 		if kind == stderrFrame {
-			frame.Frame = &jardv1.ExecServerFrame_Stderr{Stderr: chunk}
+			frame.Frame = &plbxv1.ExecServerFrame_Stderr{Stderr: chunk}
 		} else {
-			frame.Frame = &jardv1.ExecServerFrame_Stdout{Stdout: chunk}
+			frame.Frame = &plbxv1.ExecServerFrame_Stdout{Stdout: chunk}
 		}
 		if err := s.stream.Send(frame); err != nil {
 			return 0, err
@@ -259,8 +259,8 @@ func (s *serverFrames) writer(kind frameKind) io.Writer {
 func (s *serverFrames) exit(code int32) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.stream.Send(&jardv1.ExecServerFrame{
-		Frame: &jardv1.ExecServerFrame_ExitCode{ExitCode: code},
+	return s.stream.Send(&plbxv1.ExecServerFrame{
+		Frame: &plbxv1.ExecServerFrame_ExitCode{ExitCode: code},
 	})
 }
 
@@ -296,11 +296,11 @@ func firstSize(sizes <-chan api.Size) (api.Size, bool) {
 	}
 }
 
-func protoSize(s api.Size) *jardv1.Size {
-	return &jardv1.Size{Rows: uint32(s.Rows), Cols: uint32(s.Cols)}
+func protoSize(s api.Size) *plbxv1.Size {
+	return &plbxv1.Size{Rows: uint32(s.Rows), Cols: uint32(s.Cols)}
 }
 
-func apiSize(s *jardv1.Size) api.Size {
+func apiSize(s *plbxv1.Size) api.Size {
 	if s == nil {
 		return api.Size{}
 	}

@@ -5,9 +5,9 @@ import (
 	"io"
 	"runtime"
 
-	"github.com/rhizomatous/jardiniere/internal/proxy"
-	"github.com/rhizomatous/jardiniere/internal/runner"
-	"github.com/rhizomatous/jardiniere/internal/store"
+	"github.com/rhizomatous/planterbox/internal/proxy"
+	"github.com/rhizomatous/planterbox/internal/runner"
+	"github.com/rhizomatous/planterbox/internal/store"
 )
 
 // Options describes how to assemble a service against the local host.
@@ -31,7 +31,7 @@ type Options struct {
 }
 
 // Open assembles a service against the local store and container runtime. It
-// exists so cmd/jard and internal/tui can get a working api.Service without
+// exists so cmd/plbx and internal/tui can get a working api.Service without
 // importing internal/store or internal/runner themselves.
 func Open(ctx context.Context, opts Options) (*Service, error) {
 	dir := opts.StateDir
@@ -75,7 +75,7 @@ func Open(ctx context.Context, opts Options) (*Service, error) {
 	case err == nil:
 	case opts.DryRun:
 		// nothing is executed under --dry-run, so render against a nominal
-		// runtime rather than refusing. Inspecting what jard would do is the
+		// runtime rather than refusing. Inspecting what plbx would do is the
 		// one thing that must work on a machine with no runtime at all.
 		rt = runner.Runtime{Name: "docker", Path: "docker"}
 	default:

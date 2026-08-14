@@ -7,7 +7,7 @@ import (
 
 	"charm.land/ssh"
 
-	"github.com/rhizomatous/jardiniere/internal/api"
+	"github.com/rhizomatous/planterbox/internal/api"
 )
 
 // agentUser is who a session runs as inside the sandbox. The base image
@@ -34,7 +34,7 @@ func (s *Server) handle(sess ssh.Session) {
 		return
 	}
 	if sb.State.Status != api.StatusRunning {
-		fail(sess, fmt.Sprintf("%s is not running; start it with `jard start %s`", name, name))
+		fail(sess, fmt.Sprintf("%s is not running; start it with `plbx start %s`", name, name))
 		return
 	}
 
@@ -158,6 +158,6 @@ func envAllows(name string) bool {
 // fail tells the client why, and exits non-zero. The message goes to stderr so
 // it does not land in the output of whatever command was asked for.
 func fail(sess ssh.Session, msg string) {
-	_, _ = fmt.Fprintln(sess.Stderr(), "jard: "+msg)
+	_, _ = fmt.Fprintln(sess.Stderr(), "plbx: "+msg)
 	_ = sess.Exit(1)
 }

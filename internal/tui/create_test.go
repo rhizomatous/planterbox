@@ -8,7 +8,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/rhizomatous/jardiniere/internal/api"
+	"github.com/rhizomatous/planterbox/internal/api"
 )
 
 func tempDir(t *testing.T, name string) string {

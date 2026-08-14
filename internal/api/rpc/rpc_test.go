@@ -15,8 +15,8 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
 
-	"github.com/rhizomatous/jardiniere/internal/api"
-	"github.com/rhizomatous/jardiniere/internal/proxy"
+	"github.com/rhizomatous/planterbox/internal/api"
+	"github.com/rhizomatous/planterbox/internal/proxy"
 )
 
 // dial stands a server up over an in-memory transport and returns a client

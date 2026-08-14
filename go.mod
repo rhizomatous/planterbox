@@ -1,4 +1,4 @@
-module github.com/rhizomatous/jardiniere
+module github.com/rhizomatous/planterbox
 
 go 1.26
 

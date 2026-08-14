@@ -1,6 +1,6 @@
-// Package daemon runs jard's host-resident half and connects clients to it.
+// Package daemon runs plbx's host-resident half and connects clients to it.
 //
-// The daemon exists because some of what jard does has to outlive the command
+// The daemon exists because some of what plbx does has to outlive the command
 // that asked for it: an egress proxy, forwarded ports, and sessions that a
 // second client can be told about. It serves [api.Service] over a unix socket,
 // so a CLI or TUI holds the same interface either way.
@@ -13,16 +13,16 @@ import (
 	"strconv"
 )
 
-// appDir is jard's directory name under whichever runtime base the platform
+// appDir is plbx's directory name under whichever runtime base the platform
 // gives us. It matches the store's, one level down from a different root.
-const appDir = "jardiniere"
+const appDir = "planterbox"
 
 // socketFile and pidFile live side by side in the runtime directory.
 const (
-	socketFile = "jardd.sock"
-	sshFile    = "jardd-ssh.sock"
-	pidFile    = "jardd.pid"
-	logFile    = "jardd.log"
+	socketFile = "plbxd.sock"
+	sshFile    = "plbxd-ssh.sock"
+	pidFile    = "plbxd.pid"
+	logFile    = "plbxd.log"
 )
 
 // Env supplies the environment paths are resolved against. Injecting it keeps
@@ -48,7 +48,7 @@ const tmpRoot = "/tmp"
 // RuntimeDir resolves the directory holding the socket, the pidfile, and the
 // daemon's log.
 //
-// JARD_RUNTIME_DIR wins outright. Otherwise XDG_RUNTIME_DIR where the platform
+// PLBX_RUNTIME_DIR wins outright. Otherwise XDG_RUNTIME_DIR where the platform
 // sets one, and a per-user directory under /tmp where it does not — which is
 // the macOS case.
 //
@@ -57,7 +57,7 @@ const tmpRoot = "/tmp"
 // "~/Library/Application Support/..." spends most of that budget before it
 // reaches a filename.
 func RuntimeDir(env Env) (string, error) {
-	if dir := env.Getenv("JARD_RUNTIME_DIR"); dir != "" {
+	if dir := env.Getenv("PLBX_RUNTIME_DIR"); dir != "" {
 		return dir, nil
 	}
 	if dir := env.Getenv("XDG_RUNTIME_DIR"); filepath.IsAbs(dir) {
@@ -69,10 +69,10 @@ func RuntimeDir(env Env) (string, error) {
 	return filepath.Join(tmpRoot, appDir+"-"+strconv.Itoa(env.UID)), nil
 }
 
-// Socket resolves where the daemon listens. JARD_SOCKET names it outright, for
+// Socket resolves where the daemon listens. PLBX_SOCKET names it outright, for
 // running a daemon somewhere of your own choosing.
 func Socket(env Env) (string, error) {
-	if path := env.Getenv("JARD_SOCKET"); path != "" {
+	if path := env.Getenv("PLBX_SOCKET"); path != "" {
 		return path, nil
 	}
 	dir, err := RuntimeDir(env)
@@ -82,11 +82,11 @@ func Socket(env Env) (string, error) {
 	return filepath.Join(dir, socketFile), nil
 }
 
-// SSHSocket resolves where the ssh gateway listens. JARD_SSH_SOCKET names it
-// outright, alongside JARD_SOCKET, so a daemon of your own is reachable both
+// SSHSocket resolves where the ssh gateway listens. PLBX_SSH_SOCKET names it
+// outright, alongside PLBX_SOCKET, so a daemon of your own is reachable both
 // ways.
 func SSHSocket(env Env) (string, error) {
-	if path := env.Getenv("JARD_SSH_SOCKET"); path != "" {
+	if path := env.Getenv("PLBX_SSH_SOCKET"); path != "" {
 		return path, nil
 	}
 	return runtimePath(env, sshFile)

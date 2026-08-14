@@ -19,10 +19,10 @@ func ownedPrivately(dir string, info fs.FileInfo) error {
 		return nil // an unfamiliar platform; the mode check below still applies
 	}
 	if int(stat.Uid) != os.Getuid() {
-		return fmt.Errorf("%s belongs to uid %d, not to you: refusing to put jard's socket in it", dir, stat.Uid)
+		return fmt.Errorf("%s belongs to uid %d, not to you: refusing to put plbx's socket in it", dir, stat.Uid)
 	}
 	if perm := info.Mode().Perm(); perm&0o077 != 0 {
-		return fmt.Errorf("%s is reachable by other users (mode %04o): refusing to put jard's socket in it", dir, perm)
+		return fmt.Errorf("%s is reachable by other users (mode %04o): refusing to put plbx's socket in it", dir, perm)
 	}
 	return nil
 }

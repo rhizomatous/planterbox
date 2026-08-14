@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/rhizomatous/jardiniere/internal/api"
-	"github.com/rhizomatous/jardiniere/internal/runner"
-	"github.com/rhizomatous/jardiniere/internal/store"
+	"github.com/rhizomatous/planterbox/internal/api"
+	"github.com/rhizomatous/planterbox/internal/runner"
+	"github.com/rhizomatous/planterbox/internal/store"
 )
 
 var epoch = time.Date(2026, 8, 4, 12, 0, 0, 0, time.UTC)
@@ -57,7 +57,7 @@ func TestCreateStampsAndPersists(t *testing.T) {
 	if sb.State.Status != api.StatusCreated {
 		t.Errorf("status = %q, want created", sb.State.Status)
 	}
-	if _, ok := rn.States["jard-demo"]; !ok {
+	if _, ok := rn.States["plbx-demo"]; !ok {
 		t.Error("Create should have built the container through the runner")
 	}
 
@@ -98,8 +98,8 @@ func TestListReportsLiveStatusNotStoredStatus(t *testing.T) {
 		t.Fatalf("Create: %v", err)
 	}
 
-	// something outside jard started the container.
-	rn.States["jard-demo"] = api.State{Status: api.StatusRunning, ContainerID: "jard-demo"}
+	// something outside plbx started the container.
+	rn.States["plbx-demo"] = api.State{Status: api.StatusRunning, ContainerID: "plbx-demo"}
 
 	all, err := svc.List(ctx)
 	if err != nil {
@@ -134,7 +134,7 @@ func TestListReportsMissingContainer(t *testing.T) {
 	if _, err := svc.Create(ctx, spec("demo")); err != nil {
 		t.Fatalf("Create: %v", err)
 	}
-	delete(rn.States, "jard-demo")
+	delete(rn.States, "plbx-demo")
 
 	all, err := svc.List(ctx)
 	if err != nil {
@@ -197,7 +197,7 @@ func TestCopyRoutesToTheSandboxNamedInThePath(t *testing.T) {
 	}
 	// drop beta's container so the two sandboxes are distinguishable: a copy
 	// that reaches beta fails, one that reaches alpha succeeds.
-	delete(rn.States, "jard-beta")
+	delete(rn.States, "plbx-beta")
 	host := api.Path{Path: "/tmp/a"}
 
 	if err := svc.Copy(ctx, api.Path{Sandbox: "alpha", Path: "/home/agent/a"}, host); err != nil {
@@ -305,7 +305,7 @@ func TestRemoveDropsRecordAndContainerTogether(t *testing.T) {
 		t.Fatalf("Remove: %v", err)
 	}
 
-	if _, ok := rn.States["jard-demo"]; ok {
+	if _, ok := rn.States["plbx-demo"]; ok {
 		t.Error("Remove left the container behind")
 	}
 	all, err := svc.List(ctx)
@@ -320,7 +320,7 @@ func TestRemoveDropsRecordAndContainerTogether(t *testing.T) {
 func TestOpenWithoutRuntimeStillLists(t *testing.T) {
 	// a machine with no docker installed can still read its own records.
 	dir := filepath.Join(t.TempDir(), "sandboxes")
-	t.Setenv("JARD_RUNTIME", "definitely-not-a-runtime")
+	t.Setenv("PLBX_RUNTIME", "definitely-not-a-runtime")
 
 	svc, err := Open(context.Background(), Options{StateDir: dir})
 	if err != nil {

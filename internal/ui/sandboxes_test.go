@@ -7,7 +7,7 @@ import (
 
 	"github.com/charmbracelet/x/ansi"
 
-	"github.com/rhizomatous/jardiniere/internal/api"
+	"github.com/rhizomatous/planterbox/internal/api"
 )
 
 var now = time.Date(2026, 8, 4, 12, 0, 0, 0, time.UTC)

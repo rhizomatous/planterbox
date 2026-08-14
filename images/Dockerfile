@@ -5,12 +5,12 @@
 # share the base layer automatically, and a pull request can build every one of
 # them without pushing anything.
 #
-#   docker build --target claude -t jard-claude images/
+#   docker build --target claude -t plbx-claude images/
 #
 # the relay target is the exception: it is not a sandbox image, and it builds
 # from the repository root rather than from images/.
 #
-#   docker build --target relay -t jard-relay -f images/Dockerfile .
+#   docker build --target relay -t plbx-relay -f images/Dockerfile .
 #
 # the base contract, matching Docker's sbx so third-party images are portable:
 # Ubuntu, a non-root `agent` at UID 1000, passwordless sudo, proxy environment
@@ -88,7 +88,7 @@ ENV PATH=/home/agent/.npm-global/bin:/home/agent/.local/bin:/usr/local/bin:$PATH
 # each target ends as `agent`; the stages below install as root first.
 
 
-# the bare sandbox: no agent, just the contract. Useful for trying jard out, for
+# the bare sandbox: no agent, just the contract. Useful for trying plbx out, for
 # exercising the lifecycle without an agent in the way, and as a starting point
 # when you want to install your own.
 FROM base AS shell
@@ -136,8 +136,8 @@ ARG TARGETOS
 ARG TARGETARCH
 ARG VERSION=dev
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
-    go build -ldflags "-s -w -X main.version=${VERSION}" -o /out/jard-relay ./cmd/jard-relay
+    go build -ldflags "-s -w -X main.version=${VERSION}" -o /out/plbx-relay ./cmd/plbx-relay
 
 FROM scratch AS relay
-COPY --from=relay-build /out/jard-relay /jard-relay
-ENTRYPOINT ["/jard-relay"]
+COPY --from=relay-build /out/plbx-relay /plbx-relay
+ENTRYPOINT ["/plbx-relay"]

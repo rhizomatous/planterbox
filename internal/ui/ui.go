@@ -1,4 +1,4 @@
-// Package ui holds jard's terminal presentation: a shared logger, a palette,
+// Package ui holds plbx's terminal presentation: a shared logger, a palette,
 // and the renderers the CLI prints.
 //
 // Styling degrades to plain text automatically when output is piped or

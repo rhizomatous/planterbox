@@ -1,7 +1,7 @@
-// Package runner is jard's adapter boundary over the container runtimes.
+// Package runner is plbx's adapter boundary over the container runtimes.
 // docker, podman, OrbStack, and colima differ enough — rootless podman most of
 // all — to want one seam, and a fake behind the same interface is what lets the
-// rest of jard be unit-tested with no live runtime.
+// rest of plbx be unit-tested with no live runtime.
 //
 // No runtime-specific type crosses this line.
 package runner
@@ -10,7 +10,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/rhizomatous/jardiniere/internal/api"
+	"github.com/rhizomatous/planterbox/internal/api"
 )
 
 // ErrNotImplemented marks runner surface that is declared but not yet built.

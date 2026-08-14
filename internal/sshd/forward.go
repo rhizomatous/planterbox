@@ -8,7 +8,7 @@ import (
 	"charm.land/ssh"
 	gossh "golang.org/x/crypto/ssh"
 
-	"github.com/rhizomatous/jardiniere/internal/api"
+	"github.com/rhizomatous/planterbox/internal/api"
 )
 
 // Forwarding a port into a sandbox cannot be done from here.
@@ -65,7 +65,7 @@ func (s *Server) directTCPIP(_ *ssh.Server, _ *gossh.ServerConn, newChan gossh.N
 		Interactive: true,
 	}, api.Streams{Stdin: ch, Stdout: ch, Stderr: io.Discard})
 	if err != nil {
-		_, _ = fmt.Fprintln(ch.Stderr(), "jard: "+err.Error())
+		_, _ = fmt.Fprintln(ch.Stderr(), "plbx: "+err.Error())
 	}
 }
 
@@ -80,15 +80,15 @@ func (s *Server) directTCPIP(_ *ssh.Server, _ *gossh.ServerConn, newChan gossh.N
 // The target travels in the environment rather than in the script, so a
 // hostname is never read as shell.
 func dialCommand(host string, port int) []string {
-	const script = `exec 3<>/dev/tcp/"$JARD_FWD_HOST"/"$JARD_FWD_PORT" || exit 1
+	const script = `exec 3<>/dev/tcp/"$PLBX_FWD_HOST"/"$PLBX_FWD_PORT" || exit 1
 cat <&3 &
 cat >&3
 exec 3<&- 3>&-
 wait`
 	return []string{
 		"/usr/bin/env",
-		"JARD_FWD_HOST=" + host,
-		"JARD_FWD_PORT=" + strconv.Itoa(port),
+		"PLBX_FWD_HOST=" + host,
+		"PLBX_FWD_PORT=" + strconv.Itoa(port),
 		loginShell, "-c", script,
 	}
 }

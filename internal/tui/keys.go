@@ -7,8 +7,8 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/rhizomatous/jardiniere/internal/api"
-	"github.com/rhizomatous/jardiniere/internal/proxy"
+	"github.com/rhizomatous/planterbox/internal/api"
+	"github.com/rhizomatous/planterbox/internal/proxy"
 )
 
 // Key is one binding, as the help panel lists it.

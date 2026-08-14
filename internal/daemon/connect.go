@@ -12,8 +12,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/rhizomatous/jardiniere/internal/api"
-	"github.com/rhizomatous/jardiniere/internal/api/rpc"
+	"github.com/rhizomatous/planterbox/internal/api"
+	"github.com/rhizomatous/planterbox/internal/api/rpc"
 )
 
 // startTimeout is how long a freshly spawned daemon has to answer before we
@@ -24,7 +24,7 @@ const startTimeout = 10 * time.Second
 const pollEvery = 20 * time.Millisecond
 
 // binaryName is the daemon executable autostart looks for.
-const binaryName = "jardd"
+const binaryName = "plbxd"
 
 // ConnectOptions configures how a client reaches the daemon.
 type ConnectOptions struct {
@@ -53,7 +53,7 @@ func Connect(ctx context.Context, opts ConnectOptions) (api.Service, error) {
 		return rpc.Dial(socket)
 	}
 	if opts.NoStart {
-		return nil, fmt.Errorf("no jard daemon is running (expected one at %s)", socket)
+		return nil, fmt.Errorf("no plbx daemon is running (expected one at %s)", socket)
 	}
 
 	if err := Start(ctx, env, opts.StateDir); err != nil {
@@ -125,9 +125,9 @@ func waitForSocket(ctx context.Context, socket, logPath string) error {
 			// pointing at a log file leaves the reason one step away from
 			// someone who is already stuck.
 			if reason := lastLogLine(logPath); reason != "" {
-				return fmt.Errorf("the jard daemon did not start: %s", reason)
+				return fmt.Errorf("the plbx daemon did not start: %s", reason)
 			}
-			return fmt.Errorf("the jard daemon did not come up within %s; see %s", startTimeout, logPath)
+			return fmt.Errorf("the plbx daemon did not come up within %s; see %s", startTimeout, logPath)
 		}
 		select {
 		case <-ctx.Done():
@@ -141,10 +141,10 @@ func waitForSocket(ctx context.Context, socket, logPath string) error {
 func Stop(ctx context.Context, env Env) error {
 	pid, ok := Running(ctx, env)
 	if !ok {
-		return errors.New("no jard daemon is running")
+		return errors.New("no plbx daemon is running")
 	}
 	if pid == 0 {
-		return errors.New("a jard daemon is running, but its process id is unknown")
+		return errors.New("a plbx daemon is running, but its process id is unknown")
 	}
 	proc, err := os.FindProcess(pid)
 	if err != nil {
@@ -161,7 +161,7 @@ func Stop(ctx context.Context, env Env) error {
 	deadline := time.Now().Add(startTimeout)
 	for alive(ctx, socket) {
 		if time.Now().After(deadline) {
-			return fmt.Errorf("the jard daemon did not stop within %s", startTimeout)
+			return fmt.Errorf("the plbx daemon did not stop within %s", startTimeout)
 		}
 		select {
 		case <-ctx.Done():
@@ -173,7 +173,7 @@ func Stop(ctx context.Context, env Env) error {
 }
 
 // findDaemon locates the daemon binary, preferring the one shipped alongside
-// the running jard. A jard from one install must not autostart a jardd from
+// the running plbx. A plbx from one install must not autostart a plbxd from
 // another: the two speak a versioned contract to each other.
 func findDaemon() (string, error) {
 	if self, err := os.Executable(); err == nil {
@@ -184,7 +184,7 @@ func findDaemon() (string, error) {
 	}
 	path, err := exec.LookPath(binaryName)
 	if err != nil {
-		return "", fmt.Errorf("cannot find %s, which jard needs to run sandboxes: %w", binaryName, err)
+		return "", fmt.Errorf("cannot find %s, which plbx needs to run sandboxes: %w", binaryName, err)
 	}
 	return path, nil
 }

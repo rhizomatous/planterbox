@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/rhizomatous/jardiniere/internal/api"
+	"github.com/rhizomatous/planterbox/internal/api"
 )
 
 // TestRunStartsAndStopsWithTheContext drives the whole program loop — Init,

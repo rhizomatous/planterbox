@@ -10,7 +10,7 @@ import (
 
 	gossh "golang.org/x/crypto/ssh"
 
-	"github.com/rhizomatous/jardiniere/internal/api"
+	"github.com/rhizomatous/planterbox/internal/api"
 )
 
 // exercised is what a session handed to the service, captured from the fake.
@@ -54,7 +54,7 @@ func gateway(t *testing.T, sandboxes ...api.Sandbox) (socket string, seen *exerc
 	return socket, seen
 }
 
-// dial opens an ssh client the way `jard ssh-proxy` does: the sandbox name,
+// dial opens an ssh client the way `plbx ssh-proxy` does: the sandbox name,
 // a newline, then the protocol.
 func dial(t *testing.T, socket, host string) *gossh.Client {
 	t.Helper()
@@ -98,7 +98,7 @@ func running(name string) api.Sandbox {
 // itself out against nothing.
 func TestSessionCarriesTheOpeningWindowSize(t *testing.T) {
 	socket, seen := gateway(t, running("demo"))
-	sess, err := dial(t, socket, "demo.jard").NewSession()
+	sess, err := dial(t, socket, "demo.plbx").NewSession()
 	if err != nil {
 		t.Fatalf("NewSession: %v", err)
 	}
@@ -130,7 +130,7 @@ func TestSessionCarriesTheOpeningWindowSize(t *testing.T) {
 
 func TestSessionRoutesToTheNamedSandbox(t *testing.T) {
 	socket, seen := gateway(t, running("demo"), running("other"))
-	sess, err := dial(t, socket, "other.jard").NewSession()
+	sess, err := dial(t, socket, "other.plbx").NewSession()
 	if err != nil {
 		t.Fatalf("NewSession: %v", err)
 	}
@@ -151,7 +151,7 @@ func TestSessionRoutesToTheNamedSandbox(t *testing.T) {
 // A client's exit status is the command's, so scripts over ssh behave.
 func TestSessionReportsTheCommandsExitStatus(t *testing.T) {
 	socket, _ := gateway(t, running("demo"))
-	sess, err := dial(t, socket, "demo.jard").NewSession()
+	sess, err := dial(t, socket, "demo.plbx").NewSession()
 	if err != nil {
 		t.Fatalf("NewSession: %v", err)
 	}
@@ -170,7 +170,7 @@ func TestSessionReportsTheCommandsExitStatus(t *testing.T) {
 // The client sets what it likes; only what cannot redirect execution survives.
 func TestSessionDropsEnvThatWouldRedirectExecution(t *testing.T) {
 	socket, seen := gateway(t, running("demo"))
-	sess, err := dial(t, socket, "demo.jard").NewSession()
+	sess, err := dial(t, socket, "demo.plbx").NewSession()
 	if err != nil {
 		t.Fatalf("NewSession: %v", err)
 	}
@@ -205,7 +205,7 @@ func TestSessionRefusesASandboxThatIsNotRunning(t *testing.T) {
 	stopped.State.Status = api.StatusStopped
 
 	socket, seen := gateway(t, stopped)
-	sess, err := dial(t, socket, "demo.jard").NewSession()
+	sess, err := dial(t, socket, "demo.plbx").NewSession()
 	if err != nil {
 		t.Fatalf("NewSession: %v", err)
 	}

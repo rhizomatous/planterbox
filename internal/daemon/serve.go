@@ -15,14 +15,14 @@ import (
 
 	"google.golang.org/grpc"
 
-	"github.com/rhizomatous/jardiniere/internal/api/direct"
-	"github.com/rhizomatous/jardiniere/internal/api/rpc"
-	"github.com/rhizomatous/jardiniere/internal/proxy"
-	"github.com/rhizomatous/jardiniere/internal/sshd"
+	"github.com/rhizomatous/planterbox/internal/api/direct"
+	"github.com/rhizomatous/planterbox/internal/api/rpc"
+	"github.com/rhizomatous/planterbox/internal/proxy"
+	"github.com/rhizomatous/planterbox/internal/sshd"
 )
 
 // ErrAlreadyRunning means a daemon is already listening on the socket.
-var ErrAlreadyRunning = errors.New("a jard daemon is already running")
+var ErrAlreadyRunning = errors.New("a plbx daemon is already running")
 
 // Options configures a daemon.
 type Options struct {
@@ -225,7 +225,7 @@ func replaceBase(path, name string) string {
 // serveProxy starts the egress proxy and returns a function that stops it.
 //
 // The policy is read from the service per request rather than captured, so
-// `jard policy allow` reaches every sandbox on its next connection.
+// `plbx policy allow` reaches every sandbox on its next connection.
 func serveProxy(ctx context.Context, addr string, svc *direct.Service, log *proxy.Log) (func(), error) {
 	if addr == "" {
 		addr = DefaultProxyAddr

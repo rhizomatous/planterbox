@@ -16,13 +16,13 @@ import (
 	"github.com/charmbracelet/x/term"
 	"github.com/creack/pty"
 
-	"github.com/rhizomatous/jardiniere/internal/api"
+	"github.com/rhizomatous/planterbox/internal/api"
 )
 
 // Executor runs built invocations. Swapping it is how --dry-run and unit tests
 // avoid a live runtime.
 //
-// The three methods exist because jard needs three shapes: Output for the
+// The three methods exist because plbx needs three shapes: Output for the
 // commands whose result it parses, Stream for the ones it watches, and Session
 // for the ones a user is sitting in front of.
 type Executor interface {
@@ -55,7 +55,7 @@ func (hostExecutor) Output(ctx context.Context, inv Invocation) ([]byte, error) 
 //
 // When stdin is already this process's terminal, the child inherits it and the
 // runtime talks to a real tty with nothing copied in between — the in-process
-// CLI's case, and byte-for-byte what jard did before a daemon existed. When it
+// CLI's case, and byte-for-byte what plbx did before a daemon existed. When it
 // isn't, and a terminal was asked for, one is allocated here and pumped: the
 // daemon's case, where the terminal is on the far end of a socket and the
 // runtime would otherwise refuse `-t` outright.
@@ -140,7 +140,7 @@ func waitFor(cmd *exec.Cmd, inv Invocation) (int, error) {
 }
 
 // exitStatus separates a command that ran and failed from one that could not be
-// run. An agent exiting non-zero is the agent's business, not a jard failure.
+// run. An agent exiting non-zero is the agent's business, not a plbx failure.
 func exitStatus(err error, inv Invocation) (int, error) {
 	var exitErr *exec.ExitError
 	if errors.As(err, &exitErr) {

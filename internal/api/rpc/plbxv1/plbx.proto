@@ -1,0 +1,225 @@
+syntax = "proto3";
+
+package plbx.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/rhizomatous/planterbox/internal/api/rpc/plbxv1";
+
+// Sandboxes is the daemon's half of api.Service. Every method mirrors one, so
+// the in-process and over-the-socket implementations stay in step.
+//
+// Errors travel as gRPC status codes and are mapped back to the api package's
+// sentinels on the client, so errors.Is keeps working across the socket.
+service Sandboxes {
+  rpc Create(CreateRequest) returns (CreateResponse);
+  rpc List(ListRequest) returns (ListResponse);
+  rpc Inspect(InspectRequest) returns (InspectResponse);
+  rpc Start(StartRequest) returns (StartResponse);
+  rpc Stop(StopRequest) returns (StopResponse);
+  rpc Remove(RemoveRequest) returns (RemoveResponse);
+  rpc Copy(CopyRequest) returns (CopyResponse);
+  rpc Publish(PublishRequest) returns (PublishResponse);
+
+  // Stats streams samples until the sandbox stops or the client goes away.
+  rpc Stats(StatsRequest) returns (stream Sample);
+
+  // Exec runs a command in a sandbox with its stdio streamed both ways. The
+  // client's first frame must be a Start; the daemon owns the session, which
+  // is what lets it hold a pty and what the SSH gateway will attach to.
+  rpc Exec(stream ExecClientFrame) returns (stream ExecServerFrame);
+
+  rpc GetPolicy(GetPolicyRequest) returns (GetPolicyResponse);
+  rpc SetPolicy(SetPolicyRequest) returns (SetPolicyResponse);
+
+  // Connections returns what the proxy decided, newer than a sequence the
+  // caller already has. Polled rather than streamed: the dashboard re-reads on
+  // a tick anyway, and this costs the daemon no subscription per viewer.
+  rpc Connections(ConnectionsRequest) returns (ConnectionsResponse);
+}
+
+// Policy is the host's egress policy: a preset, plus the rules over it.
+message Policy {
+  string preset = 1;
+  repeated Rule rules = 2;
+}
+
+// Rule is one policy entry. Pattern is a host, optionally with a port, and may
+// lead with "*." to cover subdomains.
+message Rule {
+  string pattern = 1;
+  bool allow = 2;
+}
+
+// Decision is one thing the proxy let through or refused.
+message Decision {
+  uint64 seq = 1;
+  google.protobuf.Timestamp at = 2;
+  string host = 3;
+  int32 port = 4;
+  bool allowed = 5;
+  string reason = 6;
+  string sandbox = 7;
+}
+
+message PublishRequest {
+  Ref ref = 1;
+  repeated Port ports = 2;
+}
+message PublishResponse {}
+
+message GetPolicyRequest {}
+message GetPolicyResponse { Policy policy = 1; }
+
+message SetPolicyRequest { Policy policy = 1; }
+message SetPolicyResponse {}
+
+message ConnectionsRequest { uint64 since = 1; }
+message ConnectionsResponse { repeated Decision decisions = 1; }
+
+// Spec is what a sandbox's container was built from, fixed when it is created.
+message Spec {
+  string name = 1;
+  string agent = 2;
+  string image = 3;
+  repeated Workspace workspaces = 4;
+  Resources resources = 5;
+  map<string, string> env = 6;
+  reserved 7; // was ports, which are not part of the container
+  google.protobuf.Timestamp created_at = 8;
+  bool clone = 9;
+}
+
+// Workspace is a host directory bound into the sandbox at its own absolute path.
+message Workspace {
+  string host = 1;
+  bool read_only = 2;
+}
+
+// Resources caps a sandbox's consumption. Zero means unlimited.
+message Resources {
+  double cpus = 1;
+  int64 memory = 2; // bytes
+}
+
+// Port publishes a sandbox port on the host.
+message Port {
+  int32 host = 1;
+  int32 sandbox = 2;
+  string proto = 3; // "tcp", which is also the default
+  string bind = 4;  // host address; empty is every interface
+}
+
+// State is what plbx last observed about a sandbox.
+//
+// Status is carried as the string the domain type already uses rather than an
+// enum: the store persists these strings, and a mapping table between the two
+// spellings is one more thing that can drift.
+message State {
+  string status = 1;
+  string container_id = 2;
+  google.protobuf.Timestamp started_at = 3;
+  int32 exit_code = 4;
+}
+
+// Sandbox is a stored spec, its observed state, and the ports it publishes.
+message Sandbox {
+  Spec spec = 1;
+  State state = 2;
+  repeated Port ports = 3;
+}
+
+// Ref identifies a sandbox, by name or by a workspace path it was created for.
+message Ref {
+  string name = 1;
+  string path = 2;
+}
+
+// Path names one side of a copy. Sandbox is empty for a host path.
+message Path {
+  string sandbox = 1;
+  string path = 2;
+}
+
+// ExecRequest describes a command to run inside a sandbox.
+message ExecRequest {
+  repeated string cmd = 1;
+  map<string, string> env = 2;
+  string workdir = 3;
+  string user = 4;
+  bool interactive = 5; // wire up stdin
+  bool tty = 6;         // allocate a pseudo-terminal
+}
+
+// Sample is one reading of a running sandbox's resource use.
+message Sample {
+  double cpu_percent = 1;
+  int64 memory_bytes = 2;
+  int64 memory_limit = 3;
+}
+
+// Size is a terminal's dimensions, sent at session start and on every resize.
+message Size {
+  uint32 rows = 1;
+  uint32 cols = 2;
+}
+
+message CreateRequest { Spec spec = 1; }
+message CreateResponse { Sandbox sandbox = 1; }
+
+message ListRequest {}
+message ListResponse { repeated Sandbox sandboxes = 1; }
+
+message InspectRequest { Ref ref = 1; }
+message InspectResponse { Sandbox sandbox = 1; }
+
+message StartRequest { Ref ref = 1; }
+message StartResponse {}
+
+message StopRequest { Ref ref = 1; }
+message StopResponse {}
+
+message RemoveRequest {
+  Ref ref = 1;
+  bool force = 2;
+}
+message RemoveResponse {}
+
+message CopyRequest {
+  Path src = 1;
+  Path dst = 2;
+}
+message CopyResponse {}
+
+message StatsRequest { Ref ref = 1; }
+
+// ExecStart opens a session. It must be the client's first frame.
+message ExecStart {
+  Ref ref = 1;
+  ExecRequest request = 2;
+  Size size = 3; // initial dimensions, when the request wants a tty
+}
+
+// ExecStdinClose signals EOF on stdin without ending the session, so a command
+// reading to EOF can finish while its output is still on the way back.
+message ExecStdinClose {}
+
+// ExecClientFrame is anything the client sends during a session.
+message ExecClientFrame {
+  oneof frame {
+    ExecStart start = 1;
+    bytes stdin = 2;
+    Size resize = 3;
+    ExecStdinClose stdin_close = 4;
+  }
+}
+
+// ExecServerFrame is anything the daemon sends back. A session ends with
+// exactly one exit frame.
+message ExecServerFrame {
+  oneof frame {
+    bytes stdout = 1;
+    bytes stderr = 2;
+    int32 exit_code = 3;
+  }
+}

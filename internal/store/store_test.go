@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/rhizomatous/jardiniere/internal/api"
+	"github.com/rhizomatous/planterbox/internal/api"
 )
 
 func testStore(t *testing.T) *Store {
@@ -27,7 +27,7 @@ func sandbox(name, host string) api.Sandbox {
 			Workspaces: []api.Workspace{{Host: host}},
 			CreatedAt:  time.Date(2026, 8, 4, 12, 0, 0, 0, time.UTC),
 		},
-		State: api.State{Status: api.StatusCreated, ContainerID: "jard-" + name},
+		State: api.State{Status: api.StatusCreated, ContainerID: "plbx-" + name},
 	}
 }
 
@@ -170,7 +170,7 @@ func TestFindByNameAndByPath(t *testing.T) {
 		t.Errorf("Find by name = %q, want demo", byName.Spec.Name)
 	}
 
-	// reattach-by-path is what makes `jard run` in a repo find last time's sandbox.
+	// reattach-by-path is what makes `plbx run` in a repo find last time's sandbox.
 	byPath, err := s.Find(api.ByPath("/home/viv/project"))
 	if err != nil {
 		t.Fatalf("Find by path: %v", err)

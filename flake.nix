@@ -1,6 +1,6 @@
 {
-  # dev environment & package for jardinière
-  description = "jardinière: a Nix-based sandbox for running coding agents";
+  # dev environment & package for planterbox
+  description = "planterbox: a Nix-based sandbox for running coding agents";
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
@@ -15,32 +15,32 @@
           "x86_64-darwin"
           "aarch64-darwin"
         ] (system: f nixpkgs.legacyPackages.${system});
-      # build the jard binary against a given package set. shared by the
+      # build the plbx binary against a given package set. shared by the
       # per-system packages and the overlay.
-      mkJard = pkgs: pkgs.buildGoModule {
-        pname = "jard";
+      mkPlbx = pkgs: pkgs.buildGoModule {
+        pname = "plbx";
         inherit version;
         src = ./.;
         vendorHash = "sha256-4eXMWglbQHP4kIjkIK0CYLU862/zRPFYUobmUYkdFfQ=";
-        subPackages = [ "cmd/jard" "cmd/jardd" ];
+        subPackages = [ "cmd/plbx" "cmd/plbxd" ];
         # inject the version into the same symbol the Makefile uses.
         ldflags = [ "-s" "-w" "-X" "main.version=${version}" ];
         meta = {
           description = "a Nix-based sandbox for running coding agents in isolated containers";
-          homepage = "https://github.com/rhizomatous/jardiniere";
+          homepage = "https://github.com/rhizomatous/planterbox";
           license = pkgs.lib.licenses.mit;
-          mainProgram = "jard";
+          mainProgram = "plbx";
         };
       };
     in {
-      # `overlays.default` lets consumers get `pkgs.jard` after applying it.
+      # `overlays.default` lets consumers get `pkgs.plbx` after applying it.
       overlays.default = final: _prev: {
-        jard = mkJard final;
+        plbx = mkPlbx final;
       };
 
       packages = forAllSystems (pkgs: {
-        default = self.packages.${pkgs.system}.jard;
-        jard = mkJard pkgs;
+        default = self.packages.${pkgs.system}.plbx;
+        plbx = mkPlbx pkgs;
       });
 
       devShells = forAllSystems (pkgs: {
@@ -60,7 +60,7 @@
           shellHook = ''
             # install the git hooks defined in lefthook.yml
             lefthook install >/dev/null 2>&1 || true
-            echo "🪴 jardinière dev shell (go $(go version | cut -d' ' -f3))"
+            echo "🪴 planterbox dev shell (go $(go version | cut -d' ' -f3))"
           '';
         };
       });

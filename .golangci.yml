@@ -24,12 +24,12 @@ linters:
       rules:
         presentation:
           files:
-            - "**/cmd/jard/**"
+            - "**/cmd/plbx/**"
             - "**/internal/tui/**"
           deny:
-            - pkg: github.com/rhizomatous/jardiniere/internal/runner
+            - pkg: github.com/rhizomatous/planterbox/internal/runner
               desc: go through api.Service instead
-            - pkg: github.com/rhizomatous/jardiniere/internal/store
+            - pkg: github.com/rhizomatous/planterbox/internal/store
               desc: go through api.Service instead
 
   exclusions:
@@ -51,4 +51,4 @@ formatters:
   settings:
     goimports:
       local-prefixes:
-        - github.com/rhizomatous/jardiniere
+        - github.com/rhizomatous/planterbox

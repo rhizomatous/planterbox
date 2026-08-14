@@ -1,4 +1,4 @@
-// Package proxy is jard's egress control: the policy that decides what a
+// Package proxy is plbx's egress control: the policy that decides what a
 // sandbox may reach, and the filtering proxy that enforces it.
 //
 // The policy engine is a pure function of (rules, target). Nothing in this file
@@ -30,7 +30,7 @@ const (
 // Presets are the choices offered on first run, in the order to offer them.
 var Presets = []Preset{PresetBalanced, PresetOpen, PresetLockedDown}
 
-// Valid reports whether p names a preset jard knows.
+// Valid reports whether p names a preset plbx knows.
 func (p Preset) Valid() bool {
 	for _, known := range Presets {
 		if p == known {

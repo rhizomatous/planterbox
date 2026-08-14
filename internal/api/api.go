@@ -1,4 +1,4 @@
-// Package api defines the boundary between jard's user-facing layers and the
+// Package api defines the boundary between plbx's user-facing layers and the
 // machinery that runs sandboxes. The CLI and the TUI hold a [Service] and never
 // reach past it to a store, a runner, or a container runtime.
 //
@@ -14,7 +14,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/rhizomatous/jardiniere/internal/proxy"
+	"github.com/rhizomatous/planterbox/internal/proxy"
 )
 
 // sentinel errors callers are expected to match with errors.Is.
@@ -44,7 +44,7 @@ var (
 	ErrPortsUnavailable = errors.New("ports could not be published")
 )
 
-// Service is everything jard can do to a sandbox.
+// Service is everything plbx can do to a sandbox.
 type Service interface {
 	// Create registers a new sandbox and its container, without starting it.
 	Create(ctx context.Context, spec Spec) (Sandbox, error)
@@ -84,10 +84,10 @@ type Service interface {
 	Close() error
 }
 
-// SSHDomain is the suffix jard's ssh hosts carry. `myrepo.jard` is the sandbox
-// `myrepo`, and the suffix is what keeps a managed `Host *.jard` block in an
+// SSHDomain is the suffix plbx's ssh hosts carry. `myrepo.plbx` is the sandbox
+// `myrepo`, and the suffix is what keeps a managed `Host *.plbx` block in an
 // ssh config from matching anything else in it.
-const SSHDomain = "jard"
+const SSHDomain = "plbx"
 
 // SSHHost is the ssh hostname for a sandbox.
 func SSHHost(sandbox string) string { return sandbox + "." + SSHDomain }
@@ -197,7 +197,7 @@ type Port struct {
 	// Bind is the host address to publish on. Empty means every interface,
 	// which is what a runtime does by default and what someone publishing a
 	// dev server usually wants. "127.0.0.1" keeps it on this machine — which
-	// anything unauthenticated needs, and jard's own git-daemon uses.
+	// anything unauthenticated needs, and plbx's own git-daemon uses.
 	Bind string `json:"bind,omitempty"`
 }
 
@@ -213,7 +213,7 @@ func (p Port) Address() string {
 	return s
 }
 
-// State is what jard observed about a sandbox. It is derived from the
+// State is what plbx observed about a sandbox. It is derived from the
 // runtime.
 type State struct {
 	Status      Status    `json:"status"`
@@ -234,7 +234,7 @@ const (
 	StatusMissing Status = "missing" // recorded here, gone from the runtime
 )
 
-// Sandbox is a stored spec, the state jard last observed, and the ports the
+// Sandbox is a stored spec, the state plbx last observed, and the ports the
 // sandbox publishes.
 type Sandbox struct {
 	Spec  Spec  `json:"spec"`
@@ -308,7 +308,7 @@ func (p Path) InSandbox() bool { return p.Sandbox != "" }
 
 // CopyRef picks the sandbox a copy runs against. Exactly one side may name one:
 // two sandbox paths have no host leg to route through, and neither is a
-// host-to-host copy that has nothing to do with jard.
+// host-to-host copy that has nothing to do with plbx.
 func CopyRef(src, dst Path) (Ref, error) {
 	switch {
 	case src.InSandbox() && dst.InSandbox():

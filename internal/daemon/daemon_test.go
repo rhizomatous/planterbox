@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/rhizomatous/jardiniere/internal/api/rpc"
+	"github.com/rhizomatous/planterbox/internal/api/rpc"
 )
 
 // env builds a lookup over a fixed set of variables.
@@ -23,7 +23,7 @@ func env(goos string, vars map[string]string) Env {
 
 func TestSocketPrefersAnExplicitPath(t *testing.T) {
 	got, err := Socket(env("linux", map[string]string{
-		"JARD_SOCKET":     "/run/mine.sock",
+		"PLBX_SOCKET":     "/run/mine.sock",
 		"XDG_RUNTIME_DIR": "/run/user/501",
 	}))
 	if err != nil {
@@ -39,7 +39,7 @@ func TestSocketUsesTheXDGRuntimeDirWhenThereIsOne(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Socket: %v", err)
 	}
-	if got != "/run/user/501/jardiniere/jardd.sock" {
+	if got != "/run/user/501/planterbox/plbxd.sock" {
 		t.Errorf("Socket = %q", got)
 	}
 }
@@ -78,7 +78,7 @@ func TestSocketDoesNotMoveWithTMPDIR(t *testing.T) {
 	if strings.Contains(first, "nix-shell") {
 		t.Errorf("Socket = %q, want a path that does not depend on TMPDIR", first)
 	}
-	if first != "/tmp/jardiniere-501/jardd.sock" {
+	if first != "/tmp/planterbox-501/plbxd.sock" {
 		t.Errorf("Socket = %q, want the stable per-user path", first)
 	}
 }
@@ -135,7 +135,7 @@ func serve(t *testing.T) string {
 
 	// a short base, not t.TempDir(): the socket path has a hard length limit
 	// and a test name spends most of the budget.
-	dir, err := os.MkdirTemp("", "jard")
+	dir, err := os.MkdirTemp("", "plbx")
 	if err != nil {
 		t.Fatalf("temp dir: %v", err)
 	}
@@ -218,7 +218,7 @@ func TestServeRefusesASecondDaemon(t *testing.T) {
 func TestServeClearsASocketLeftBehindByADeadDaemon(t *testing.T) {
 	// a daemon that was killed leaves the file in place, and it is
 	// indistinguishable from a live one until you try to connect.
-	dir, err := os.MkdirTemp("", "jard")
+	dir, err := os.MkdirTemp("", "plbx")
 	if err != nil {
 		t.Fatalf("temp dir: %v", err)
 	}
@@ -253,7 +253,7 @@ func TestServeClearsASocketLeftBehindByADeadDaemon(t *testing.T) {
 }
 
 func TestServeCleansUpAfterItself(t *testing.T) {
-	dir, err := os.MkdirTemp("", "jard")
+	dir, err := os.MkdirTemp("", "plbx")
 	if err != nil {
 		t.Fatalf("temp dir: %v", err)
 	}
@@ -287,14 +287,14 @@ func TestServeCleansUpAfterItself(t *testing.T) {
 }
 
 func TestConnectRefusesToStartWhenToldNotTo(t *testing.T) {
-	dir, err := os.MkdirTemp("", "jard")
+	dir, err := os.MkdirTemp("", "plbx")
 	if err != nil {
 		t.Fatalf("temp dir: %v", err)
 	}
 	defer func() { _ = os.RemoveAll(dir) }()
 
 	e := Env{GOOS: "linux", UID: 501, Getenv: func(k string) string {
-		if k == "JARD_SOCKET" {
+		if k == "PLBX_SOCKET" {
 			return filepath.Join(dir, "absent.sock")
 		}
 		return ""
@@ -304,7 +304,7 @@ func TestConnectRefusesToStartWhenToldNotTo(t *testing.T) {
 	if err == nil {
 		t.Fatal("Connect should have failed with no daemon to reach")
 	}
-	if !strings.Contains(err.Error(), "no jard daemon is running") {
+	if !strings.Contains(err.Error(), "no plbx daemon is running") {
 		t.Errorf("err = %v, want it to say no daemon is running", err)
 	}
 }
@@ -312,7 +312,7 @@ func TestConnectRefusesToStartWhenToldNotTo(t *testing.T) {
 func TestConnectReachesARunningDaemon(t *testing.T) {
 	socket := serve(t)
 	e := Env{GOOS: "linux", UID: 501, Getenv: func(k string) string {
-		if k == "JARD_SOCKET" {
+		if k == "PLBX_SOCKET" {
 			return socket
 		}
 		return ""

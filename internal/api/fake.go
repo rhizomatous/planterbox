@@ -4,7 +4,7 @@ import (
 	"context"
 	"slices"
 
-	"github.com/rhizomatous/jardiniere/internal/proxy"
+	"github.com/rhizomatous/planterbox/internal/proxy"
 )
 
 // Fake is an in-memory [Service] for testing the CLI and the TUI without a

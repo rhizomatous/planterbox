@@ -15,10 +15,10 @@ import (
 // t.TempDir() embeds the test's own name under $TMPDIR, and a nix shell points
 // that at a generated directory — together they run past the ~104 byte cap the
 // kernel puts on a socket path, and the bind fails with "invalid argument".
-// The same cap is why the daemon's runtime directory is /tmp/jardiniere-<uid>.
+// The same cap is why the daemon's runtime directory is /tmp/planterbox-<uid>.
 func socketDir(t *testing.T) string {
 	t.Helper()
-	dir, err := os.MkdirTemp("/tmp", "jard-test-")
+	dir, err := os.MkdirTemp("/tmp", "plbx-test-")
 	if err != nil {
 		t.Fatalf("MkdirTemp: %v", err)
 	}
@@ -32,13 +32,13 @@ func TestSandboxName(t *testing.T) {
 		want    string
 		wantErr bool
 	}{
-		{in: "myrepo.jard", want: "myrepo"},
+		{in: "myrepo.plbx", want: "myrepo"},
 		{in: "myrepo", want: "myrepo"},
-		{in: "  myrepo.jard\r", want: "myrepo"},
+		{in: "  myrepo.plbx\r", want: "myrepo"},
 		// a dot is legal in a sandbox name, so only the trailing suffix goes.
-		{in: "jard.myrepo.jard", want: "jard.myrepo"},
+		{in: "plbx.myrepo.plbx", want: "plbx.myrepo"},
 		{in: "", wantErr: true},
-		{in: ".jard", wantErr: true},
+		{in: ".plbx", wantErr: true},
 		{in: "../../etc/passwd", wantErr: true},
 		{in: "has space", wantErr: true},
 	} {
@@ -67,7 +67,7 @@ func TestReadRouteLeavesWhatFollows(t *testing.T) {
 	t.Cleanup(func() { _, _ = client.Close(), server.Close() })
 
 	go func() {
-		_, _ = client.Write([]byte("myrepo.jard\nSSH-2.0-OpenSSH_9.0\r\n"))
+		_, _ = client.Write([]byte("myrepo.plbx\nSSH-2.0-OpenSSH_9.0\r\n"))
 	}()
 
 	name, err := readRoute(server)

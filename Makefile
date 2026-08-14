@@ -15,17 +15,17 @@ test:      ## unit tests
 	go test ./...
 
 build:     ## build both binaries
-	# jardd comes too: jard autostarts it from beside itself, so a jard built
+	# plbxd comes too: plbx autostarts it from beside itself, so a plbx built
 	# without one cannot run a sandbox at all.
-	go build -ldflags "-X main.version=$(VERSION)" -o jard ./cmd/jard
-	go build -ldflags "-X main.version=$(VERSION)" -o jardd ./cmd/jardd
+	go build -ldflags "-X main.version=$(VERSION)" -o plbx ./cmd/plbx
+	go build -ldflags "-X main.version=$(VERSION)" -o plbxd ./cmd/plbxd
 
-proto:     ## regenerate the daemon's wire contract from jard.proto
+proto:     ## regenerate the daemon's wire contract from plbx.proto
 	protoc \
-	  --proto_path=internal/api/rpc/jardv1 \
-	  --go_out=internal/api/rpc/jardv1 --go_opt=paths=source_relative \
-	  --go-grpc_out=internal/api/rpc/jardv1 --go-grpc_opt=paths=source_relative \
-	  internal/api/rpc/jardv1/jard.proto
+	  --proto_path=internal/api/rpc/plbxv1 \
+	  --go_out=internal/api/rpc/plbxv1 --go_opt=paths=source_relative \
+	  --go-grpc_out=internal/api/rpc/plbxv1 --go-grpc_opt=paths=source_relative \
+	  internal/api/rpc/plbxv1/plbx.proto
 
 check: fmt-check lint test ## run every check
 

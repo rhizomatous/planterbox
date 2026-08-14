@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/rhizomatous/jardiniere/internal/api"
+	"github.com/rhizomatous/planterbox/internal/api"
 )
 
 // withEgress is the configuration every sandbox actually runs under: a private
@@ -25,15 +25,15 @@ func TestPortsInvocationPublishesAndForwardsEachPort(t *testing.T) {
 	if inv.Args[0] != "run" {
 		t.Errorf("args[0] = %q, want run", inv.Args[0])
 	}
-	if name, _ := argsAfter(inv.Args, "--name"); name != "jard-demo-ports" {
-		t.Errorf("--name = %q, want jard-demo-ports", name)
+	if name, _ := argsAfter(inv.Args, "--name"); name != "plbx-demo-ports" {
+		t.Errorf("--name = %q, want plbx-demo-ports", name)
 	}
 	if got := allAfter(inv.Args, "--publish"); !slices.Equal(got, []string{"3000:3000", "8080:80"}) {
 		t.Errorf("--publish = %v, want the host mappings", got)
 	}
 	// the forwarder listens on the sandbox-side port, which is where its own
 	// published mapping delivers, and carries it to the sandbox by name.
-	want := []string{":3000=jard-demo:3000", ":80=jard-demo:80"}
+	want := []string{":3000=plbx-demo:3000", ":80=plbx-demo:80"}
 	if got := allAfter(inv.Args, "-forward"); !slices.Equal(got, want) {
 		t.Errorf("-forward = %v, want %v", got, want)
 	}
@@ -100,9 +100,9 @@ func TestPublishReplacesTheForwarder(t *testing.T) {
 	for _, inv := range exec.ran {
 		line := strings.Join(inv.Args, " ")
 		switch {
-		case strings.HasPrefix(line, "rm --force jard-demo-ports"):
+		case strings.HasPrefix(line, "rm --force plbx-demo-ports"):
 			removed = true
-		case strings.HasPrefix(line, "run --detach --name jard-demo-ports"):
+		case strings.HasPrefix(line, "run --detach --name plbx-demo-ports"):
 			if !removed {
 				t.Error("the forwarder was started before the old one was removed")
 			}
@@ -129,14 +129,14 @@ func TestPublishNoPortsOnlyClears(t *testing.T) {
 // that network can be removed — the same ordering the relay needs.
 func TestRemoveDropsTheForwarderBeforeTheNetwork(t *testing.T) {
 	exec := &scriptedExecutor{}
-	if err := portsOCI(exec).Remove(context.Background(), "jard-demo", "demo", false); err != nil {
+	if err := portsOCI(exec).Remove(context.Background(), "plbx-demo", "demo", false); err != nil {
 		t.Fatalf("Remove: %v", err)
 	}
 
 	forwarder, network := -1, -1
 	for i, inv := range exec.ran {
 		line := strings.Join(inv.Args, " ")
-		if strings.HasPrefix(line, "rm --force jard-demo-ports") {
+		if strings.HasPrefix(line, "rm --force plbx-demo-ports") {
 			forwarder = i
 		}
 		if strings.HasPrefix(line, "network rm "+SandboxNetwork("demo")) {
@@ -155,7 +155,7 @@ func TestRemoveDropsTheForwarderBeforeTheNetwork(t *testing.T) {
 
 // A forwarder that was never started is not an error to remove.
 func TestUnpublishToleratesNothingPublished(t *testing.T) {
-	exec := &scriptedExecutor{err: errors.New("Error: No such container: jard-demo-ports")}
+	exec := &scriptedExecutor{err: errors.New("Error: No such container: plbx-demo-ports")}
 	if err := portsOCI(exec).Unpublish(context.Background(), "demo"); err != nil {
 		t.Errorf("Unpublish: %v, want a missing forwarder to be tolerated", err)
 	}
@@ -166,7 +166,7 @@ func TestUnpublishToleratesNothingPublished(t *testing.T) {
 func TestPublishFailureIsReadable(t *testing.T) {
 	docker := errors.New("docker run: docker: Error response from daemon: failed to set up " +
 		"container networking: driver failed programming external connectivity on endpoint " +
-		"jard-demo-ports (b557c7307104): Bind for 0.0.0.0:19090 failed: port is already allocated\n" +
+		"plbx-demo-ports (b557c7307104): Bind for 0.0.0.0:19090 failed: port is already allocated\n" +
 		"\nRun 'docker run --help' for more information (exit status 125)")
 
 	got := publishFailure(docker, []api.Port{{Host: 19090, Sandbox: 9090}}).Error()
@@ -192,7 +192,7 @@ func TestPublishClearsUpAfterAFailedForwarder(t *testing.T) {
 
 	var removals int
 	for _, inv := range exec.ran {
-		if strings.HasPrefix(strings.Join(inv.Args, " "), "rm --force jard-demo-ports") {
+		if strings.HasPrefix(strings.Join(inv.Args, " "), "rm --force plbx-demo-ports") {
 			removals++
 		}
 	}

@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/rhizomatous/jardiniere/internal/api"
-	"github.com/rhizomatous/jardiniere/internal/proxy"
-	"github.com/rhizomatous/jardiniere/internal/runner"
-	"github.com/rhizomatous/jardiniere/internal/store"
+	"github.com/rhizomatous/planterbox/internal/api"
+	"github.com/rhizomatous/planterbox/internal/proxy"
+	"github.com/rhizomatous/planterbox/internal/runner"
+	"github.com/rhizomatous/planterbox/internal/store"
 )
 
 // Service is the in-process implementation of [api.Service].
@@ -235,7 +235,7 @@ func (s *Service) Close() error { return nil }
 // act resolves a ref and applies fn to its container. fn gets the stored
 // sandbox as well as its runtime handle, because the two name different things:
 // the handle is whatever the runtime last called the container, while anything
-// jard created alongside it is named after the sandbox.
+// plbx created alongside it is named after the sandbox.
 func (s *Service) act(ctx context.Context, ref api.Ref, fn func(api.Sandbox, runner.ID) error) error {
 	sb, err := s.find(ref)
 	if err != nil {

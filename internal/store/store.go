@@ -14,7 +14,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/rhizomatous/jardiniere/internal/api"
+	"github.com/rhizomatous/planterbox/internal/api"
 )
 
 // ErrNotFound means no record exists under that name.

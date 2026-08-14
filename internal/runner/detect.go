@@ -20,7 +20,7 @@ type Runtime struct {
 var candidates = []string{"docker", "podman"}
 
 // Detect finds the first runtime that is both installed and has a reachable
-// daemon. If JARD_RUNTIME is set it is tried first and exclusively.
+// daemon. If PLBX_RUNTIME is set it is tried first and exclusively.
 //
 // When a CLI is installed but its daemon is unreachable (OrbStack not started,
 // say), the error names that runtime so the caller can nudge the user.
@@ -36,7 +36,7 @@ func DetectInstalled(ctx context.Context) (Runtime, error) {
 
 func detect(ctx context.Context, requireReachable bool) (Runtime, error) {
 	order := candidates
-	if forced := os.Getenv("JARD_RUNTIME"); forced != "" {
+	if forced := os.Getenv("PLBX_RUNTIME"); forced != "" {
 		order = []string{forced}
 	}
 

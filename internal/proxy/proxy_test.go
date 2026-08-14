@@ -158,7 +158,7 @@ func TestConnectRefusesADeniedHost(t *testing.T) {
 }
 
 func TestPolicyIsReadPerRequest(t *testing.T) {
-	// `jard policy allow` has to take effect on the next connection, not the
+	// `plbx policy allow` has to take effect on the next connection, not the
 	// next daemon.
 	origin := upstream(t, func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = io.WriteString(w, "ok")

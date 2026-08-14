@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 )
 
-// appDir is jard's directory name under whichever base the platform gives us.
-const appDir = "jardiniere"
+// appDir is plbx's directory name under whichever base the platform gives us.
+const appDir = "planterbox"
 
 // Env supplies the environment a root is resolved against. Injecting it keeps
 // the resolution testable without touching the real environment.
@@ -28,12 +28,12 @@ func HostEnv(goos string) (Env, error) {
 
 // Root resolves where sandbox records live.
 //
-// JARD_STATE_DIR wins outright. Otherwise XDG_DATA_HOME is honored on every
+// PLBX_STATE_DIR wins outright. Otherwise XDG_DATA_HOME is honored on every
 // platform — Linux by convention, macOS because anyone who sets it means it —
 // falling back to ~/Library/Application Support on macOS and ~/.local/share
 // elsewhere.
 func Root(env Env) (string, error) {
-	if dir := env.Getenv("JARD_STATE_DIR"); dir != "" {
+	if dir := env.Getenv("PLBX_STATE_DIR"); dir != "" {
 		return dir, nil
 	}
 	if dir := env.Getenv("XDG_DATA_HOME"); filepath.IsAbs(dir) {

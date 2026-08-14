@@ -90,7 +90,7 @@ func TestParseStatsRejectsWhatItCannotRead(t *testing.T) {
 }
 
 func TestStatsInvocationStreams(t *testing.T) {
-	inv := testOCI().StatsInvocation("jard-demo")
+	inv := testOCI().StatsInvocation("plbx-demo")
 	if inv.Args[0] != "stats" {
 		t.Errorf("args[0] = %q, want stats", inv.Args[0])
 	}
@@ -134,7 +134,7 @@ func TestStatsSkipsUnreadableSamplesWithoutEndingTheStream(t *testing.T) {
 		"20.00%\t2GiB / 8GiB",
 	}}
 
-	ch, err := testOCI(WithExecutor(e)).Stats(context.Background(), "jard-demo")
+	ch, err := testOCI(WithExecutor(e)).Stats(context.Background(), "plbx-demo")
 	if err != nil {
 		t.Fatalf("Stats: %v", err)
 	}
@@ -150,7 +150,7 @@ func TestStatsSkipsUnreadableSamplesWithoutEndingTheStream(t *testing.T) {
 
 func TestStatsChannelClosesWhenTheStreamEnds(t *testing.T) {
 	e := &streamExecutor{lines: []string{"10.00%\t1GiB / 8GiB"}}
-	ch, err := testOCI(WithExecutor(e)).Stats(context.Background(), "jard-demo")
+	ch, err := testOCI(WithExecutor(e)).Stats(context.Background(), "plbx-demo")
 	if err != nil {
 		t.Fatalf("Stats: %v", err)
 	}
@@ -169,7 +169,7 @@ func TestStatsStopsOnContextCancel(t *testing.T) {
 	}}
 	ctx, cancel := context.WithCancel(context.Background())
 
-	ch, err := testOCI(WithExecutor(e)).Stats(ctx, "jard-demo")
+	ch, err := testOCI(WithExecutor(e)).Stats(ctx, "plbx-demo")
 	if err != nil {
 		t.Fatalf("Stats: %v", err)
 	}

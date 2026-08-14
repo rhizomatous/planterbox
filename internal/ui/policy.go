@@ -7,10 +7,10 @@ import (
 
 	"charm.land/lipgloss/v2"
 
-	"github.com/rhizomatous/jardiniere/internal/proxy"
+	"github.com/rhizomatous/planterbox/internal/proxy"
 )
 
-// RenderPolicy is the detail view behind `jard policy ls`.
+// RenderPolicy is the detail view behind `plbx policy ls`.
 //
 // The preset's own allowances are summarised rather than listed. They are the
 // baseline, not something anyone chose here, and forty of them would bury the
@@ -70,7 +70,7 @@ func splitRules(rules []proxy.Rule) (allowed, denied []string) {
 	return allowed, denied
 }
 
-// RenderVerdict is the answer to `jard policy check`.
+// RenderVerdict is the answer to `plbx policy check`.
 func RenderVerdict(t proxy.Target, v proxy.Verdict) string {
 	if v.Allowed {
 		return OK.Render("allowed ") + Value.Render(t.String()) + "\n  " + Faint.Render(v.Reason)
@@ -78,10 +78,10 @@ func RenderVerdict(t proxy.Target, v proxy.Verdict) string {
 	return Bad.Render("denied  ") + Value.Render(t.String()) + "\n  " + Faint.Render(v.Reason)
 }
 
-// ConnectionColumns are the headers of the `jard policy log` table.
+// ConnectionColumns are the headers of the `plbx policy log` table.
 var ConnectionColumns = []string{"", "TARGET", "SANDBOX", "WHEN", "REASON"}
 
-// RenderConnections is the table behind `jard policy log`.
+// RenderConnections is the table behind `plbx policy log`.
 func RenderConnections(entries []proxy.Entry) string {
 	if len(entries) == 0 {
 		return Faint.Render("nothing has tried to reach out yet")

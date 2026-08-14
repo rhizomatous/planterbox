@@ -23,14 +23,14 @@ const (
 	// relayName is the shared relay container. One serves every sandbox: it
 	// forwards to a single fixed address, so it grants nothing that being on
 	// its network does not already grant.
-	relayName = "jard-relay"
+	relayName = "plbx-relay"
 	// relayEgressNet is the ordinary network the relay reaches the host from.
-	relayEgressNet = "jard-egress"
+	relayEgressNet = "plbx-egress"
 	// RelayPort is where the relay accepts a sandbox's connections.
 	RelayPort = 8080
 	// DefaultRelayImage is the published relay. It holds a single static
 	// binary on an empty base.
-	DefaultRelayImage = "ghcr.io/rhizomatous/jard-relay:latest"
+	DefaultRelayImage = "ghcr.io/rhizomatous/plbx-relay:latest"
 )
 
 // SandboxNetwork is the network a sandbox is alone on.
@@ -70,7 +70,7 @@ func (o *OCI) CreateNetworkInvocation(sandbox string) Invocation {
 	if o.egressUpstream != "" {
 		args = append(args, "--internal")
 	}
-	return o.invoke(append(args, "--label", "jard.sandbox="+sandbox, SandboxNetwork(sandbox))...)
+	return o.invoke(append(args, "--label", "plbx.sandbox="+sandbox, SandboxNetwork(sandbox))...)
 }
 
 // RemoveNetworkInvocation renders the command removing it.
@@ -177,7 +177,7 @@ func (o *OCI) RelayInvocation(image, upstream string) Invocation {
 	return o.invoke(
 		"run", "--detach",
 		"--name", relayName,
-		"--label", "jard.relay=true",
+		"--label", "plbx.relay=true",
 		"--restart", "unless-stopped",
 		"--network", relayEgressNet,
 		image,

@@ -1,18 +1,18 @@
 # goreleaser config — https://goreleaser.com
-# build & publish jard for macOS and Linux on tag push.
+# build & publish plbx for macOS and Linux on tag push.
 # test locally without publishing: `make release-check`.
 version: 2
 
-project_name: jardiniere
+project_name: planterbox
 
 before:
   hooks:
     - go mod tidy
 
 builds:
-  - id: jard
-    binary: jard
-    main: ./cmd/jard
+  - id: plbx
+    binary: plbx
+    main: ./cmd/plbx
     env:
       - CGO_ENABLED=0
     # inject the version into the same symbol the Makefile uses.
@@ -25,12 +25,12 @@ builds:
       - amd64
       - arm64
 
-  # jard autostarts jardd from beside itself, so the two ship together and
-  # from the same build. A jard that cannot find its daemon cannot run a
+  # plbx autostarts plbxd from beside itself, so the two ship together and
+  # from the same build. A plbx that cannot find its daemon cannot run a
   # sandbox at all.
-  - id: jardd
-    binary: jardd
-    main: ./cmd/jardd
+  - id: plbxd
+    binary: plbxd
+    main: ./cmd/plbxd
     env:
       - CGO_ENABLED=0
     ldflags:
@@ -43,8 +43,8 @@ builds:
       - arm64
 
 archives:
-  - id: jard
-    ids: [jard, jardd]
+  - id: plbx
+    ids: [plbx, plbxd]
     formats: [tar.gz]
     name_template: >-
       {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
@@ -83,7 +83,7 @@ release:
   draft: false
 
 homebrew_casks:
-  - name: jard
+  - name: plbx
     # publish only when a tap token is configured; otherwise skip so a
     # release never fails for a missing secret.
     #
@@ -92,7 +92,7 @@ homebrew_casks:
     # `make release-check` failed here on a machine with no tap token — which is
     # every machine, that being the point of a dry run.
     skip_upload: '{{ if index .Env "HOMEBREW_TAP_TOKEN" }}false{{ else }}true{{ end }}'
-    homepage: https://github.com/rhizomatous/jardiniere
+    homepage: https://github.com/rhizomatous/planterbox
     description: a Nix-based sandbox for running coding agents in isolated containers
     # the binary is unsigned/unnotarized; strip the quarantine flag so macOS
     # doesn't refuse to run it after a brew install.
@@ -100,7 +100,7 @@ homebrew_casks:
       post:
         install: |
           if OS.mac?
-            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/jard"]
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/plbx"]
           end
     repository:
       owner: rhizomatous

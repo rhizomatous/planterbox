@@ -10,8 +10,8 @@ func TestInvocationStringQuotesOnlyWhatNeedsIt(t *testing.T) {
 	}{
 		{
 			name: "plain args stay bare",
-			inv:  Invocation{Path: "/usr/bin/docker", Args: []string{"create", "--name", "jard-demo"}},
-			want: "/usr/bin/docker create --name jard-demo",
+			inv:  Invocation{Path: "/usr/bin/docker", Args: []string{"create", "--name", "plbx-demo"}},
+			want: "/usr/bin/docker create --name plbx-demo",
 		},
 		{
 			name: "paths and mounts stay bare",
@@ -50,10 +50,10 @@ func TestInvocationStringQuotesOnlyWhatNeedsIt(t *testing.T) {
 }
 
 func TestContainerAndVolumeNamesAreNamespaced(t *testing.T) {
-	if got := ContainerName("demo"); got != "jard-demo" {
-		t.Errorf("ContainerName = %q, want jard-demo", got)
+	if got := ContainerName("demo"); got != "plbx-demo" {
+		t.Errorf("ContainerName = %q, want plbx-demo", got)
 	}
-	if got := HomeVolume("demo"); got != "jard-demo-home" {
-		t.Errorf("HomeVolume = %q, want jard-demo-home", got)
+	if got := HomeVolume("demo"); got != "plbx-demo-home" {
+		t.Errorf("HomeVolume = %q, want plbx-demo-home", got)
 	}
 }

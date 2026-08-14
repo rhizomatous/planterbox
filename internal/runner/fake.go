@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/rhizomatous/jardiniere/internal/api"
+	"github.com/rhizomatous/planterbox/internal/api"
 )
 
 // Fake is an in-memory [Runner]. Store and service logic test against it with

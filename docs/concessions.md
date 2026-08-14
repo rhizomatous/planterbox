@@ -1,6 +1,6 @@
 # concessions
 
-things jardinière wanted to do, couldn't, and does differently instead.
+things planterbox wanted to do, couldn't, and does differently instead.
 
 each entry records what was intended, what turned out to be true, what we do
 about it, and what would have to change for the original plan to become
@@ -82,7 +82,7 @@ where the plan wants them. A small dual-homed relay container bridges the gap:
 
 ```
   sandbox              relay                    host
-  (internal only)      (internal + bridge)      (jardd)
+  (internal only)      (internal + bridge)      (plbxd)
 
     agent ─────────────► forwards only ────────► proxy ────► internet
                          to the host proxy         │
@@ -147,7 +147,7 @@ interception weighed against what storage alone would buy.
 
 The plan's phase 4 was credentials:
 
-> OS keychain storage (`jard secret set|ls|rm|import`) and header injection at
+> OS keychain storage (`plbx secret set|ls|rm|import`) and header injection at
 > the proxy, so raw values never enter the sandbox
 
 with a done-when that named the point of the exercise:
@@ -165,7 +165,7 @@ Four things, which together turn one phase into a much larger one.
 
 **Signing is a hard prerequisite, and it is not ours to satisfy.** The plan
 already knew this and put it first: keychain ACLs bind to a binary's Designated
-Requirement, and an ad-hoc signature has no stable one, so every jard upgrade
+Requirement, and an ad-hoc signature has no stable one, so every plbx upgrade
 invalidates every ACL and re-prompts for every stored secret. Getting a stable
 DR means an Apple Developer Program membership and a Developer ID Application
 certificate. That is a purchase and an identity, not a piece of work.
@@ -178,7 +178,7 @@ processes running as you can see it, or hand-rolled FFI that CI — also ubuntu 
 could never exercise.
 
 **The daemon needs unattended reads, which undoes most of what the keychain is
-for.** `jardd` injects without a human present, so any ACL that prompts is
+for.** `plbxd` injects without a human present, so any ACL that prompts is
 fatal to it. Unattended means a permissive ACL, and a permissive ACL means any
 process running as you can read the item without being asked. What survives is
 encryption at rest and unavailability while the machine is locked. Real, but a
@@ -186,7 +186,7 @@ good deal less than "the OS protects your keys" suggests.
 
 **Injection into HTTPS means intercepting it.** The headline case,
 `api.anthropic.com`, is CONNECT-tunnelled — the proxy copies bytes it cannot
-read. Adding a header means terminating TLS: a jard CA, leaf certificates
+read. Adding a header means terminating TLS: a plbx CA, leaf certificates
 minted per host, and then getting the sandbox to trust it. That last part is
 the expensive one. It needs a bind-mounted root, `update-ca-certificates` as
 root on every start, and `NODE_EXTRA_CA_CERTS`, `REQUESTS_CA_BUNDLE`,
@@ -217,7 +217,7 @@ the sandbox against a host you have already allowed.
   out of its own environment. This is the gap the phase existed to close, and
   it is open.
 - **a key cannot be rotated.** `-e` lands in `Spec.Env`, and a spec is fixed at
-  create time. Changing a key means `jard rm` and recreating the sandbox,
+  create time. Changing a key means `plbx rm` and recreating the sandbox,
   discarding everything it persists — which is the entire reason the sandbox is
   persistent.
 - **it is plaintext on disk, and stays there.** The store writes the spec as

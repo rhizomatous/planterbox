@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/rhizomatous/jardiniere/internal/api"
+	"github.com/rhizomatous/planterbox/internal/api"
 )
 
 func testOCI(opts ...Option) *OCI {
@@ -44,10 +44,10 @@ func TestCreateInvocationCoreShape(t *testing.T) {
 	if inv.Args[0] != "create" {
 		t.Errorf("args[0] = %q, want create — a sandbox is built, not run", inv.Args[0])
 	}
-	if name, _ := argsAfter(inv.Args, "--name"); name != "jard-demo" {
-		t.Errorf("--name = %q, want jard-demo", name)
+	if name, _ := argsAfter(inv.Args, "--name"); name != "plbx-demo" {
+		t.Errorf("--name = %q, want plbx-demo", name)
 	}
-	if vol, _ := argsAfter(inv.Args, "--volume"); vol != "jard-demo-home:/home/agent" {
+	if vol, _ := argsAfter(inv.Args, "--volume"); vol != "plbx-demo-home:/home/agent" {
 		t.Errorf("--volume = %q, want the home volume that makes a sandbox persistent", vol)
 	}
 	// image then the idle command, in that order, at the tail.
@@ -78,7 +78,7 @@ func TestCreateInvocationWorkspacesBindAtHostPaths(t *testing.T) {
 
 	vols := allAfter(inv.Args, "--volume")
 	want := []string{
-		"jard-demo-home:/home/agent",
+		"plbx-demo-home:/home/agent",
 		"/home/viv/project:/home/viv/project",
 		"/home/viv/shared:/home/viv/shared:ro",
 	}
@@ -146,7 +146,7 @@ func TestCreateInvocationEnvIsSorted(t *testing.T) {
 }
 
 func TestExecInvocation(t *testing.T) {
-	inv := testOCI().ExecInvocation("jard-demo", api.ExecRequest{
+	inv := testOCI().ExecInvocation("plbx-demo", api.ExecRequest{
 		Cmd:         []string{"bash", "-lc", "echo hi"},
 		Workdir:     "/home/viv/project",
 		User:        "agent",
@@ -163,13 +163,13 @@ func TestExecInvocation(t *testing.T) {
 	// the container must come before the command, or the runtime reads the
 	// command as the container.
 	tail := inv.Args[len(inv.Args)-4:]
-	if tail[0] != "jard-demo" || tail[1] != "bash" {
+	if tail[0] != "plbx-demo" || tail[1] != "bash" {
 		t.Errorf("tail = %v, want the container followed by the command", tail)
 	}
 }
 
 func TestExecInvocationOmitsUnrequestedTTY(t *testing.T) {
-	inv := testOCI().ExecInvocation("jard-demo", api.ExecRequest{Cmd: []string{"ls"}})
+	inv := testOCI().ExecInvocation("plbx-demo", api.ExecRequest{Cmd: []string{"ls"}})
 	for _, a := range inv.Args {
 		if a == "--tty" || a == "--interactive" {
 			t.Errorf("%s should not be set for a non-interactive exec", a)
@@ -180,13 +180,13 @@ func TestExecInvocationOmitsUnrequestedTTY(t *testing.T) {
 func TestCopyInvocationRewritesSandboxSide(t *testing.T) {
 	o := testOCI()
 
-	in := o.CopyInvocation("jard-demo", api.Path{Path: "/tmp/a"}, api.Path{Sandbox: "demo", Path: "/home/agent/a"})
-	if got := in.Args[1:]; got[0] != "/tmp/a" || got[1] != "jard-demo:/home/agent/a" {
+	in := o.CopyInvocation("plbx-demo", api.Path{Path: "/tmp/a"}, api.Path{Sandbox: "demo", Path: "/home/agent/a"})
+	if got := in.Args[1:]; got[0] != "/tmp/a" || got[1] != "plbx-demo:/home/agent/a" {
 		t.Errorf("host→sandbox = %v, want the sandbox side prefixed with the container", got)
 	}
 
-	out := o.CopyInvocation("jard-demo", api.Path{Sandbox: "demo", Path: "/home/agent/a"}, api.Path{Path: "/tmp/a"})
-	if got := out.Args[1:]; got[0] != "jard-demo:/home/agent/a" || got[1] != "/tmp/a" {
+	out := o.CopyInvocation("plbx-demo", api.Path{Sandbox: "demo", Path: "/home/agent/a"}, api.Path{Path: "/tmp/a"})
+	if got := out.Args[1:]; got[0] != "plbx-demo:/home/agent/a" || got[1] != "/tmp/a" {
 		t.Errorf("sandbox→host = %v, want the sandbox side prefixed with the container", got)
 	}
 }
@@ -229,15 +229,15 @@ func TestDryRunRendersWithoutExecuting(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
-	if id != "jard-demo" {
-		t.Errorf("id = %q, want jard-demo", id)
+	if id != "plbx-demo" {
+		t.Errorf("id = %q, want plbx-demo", id)
 	}
 	// the network comes first: a create naming one that does not exist fails.
 	lines := strings.Split(strings.TrimSpace(out.String()), "\n")
 	if len(lines) != 2 || !strings.HasPrefix(lines[0], "/usr/bin/docker network create") {
 		t.Fatalf("rendered %q, want the network created before the container", out.String())
 	}
-	if !strings.HasPrefix(lines[1], "/usr/bin/docker create --name jard-demo") {
+	if !strings.HasPrefix(lines[1], "/usr/bin/docker create --name plbx-demo") {
 		t.Errorf("rendered %q, want the create command line", lines[1])
 	}
 	if !strings.HasSuffix(lines[1], "base:1 sleep infinity") {
@@ -250,27 +250,27 @@ func TestDryRunCoversEveryMutation(t *testing.T) {
 	o := testOCI(WithDryRun(&out))
 	ctx := context.Background()
 
-	if err := o.Start(ctx, "jard-demo", "demo"); err != nil {
+	if err := o.Start(ctx, "plbx-demo", "demo"); err != nil {
 		t.Fatalf("Start: %v", err)
 	}
-	if err := o.Stop(ctx, "jard-demo"); err != nil {
+	if err := o.Stop(ctx, "plbx-demo"); err != nil {
 		t.Fatalf("Stop: %v", err)
 	}
-	if err := o.Remove(ctx, "jard-demo", "demo", true); err != nil {
+	if err := o.Remove(ctx, "plbx-demo", "demo", true); err != nil {
 		t.Fatalf("Remove: %v", err)
 	}
 
 	lines := strings.Split(strings.TrimSpace(out.String()), "\n")
 	want := []string{
-		"start jard-demo",
-		"stop jard-demo",
-		"rm --volumes --force jard-demo",
-		"volume rm jard-demo-home",
+		"start plbx-demo",
+		"stop plbx-demo",
+		"rm --volumes --force plbx-demo",
+		"volume rm plbx-demo-home",
 		// a sandbox's own belongings go with it: the forwarder holding its
 		// ports, and the network both of them were on.
-		"rm --force jard-demo-ports",
-		"network disconnect --force jard-demo-net jard-relay",
-		"network rm jard-demo-net",
+		"rm --force plbx-demo-ports",
+		"network disconnect --force plbx-demo-net plbx-relay",
+		"network rm plbx-demo-net",
 	}
 	if len(lines) != len(want) {
 		t.Fatalf("rendered %d lines, want %d:\n%s", len(lines), len(want), out.String())
@@ -286,10 +286,10 @@ func TestRemoveDeletesTheHomeVolumeSeparately(t *testing.T) {
 	// `rm --volumes` reclaims only anonymous volumes. The home volume is named,
 	// so without its own call it outlives every sandbox that ever used it.
 	e := &scriptedExecutor{}
-	if err := testOCI(WithExecutor(e)).Remove(context.Background(), "jard-demo", "demo", false); err != nil {
+	if err := testOCI(WithExecutor(e)).Remove(context.Background(), "plbx-demo", "demo", false); err != nil {
 		t.Fatalf("Remove: %v", err)
 	}
-	if got := strings.Join(e.ran[1].Args, " "); got != "volume rm jard-demo-home" {
+	if got := strings.Join(e.ran[1].Args, " "); got != "volume rm plbx-demo-home" {
 		t.Errorf("second invocation = %q, want the home volume removed by name", got)
 	}
 }
@@ -305,29 +305,29 @@ func TestRemoveNamesTheVolumeAfterTheSandboxNotTheContainer(t *testing.T) {
 	if err := testOCI(WithExecutor(e)).Remove(context.Background(), hash, "demo", false); err != nil {
 		t.Fatalf("Remove: %v", err)
 	}
-	if got := strings.Join(e.ran[1].Args, " "); got != "volume rm jard-demo-home" {
+	if got := strings.Join(e.ran[1].Args, " "); got != "volume rm plbx-demo-home" {
 		t.Errorf("second invocation = %q, want the volume named after the sandbox", got)
 	}
 }
 
 func TestRemoveTolerantOfAnAlreadyGoneContainer(t *testing.T) {
-	e := &scriptedExecutor{err: errors.New("Error: No such container: jard-demo")}
-	if err := testOCI(WithExecutor(e)).Remove(context.Background(), "jard-demo", "demo", false); err != nil {
+	e := &scriptedExecutor{err: errors.New("Error: No such container: plbx-demo")}
+	if err := testOCI(WithExecutor(e)).Remove(context.Background(), "plbx-demo", "demo", false); err != nil {
 		t.Errorf("removing an already-gone sandbox should succeed: %v", err)
 	}
 }
 
 func TestRemoveReportsRealFailures(t *testing.T) {
 	e := &scriptedExecutor{err: errors.New("permission denied")}
-	if err := testOCI(WithExecutor(e)).Remove(context.Background(), "jard-demo", "demo", false); err == nil {
+	if err := testOCI(WithExecutor(e)).Remove(context.Background(), "plbx-demo", "demo", false); err == nil {
 		t.Error("a genuine removal failure must not be swallowed")
 	}
 }
 
 func TestExecPropagatesTheExitCode(t *testing.T) {
-	// an agent exiting 3 is the agent's answer, not a jard failure.
+	// an agent exiting 3 is the agent's answer, not a plbx failure.
 	e := &scriptedExecutor{code: 3}
-	res, err := testOCI(WithExecutor(e)).Exec(context.Background(), "jard-demo",
+	res, err := testOCI(WithExecutor(e)).Exec(context.Background(), "plbx-demo",
 		api.ExecRequest{Cmd: []string{"false"}}, api.Streams{})
 	if err != nil {
 		t.Fatalf("Exec: %v", err)
@@ -339,7 +339,7 @@ func TestExecPropagatesTheExitCode(t *testing.T) {
 
 func TestInspectParsesState(t *testing.T) {
 	e := &scriptedExecutor{out: []byte("running\tabc123\t2026-08-05T10:00:00.5Z\t0\n")}
-	st, err := testOCI(WithExecutor(e)).Inspect(context.Background(), "jard-demo")
+	st, err := testOCI(WithExecutor(e)).Inspect(context.Background(), "plbx-demo")
 	if err != nil {
 		t.Fatalf("Inspect: %v", err)
 	}
@@ -355,9 +355,9 @@ func TestInspectParsesState(t *testing.T) {
 }
 
 func TestInspectOfAMissingContainerIsNotAnError(t *testing.T) {
-	// the record outliving the container is a state jard shows, not a failure.
-	e := &scriptedExecutor{err: errors.New("Error: No such object: jard-demo")}
-	st, err := testOCI(WithExecutor(e)).Inspect(context.Background(), "jard-demo")
+	// the record outliving the container is a state plbx shows, not a failure.
+	e := &scriptedExecutor{err: errors.New("Error: No such object: plbx-demo")}
+	st, err := testOCI(WithExecutor(e)).Inspect(context.Background(), "plbx-demo")
 	if err != nil {
 		t.Fatalf("Inspect: %v", err)
 	}
@@ -397,7 +397,7 @@ func TestParseInspectSurvivesGarbage(t *testing.T) {
 
 func TestInspectUsesAnUnambiguousFormat(t *testing.T) {
 	// tab-separated, so a value containing a space cannot shift the others.
-	inv := testOCI().InspectInvocation("jard-demo")
+	inv := testOCI().InspectInvocation("plbx-demo")
 	format, ok := argsAfter(inv.Args, "--format")
 	if !ok {
 		t.Fatal("inspect should ask for a format")
@@ -415,24 +415,24 @@ func TestUnavailableFailsEveryOperation(t *testing.T) {
 	if _, err := r.Create(ctx, api.Spec{Name: "demo"}); !errors.Is(err, sentinel) {
 		t.Errorf("Create err = %v, want the detection error", err)
 	}
-	if err := r.Start(ctx, "jard-demo", "demo"); !errors.Is(err, sentinel) {
+	if err := r.Start(ctx, "plbx-demo", "demo"); !errors.Is(err, sentinel) {
 		t.Errorf("Start err = %v, want the detection error", err)
 	}
-	if _, err := r.Inspect(ctx, "jard-demo"); !errors.Is(err, sentinel) {
+	if _, err := r.Inspect(ctx, "plbx-demo"); !errors.Is(err, sentinel) {
 		t.Errorf("Inspect err = %v, want the detection error", err)
 	}
 }
 
 // testEgressOCI is a runner with egress control turned on.
 func testEgressOCI(opts ...Option) *OCI {
-	return testOCI(append([]Option{WithEgress("host.docker.internal:47821", "jard-relay:test")}, opts...)...)
+	return testOCI(append([]Option{WithEgress("host.docker.internal:47821", "plbx-relay:test")}, opts...)...)
 }
 
 func TestCreateInvocationPutsTheSandboxOnItsOwnNetwork(t *testing.T) {
 	inv := testEgressOCI().CreateInvocation(api.Spec{Name: "demo", Image: "base:1"})
 
 	net, ok := argsAfter(inv.Args, "--network")
-	if !ok || net != "jard-demo-net" {
+	if !ok || net != "plbx-demo-net" {
 		t.Errorf("--network = %q, want the sandbox's own network", net)
 	}
 }
@@ -441,7 +441,7 @@ func TestCreateInvocationTellsTheSandboxItsWayOut(t *testing.T) {
 	inv := testEgressOCI().CreateInvocation(api.Spec{Name: "demo", Image: "base:1"})
 
 	env := strings.Join(allAfter(inv.Args, "--env"), " ")
-	for _, want := range []string{"HTTP_PROXY=", "HTTPS_PROXY=", "jard-relay:8080", "NO_PROXY="} {
+	for _, want := range []string{"HTTP_PROXY=", "HTTPS_PROXY=", "plbx-relay:8080", "NO_PROXY="} {
 		if !strings.Contains(env, want) {
 			t.Errorf("env %q missing %q", env, want)
 		}
@@ -491,13 +491,13 @@ func TestSandboxNetworkIsInternal(t *testing.T) {
 	if !strings.Contains(joined, "--internal") {
 		t.Errorf("network create %q must be internal", joined)
 	}
-	if !strings.HasSuffix(joined, "jard-demo-net") {
+	if !strings.HasSuffix(joined, "plbx-demo-net") {
 		t.Errorf("network create %q should name the sandbox's network", joined)
 	}
 }
 
 func TestRelayIsGivenOneAddressAndNoMore(t *testing.T) {
-	inv := testEgressOCI().RelayInvocation("jard-relay:test", "host.docker.internal:47821")
+	inv := testEgressOCI().RelayInvocation("plbx-relay:test", "host.docker.internal:47821")
 	joined := strings.Join(inv.Args, " ")
 
 	if !strings.Contains(joined, "-upstream host.docker.internal:47821") {
@@ -514,12 +514,12 @@ func TestRelayIsGivenOneAddressAndNoMore(t *testing.T) {
 func TestRemoveDropsTheNetworkToo(t *testing.T) {
 	// a network per sandbox leaks one per sandbox otherwise.
 	e := &scriptedExecutor{}
-	if err := testEgressOCI(WithExecutor(e)).Remove(context.Background(), "jard-demo", "demo", false); err != nil {
+	if err := testEgressOCI(WithExecutor(e)).Remove(context.Background(), "plbx-demo", "demo", false); err != nil {
 		t.Fatalf("Remove: %v", err)
 	}
 	var sawNetworkRm bool
 	for _, inv := range e.ran {
-		if strings.HasPrefix(strings.Join(inv.Args, " "), "network rm jard-demo-net") {
+		if strings.HasPrefix(strings.Join(inv.Args, " "), "network rm plbx-demo-net") {
 			sawNetworkRm = true
 		}
 	}
@@ -534,7 +534,7 @@ func TestRemoveDetachesTheRelayBeforeDroppingTheNetwork(t *testing.T) {
 	// removal fails — and fails after the container is already gone, leaving a
 	// record for a sandbox that no longer exists.
 	e := &scriptedExecutor{}
-	if err := testEgressOCI(WithExecutor(e)).Remove(context.Background(), "jard-demo", "demo", false); err != nil {
+	if err := testEgressOCI(WithExecutor(e)).Remove(context.Background(), "plbx-demo", "demo", false); err != nil {
 		t.Fatalf("Remove: %v", err)
 	}
 
@@ -565,7 +565,7 @@ func TestRemoveDetachesTheRelayBeforeDroppingTheNetwork(t *testing.T) {
 // start after the first one failed.
 func TestStartAttachesTheRelayBySandboxName(t *testing.T) {
 	for _, tc := range []struct{ name, id string }{
-		{"before the first start, when the id is the container's name", "jard-demo"},
+		{"before the first start, when the id is the container's name", "plbx-demo"},
 		{"after it, when the runtime has replaced that with a hash", "9f8c1b2a3d4e5f60718293a4b5c6d7e8f9012345678990abcdef0123456789ab"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

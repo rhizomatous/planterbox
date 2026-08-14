@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/rhizomatous/jardiniere/internal/api"
+	"github.com/rhizomatous/planterbox/internal/api"
 )
 
 // A sandbox cannot publish its own ports.
@@ -30,7 +30,7 @@ const (
 	// its members a route out, which a forwarder has no use for — it dials
 	// only the addresses on its command line, and holds no policy that could
 	// be talked out of it.
-	portsNet = "jard-ports"
+	portsNet = "plbx-ports"
 )
 
 // PortsContainer is the forwarder publishing a sandbox's ports.
@@ -51,8 +51,8 @@ func (o *OCI) PortsInvocation(sandbox string, ports []api.Port) Invocation {
 	args := []string{
 		"run", "--detach",
 		"--name", PortsContainer(sandbox),
-		"--label", "jard.sandbox=" + sandbox,
-		"--label", "jard.ports=true",
+		"--label", "plbx.sandbox=" + sandbox,
+		"--label", "plbx.ports=true",
 		"--network", portsNet,
 	}
 	for _, p := range ports {

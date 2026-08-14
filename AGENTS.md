@@ -1,6 +1,6 @@
 # AGENTS.md
 
-**jardinière** (`jard`) is a Go CLI that runs coding agents inside isolated, persistent container sandboxes. Read `README.md` for what it does and what it protects against.
+**planterbox** (`plbx`) is a Go CLI that runs coding agents inside isolated, persistent container sandboxes. Read `README.md` for what it does and what it protects against.
 
 `docs/next/plan.md` is the plan of record: it describes where each piece is headed, and is the thing to read before adding one.
 
@@ -13,7 +13,7 @@ All tooling is provided in Nix dev shell: **work inside it.**
 ## Commands
 
 - See `Makefile` for the common dev commands.
-- `jard --dry-run`: print the exact container commands without executing them. the best way to inspect behavior without a live runtime.
+- `plbx --dry-run`: print the exact container commands without executing them. the best way to inspect behavior without a live runtime.
 
 ## Conventions
 
@@ -25,33 +25,33 @@ All tooling is provided in Nix dev shell: **work inside it.**
 
 ## Layout
 
-- `cmd/jard`: the CLI (cobra + fang). The `main` package.
-- `cmd/jardd`: the daemon. A second `main` package, plain `flag`, no fang.
-- `cmd/jard-relay`: the egress relay that runs inside the runtime. Tiny, static, and deliberately incurious.
+- `cmd/plbx`: the CLI (cobra + fang). The `main` package.
+- `cmd/plbxd`: the daemon. A second `main` package, plain `flag`, no fang.
+- `cmd/plbx-relay`: the egress relay that runs inside the runtime. Tiny, static, and deliberately incurious.
 - `internal/api`: the `Service` interface and its types.
 - `internal/api/direct`: in-process implementation of `Service`.
-- `internal/api/rpc`: the same `Service` over gRPC — client, server, and the generated contract in `jardv1`. Regenerate with `make proto`.
+- `internal/api/rpc`: the same `Service` over gRPC — client, server, and the generated contract in `plbxv1`. Regenerate with `make proto`.
 - `internal/daemon`: socket lifecycle, autostart, and connecting to a running daemon.
 - `internal/store`: sandbox specs + state, on disk, XDG-respecting.
 - `internal/runner`: the `Runner` interface, runtime detection, and the OCI adapter.
 - `internal/proxy`: the egress policy engine, the filtering proxy, and the connection log. The engine is pure.
-- `internal/api/direct/clone.go`: clone mode — the private clone, and the `jard-<name>` remote it becomes in your repository.
+- `internal/api/direct/clone.go`: clone mode — the private clone, and the `plbx-<name>` remote it becomes in your repository.
 - `internal/sshd`: the wish-based SSH gateway, on a unix socket. Sessions are execs, not connections.
-- `internal/tui`: the bubbletea dashboard, which bare `jard` opens.
+- `internal/tui`: the bubbletea dashboard, which bare `plbx` opens.
 - `internal/ui`: Charm-based terminal output.
 - `images/`: one multi-stage Dockerfile, a build target per agent, published to ghcr.
 
-**The invariant:** `cmd/jard` and `internal/tui` hold an `api.Service` and never
+**The invariant:** `cmd/plbx` and `internal/tui` hold an `api.Service` and never
 reach past it to `internal/runner`, `internal/store`, or a container runtime.
 `depguard` enforces this; don't work around it.
 
-Which implementation they hold is `open`'s business in `cmd/jard/root.go`:
+Which implementation they hold is `open`'s business in `cmd/plbx/root.go`:
 the daemon normally, in-process for `--dry-run` and `--state-dir`.
 
 ## Things that will bite you
 
 - **Most of a sandbox's definition is fixed at create time.** `Spec` is what the container was built from: it is written once, reread on every reattach, and changing any of it means building a different container — which costs everything the old one held outside its home volume. Published ports are the exception, and live on `Sandbox` rather than `Spec`, because they are not on the container at all: a sandbox cannot publish for itself, so its ports are carried by a forwarder beside it that is rebuilt on every start regardless. Anything else that should be changeable needs the same kind of story.
-- **ssh has nowhere to put the sandbox's name, so `jard ssh-proxy` writes it first.** The protocol never sends the hostname the client typed, and a single `Host *.jard` block has no token to interpolate a username from. The name and a newline go ahead of the ssh bytes, and `ConnCallback` reads exactly that much — a byte at a time, because a buffered read would swallow the handshake with no way to give it back.
+- **ssh has nowhere to put the sandbox's name, so `plbx ssh-proxy` writes it first.** The protocol never sends the hostname the client typed, and a single `Host *.plbx` block has no token to interpolate a username from. The name and a newline go ahead of the ssh bytes, and `ConnCallback` reads exactly that much — a byte at a time, because a buffered read would swallow the handshake with no way to give it back.
 - **`ssh -L` dials from inside the sandbox, not from the daemon.** The daemon has no route to a sandbox's network, the same wall the egress proxy met. `internal/sshd/forward.go` runs the dial as an exec, with bash's `/dev/tcp` opening the socket — a builtin, so it needs nothing installed that the image contract does not already promise.
 - **A clone-mode sandbox's working directory exists before its clone does.** The runtime creates the container's `--workdir` on first start, as root, inside the home volume — so `git clone` hits a directory it cannot write. The clone script `rmdir`s it first, which is safe because rmdir refuses a directory with anything in it.
 - **A sandbox cannot publish its own ports.** `--publish` on a container attached to an internal network is not an error — the runtime exits zero and creates no mapping. `internal/runner/ports.go` carries them instead, and that is also why `Spec` has no ports in it.
@@ -90,9 +90,9 @@ the daemon normally, in-process for `--dry-run` and `--state-dir`.
 
 Unit tests are **pure**, with no container runtime required. They cover arg-building, parsing, validation, and rendering. Keep them that way: inject dependencies like `goos` rather than reading globals.
 
-There are two fakes, at opposite ends of the stack. `runner.Fake` replaces only the container runtime, so `direct` and `store` run for real against a temp dir. `api.NewFake` replaces the whole sandbox layer, for driving the CLI — and it's required, not merely convenient, because `depguard` forbids `cmd/jard` from importing `internal/store`.
+There are two fakes, at opposite ends of the stack. `runner.Fake` replaces only the container runtime, so `direct` and `store` run for real against a temp dir. `api.NewFake` replaces the whole sandbox layer, for driving the CLI — and it's required, not merely convenient, because `depguard` forbids `cmd/plbx` from importing `internal/store`.
 
-To verify real container behavior, use `jard --dry-run` (which needs no runtime) or a live run against docker/OrbStack.
+To verify real container behavior, use `plbx --dry-run` (which needs no runtime) or a live run against docker/OrbStack.
 
 ## Committing, Versioning, Releasing
 

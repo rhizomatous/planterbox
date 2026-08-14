@@ -8,7 +8,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/rhizomatous/jardiniere/internal/api"
+	"github.com/rhizomatous/planterbox/internal/api"
 )
 
 // Clone mode gives a sandbox a copy of your repository rather than your
@@ -43,22 +43,22 @@ const hostRemote = "host"
 // Those resolve to somewhere on your machine that does not exist in here, and
 // a remote that silently points at nothing is worse than one that is absent.
 const cloneScript = `set -e
-if [ -e "$JARD_CLONE/.git" ]; then exit 0; fi
+if [ -e "$PLBX_CLONE/.git" ]; then exit 0; fi
 # the runtime makes the container's working directory before anything runs,
 # and makes it as root — so on a first start the clone's own path is already
 # there, owned by someone the agent is not. rmdir refuses a directory with
 # anything in it, so this can only ever clear the empty one left behind.
-rmdir "$JARD_CLONE" 2>/dev/null || true
-git clone --no-hardlinks --origin ` + hostRemote + ` "$JARD_SRC" "$JARD_CLONE"
-git -C "$JARD_SRC" config --get-regexp '^remote\..*\.url' 2>/dev/null | while read -r key url; do
+rmdir "$PLBX_CLONE" 2>/dev/null || true
+git clone --no-hardlinks --origin ` + hostRemote + ` "$PLBX_SRC" "$PLBX_CLONE"
+git -C "$PLBX_SRC" config --get-regexp '^remote\..*\.url' 2>/dev/null | while read -r key url; do
   name=${key#remote.}
   name=${name%.url}
   [ "$name" = "` + hostRemote + `" ] && continue
   case "$url" in
     /*|./*|../*|file://*) continue ;;
   esac
-  git -C "$JARD_CLONE" remote add "$name" "$url" 2>/dev/null ||
-    git -C "$JARD_CLONE" remote set-url "$name" "$url"
+  git -C "$PLBX_CLONE" remote add "$name" "$url" 2>/dev/null ||
+    git -C "$PLBX_CLONE" remote set-url "$name" "$url"
 done
 exit 0
 `
@@ -77,7 +77,7 @@ func (s *Service) ensureClone(ctx context.Context, sb api.Sandbox) error {
 	var out bytes.Buffer
 	res, err := s.runner.Exec(ctx, containerID(sb), api.ExecRequest{
 		Cmd: []string{"/bin/bash", "-c", cloneScript},
-		Env: map[string]string{"JARD_SRC": src, "JARD_CLONE": dst},
+		Env: map[string]string{"PLBX_SRC": src, "PLBX_CLONE": dst},
 		// explicitly the home directory, not the container's own default. That
 		// default is the clone's path, which does not exist yet on a first
 		// start — the runtime makes an empty directory for it, and git then
@@ -129,11 +129,11 @@ func lastLine(s string) string {
 // remote is a fixed ssh URL that survives restarts, there is no daemon to
 // supervise, no port to allocate, and nothing unauthenticated listening.
 //
-// It does mean the remote only resolves once `jard setup ssh` has been run,
+// It does mean the remote only resolves once `plbx setup ssh` has been run,
 // which is why the CLI says so when it adds one.
 
 // HostRemote is what a sandbox's clone is called in your repository.
-func HostRemote(sandbox string) string { return "jard-" + sandbox }
+func HostRemote(sandbox string) string { return "plbx-" + sandbox }
 
 // cloneURL is the ssh URL your repository fetches the clone from.
 func cloneURL(sb api.Sandbox) string {

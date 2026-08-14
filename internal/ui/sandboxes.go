@@ -10,13 +10,13 @@ import (
 
 	"charm.land/lipgloss/v2"
 
-	"github.com/rhizomatous/jardiniere/internal/api"
+	"github.com/rhizomatous/planterbox/internal/api"
 )
 
-// SandboxColumns are the headers of the `jard ls` table, in order.
+// SandboxColumns are the headers of the `plbx ls` table, in order.
 var SandboxColumns = []string{"NAME", "STATUS", "AGENT", "IMAGE", "WORKSPACE", "CREATED"}
 
-// RenderSandboxes returns the `jard ls` table. An empty list renders a single
+// RenderSandboxes returns the `plbx ls` table. An empty list renders a single
 // hint line rather than a bare header, which reads better on a fresh install.
 func RenderSandboxes(sandboxes []api.Sandbox, now time.Time) string {
 	if len(sandboxes) == 0 {
@@ -81,7 +81,7 @@ func RenderAttaching(sb api.Sandbox, created bool) string {
 	return line
 }
 
-// RenderSandbox is the detail view behind `jard inspect`.
+// RenderSandbox is the detail view behind `plbx inspect`.
 func RenderSandbox(sb api.Sandbox, now time.Time) string {
 	return Title.Render("🪴 "+sb.Spec.Name) + "\n" + RenderSandboxFields(sb, now)
 }
@@ -140,7 +140,7 @@ func RenderSandboxFields(sb api.Sandbox, now time.Time) string {
 // RenderPorts lists what a sandbox publishes on the host.
 //
 // A stopped sandbox's ports are recorded but not bound, and saying so is the
-// difference between "nothing is listening" and "jard forgot".
+// difference between "nothing is listening" and "plbx forgot".
 func RenderPorts(sb api.Sandbox) string {
 	if len(sb.Ports) == 0 {
 		return Faint.Render(sb.Spec.Name + " publishes no ports")

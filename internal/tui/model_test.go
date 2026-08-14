@@ -10,8 +10,8 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 
-	"github.com/rhizomatous/jardiniere/internal/api"
-	"github.com/rhizomatous/jardiniere/internal/proxy"
+	"github.com/rhizomatous/planterbox/internal/api"
+	"github.com/rhizomatous/planterbox/internal/proxy"
 )
 
 // sandbox builds a listing entry.
@@ -103,7 +103,7 @@ func detail(m *Model) string { return ansi.Strip(m.renderDetail(m.renderList()))
 
 func TestEmptyStateSaysHowToMakeOne(t *testing.T) {
 	m := loaded(t, api.NewFake())
-	if !strings.Contains(view(m), "jard run") {
+	if !strings.Contains(view(m), "plbx run") {
 		t.Errorf("empty dashboard should say how to make a sandbox:\n%s", view(m))
 	}
 }
@@ -483,7 +483,7 @@ func TestDetailPaneOpensEvenWhilePending(t *testing.T) {
 func TestDetailPaneOnAnEmptyListingIsSafe(t *testing.T) {
 	m := loaded(t, api.NewFake())
 	m = press(t, m, "i")
-	if !strings.Contains(view(m), "jard run") {
+	if !strings.Contains(view(m), "plbx run") {
 		t.Errorf("an empty dashboard should still say how to make a sandbox:\n%s", view(m))
 	}
 }

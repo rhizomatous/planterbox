@@ -11,12 +11,12 @@ import (
 
 	"github.com/charmbracelet/x/ansi"
 
-	"github.com/rhizomatous/jardiniere/internal/api"
+	"github.com/rhizomatous/planterbox/internal/api"
 )
 
-// containerPrefix namespaces every container and volume jard owns, so a stray
+// containerPrefix namespaces every container and volume plbx owns, so a stray
 // `docker ps` makes it obvious who created what.
-const containerPrefix = "jard-"
+const containerPrefix = "plbx-"
 
 // agentHome is the base image contract's home directory. It gets its own named
 // volume, which is what makes a sandbox persistent: packages, shell history,
@@ -254,7 +254,7 @@ func parseMemUsage(s string) (used, limit int64, ok bool) {
 
 // Inspect reports a container's observed state. A container the runtime has
 // never heard of is [api.StatusMissing] rather than an error: the record
-// outliving the container is a state jard displays, not a failure.
+// outliving the container is a state plbx displays, not a failure.
 func (o *OCI) Inspect(ctx context.Context, id ID) (api.State, error) {
 	out, err := o.exec.Output(ctx, o.InspectInvocation(id))
 	if isNotFound(err) {
@@ -273,7 +273,7 @@ func (o *OCI) CreateInvocation(spec api.Spec) Invocation {
 		"create",
 		"--name", ContainerName(spec.Name),
 		"--hostname", spec.Name,
-		"--label", "jard.sandbox=" + spec.Name,
+		"--label", "plbx.sandbox=" + spec.Name,
 		// persistence lives here: everything the user installs is under $HOME.
 		"--volume", HomeVolume(spec.Name) + ":" + agentHome,
 	}
@@ -350,7 +350,7 @@ func (o *OCI) CopyInvocation(id ID, src, dst api.Path) Invocation {
 	return o.invoke("cp", copyEndpoint(id, src), copyEndpoint(id, dst))
 }
 
-// inspectFormat asks for just the state fields jard reads back, tab-separated
+// inspectFormat asks for just the state fields plbx reads back, tab-separated
 // so a value containing a space cannot shift the others.
 const inspectFormat = "{{.State.Status}}\t{{.Id}}\t{{.State.StartedAt}}\t{{.State.ExitCode}}"
 
@@ -384,7 +384,7 @@ func parseInspect(out string) api.State {
 	return state
 }
 
-// parseStatus maps a runtime's container status onto jard's smaller set.
+// parseStatus maps a runtime's container status onto plbx's smaller set.
 func parseStatus(s string) api.Status {
 	switch strings.TrimSpace(s) {
 	case "created":
@@ -416,9 +416,9 @@ func sortedKeys(m map[string]string) []string {
 	return slices.Sorted(maps.Keys(m))
 }
 
-// withProxyEnv layers jard's proxy variables over a spec's own.
+// withProxyEnv layers plbx's proxy variables over a spec's own.
 //
-// jard's win. The point of the proxy is that a sandbox cannot choose its own
+// plbx's win. The point of the proxy is that a sandbox cannot choose its own
 // way out, and a spec that could set HTTP_PROXY could choose one.
 func withProxyEnv(env map[string]string, sandbox string) map[string]string {
 	merged := make(map[string]string, len(env)+6)

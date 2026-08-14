@@ -8,9 +8,9 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 
-	"github.com/rhizomatous/jardiniere/internal/api"
-	"github.com/rhizomatous/jardiniere/internal/proxy"
-	"github.com/rhizomatous/jardiniere/internal/ui"
+	"github.com/rhizomatous/planterbox/internal/api"
+	"github.com/rhizomatous/planterbox/internal/proxy"
+	"github.com/rhizomatous/planterbox/internal/ui"
 )
 
 const (
@@ -37,7 +37,7 @@ func (m *Model) View() tea.View {
 
 func (m *Model) render() string {
 	var b strings.Builder
-	b.WriteString(ui.Title.Render("🪴 jardinière"))
+	b.WriteString(ui.Title.Render("🪴 planterbox"))
 	b.WriteString("\n\n")
 
 	// the form replaces the list rather than sitting beside it: it owns the
@@ -65,7 +65,7 @@ func (m *Model) render() string {
 	case m.err != nil:
 		b.WriteString(ui.Bad.Render("could not read sandboxes: " + m.err.Error()))
 	case len(m.sandboxes) == 0:
-		b.WriteString(ui.Faint.Render("no sandboxes yet — run `jard run` in a repo to make one"))
+		b.WriteString(ui.Faint.Render("no sandboxes yet — run `plbx run` in a repo to make one"))
 	default:
 		list := m.renderList()
 		b.WriteString(list)
@@ -117,7 +117,7 @@ func (m *Model) renderRow(sb api.Sandbox, selected bool) string {
 }
 
 // renderDetail draws the selected sandbox's definition below the list — the
-// same fields `jard inspect` prints, minus its heading, since the row above
+// same fields `plbx inspect` prints, minus its heading, since the row above
 // already says which sandbox this is.
 //
 // It reads the selection rather than a sandbox captured when the pane opened,

@@ -1,14 +1,14 @@
-// Package sshd is jard's SSH gateway: it lets an editor attach to a sandbox
+// Package sshd is plbx's SSH gateway: it lets an editor attach to a sandbox
 // over ssh without the sandbox listening on anything.
 //
 // There is no TCP port. The server listens on a unix socket beside the
-// daemon's own, and `jard ssh-proxy` carries a client's bytes to it as an
+// daemon's own, and `plbx ssh-proxy` carries a client's bytes to it as an
 // OpenSSH ProxyCommand. That is what makes the filesystem the access control:
 // the socket is 0600 and owned by the user, so anything that can reach it is
 // already running as them.
 //
 // A session is not a network connection to the sandbox either. It is an exec,
-// the same one `jard exec` uses, so the gateway needs no route to a sandbox
+// the same one `plbx exec` uses, so the gateway needs no route to a sandbox
 // that by design has none.
 package sshd
 
@@ -28,7 +28,7 @@ import (
 	"charm.land/wish/v2"
 	gossh "golang.org/x/crypto/ssh"
 
-	"github.com/rhizomatous/jardiniere/internal/api"
+	"github.com/rhizomatous/planterbox/internal/api"
 )
 
 // Options configures the gateway.

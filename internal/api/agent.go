@@ -6,11 +6,11 @@ import (
 	"strings"
 )
 
-// imageRepo is where jard's base images are published. A sandbox may start from
+// imageRepo is where plbx's base images are published. A sandbox may start from
 // any image via Spec.Image; these are only the defaults.
 const imageRepo = "ghcr.io/rhizomatous"
 
-// Agent is a coding agent jard knows how to start: which image it ships in and
+// Agent is a coding agent plbx knows how to start: which image it ships in and
 // what command runs it.
 type Agent struct {
 	Name    string
@@ -18,17 +18,17 @@ type Agent struct {
 	Command []string
 }
 
-// agents are the supported agents, in the order `jard agents` lists them.
+// agents are the supported agents, in the order `plbx agents` lists them.
 var agents = []Agent{
-	{Name: "claude", Image: imageRepo + "/jard-claude:latest", Command: []string{"claude"}},
-	{Name: "codex", Image: imageRepo + "/jard-codex:latest", Command: []string{"codex"}},
-	{Name: "opencode", Image: imageRepo + "/jard-opencode:latest", Command: []string{"opencode"}},
+	{Name: "claude", Image: imageRepo + "/plbx-claude:latest", Command: []string{"claude"}},
+	{Name: "codex", Image: imageRepo + "/plbx-codex:latest", Command: []string{"codex"}},
+	{Name: "opencode", Image: imageRepo + "/plbx-opencode:latest", Command: []string{"opencode"}},
 	// shell has no agent to start; it is the bare sandbox, and the one to reach
 	// for when you want to test the lifecycle without an agent in the way.
-	{Name: "shell", Image: imageRepo + "/jard-shell:latest", Command: []string{"bash", "-l"}},
+	{Name: "shell", Image: imageRepo + "/plbx-shell:latest", Command: []string{"bash", "-l"}},
 }
 
-// DefaultAgent is what `jard run` starts when no agent is named.
+// DefaultAgent is what `plbx run` starts when no agent is named.
 const DefaultAgent = "claude"
 
 // Agents returns every supported agent.

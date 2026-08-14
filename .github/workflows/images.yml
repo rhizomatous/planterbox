@@ -12,7 +12,7 @@ on:
     branches: [main]
     paths:
       - "images/**"
-      - "cmd/jard-relay/**"
+      - "cmd/plbx-relay/**"
       - "go.mod"
       - "go.sum"
       - ".github/workflows/images.yml"
@@ -20,7 +20,7 @@ on:
     branches: [main]
     paths:
       - "images/**"
-      - "cmd/jard-relay/**"
+      - "cmd/plbx-relay/**"
       - "go.mod"
       - "go.sum"
       - ".github/workflows/images.yml"
@@ -68,7 +68,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
-          images: ghcr.io/${{ github.repository_owner }}/jard-${{ matrix.agent }}
+          images: ghcr.io/${{ github.repository_owner }}/plbx-${{ matrix.agent }}
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha,format=short
@@ -85,8 +85,8 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           # the base stage is shared, so the first target in the matrix warms
           # the cache the rest reuse.
-          cache-from: type=gha,scope=jard-images
-          cache-to: type=gha,mode=max,scope=jard-images
+          cache-from: type=gha,scope=plbx-images
+          cache-to: type=gha,mode=max,scope=plbx-images
 
   # the relay is built separately from the agent images: it compiles Go from
   # the repository root, so it needs the whole tree as its context rather than
@@ -116,7 +116,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
-          images: ghcr.io/${{ github.repository_owner }}/jard-relay
+          images: ghcr.io/${{ github.repository_owner }}/plbx-relay
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha,format=short
@@ -134,5 +134,5 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             VERSION=${{ github.ref_name }}
-          cache-from: type=gha,scope=jard-relay
-          cache-to: type=gha,mode=max,scope=jard-relay
+          cache-from: type=gha,scope=plbx-relay
+          cache-to: type=gha,mode=max,scope=plbx-relay

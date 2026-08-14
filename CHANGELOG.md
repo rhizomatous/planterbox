@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- **The project is now `planterbox`, and the binaries are `plbx` and `plbxd`.** Nobody knew what a jardinière was, which is a poor property in a name. Everything carrying the old name moved with it: the images, the Homebrew cask, the state and runtime directories, the `PLBX_*` environment variables, the container, volume and network names, the `.plbx` ssh domain, and the git remotes clone mode writes into your repositories.
+- **Existing sandboxes are not migrated, and are not visible to `plbx`.** Their containers, volumes and networks still carry the old prefix, so they keep occupying disk while the new binary cannot see them. Remove them with the old binary before upgrading (`jard rm --force <name>` for each, or `jard ls -q | xargs -n1 jard rm --force`), or clean up by hand afterwards: `docker ps -aq --filter name=jard- | xargs docker rm -f`, then the same for `docker volume ls -q --filter name=jard-` and `docker network ls -q --filter name=jard-`.
+- Older releases below are left as they were written. They describe a tool called jard, because that is what shipped.
+
 ## [0.5.0] - 2026-08-12
 
 ### Added
@@ -82,13 +88,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
-- `go install github.com/rhizomatous/jardiniere/cmd/jard@latest` now produces a binary named `jard` rather than `jardiniere`.
+- `go install github.com/rhizomatous/planterbox/cmd/jard@latest` now produces a binary named `jard` rather than `jardiniere`.
 
 ## [0.1.1] - 2026-07-19
 
 ### Fixed
 
-- Corrected the Go module path from `github.com/vivshaw/jardiniere` to `github.com/rhizomatous/jardiniere` so it matches the repository host and `go install github.com/rhizomatous/jardiniere@latest` resolves.
+- Corrected the Go module path from `github.com/vivshaw/jardiniere` to `github.com/rhizomatous/planterbox` so it matches the repository host and `go install github.com/rhizomatous/planterbox@latest` resolves.
 
 ## [0.1.0] - 2026-07-19
 
@@ -103,12 +109,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `jardiniere.toml` config file, supporting a custom `startup` command, `image` override, and network policy.
 - Kong-based CLI with `--version` and `--dry-run` flags.
 
-[Unreleased]: https://github.com/rhizomatous/jardiniere/compare/v0.5.0...HEAD
-[0.5.0]: https://github.com/rhizomatous/jardiniere/compare/v0.4.0...v0.5.0
-[0.4.0]: https://github.com/rhizomatous/jardiniere/compare/v0.3.0...v0.4.0
-[0.3.0]: https://github.com/rhizomatous/jardiniere/compare/v0.2.0...v0.3.0
-[0.2.0]: https://github.com/rhizomatous/jardiniere/compare/v0.1.4...v0.2.0
-[0.1.4]: https://github.com/rhizomatous/jardiniere/compare/v0.1.3...v0.1.4
-[0.1.3]: https://github.com/rhizomatous/jardiniere/compare/v0.1.1...v0.1.3
-[0.1.1]: https://github.com/rhizomatous/jardiniere/compare/v0.1.0...v0.1.1
-[0.1.0]: https://github.com/rhizomatous/jardiniere/releases/tag/v0.1.0
+[Unreleased]: https://github.com/rhizomatous/planterbox/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/rhizomatous/planterbox/compare/v0.4.0...v0.5.0
+[0.4.0]: https://github.com/rhizomatous/planterbox/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/rhizomatous/planterbox/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/rhizomatous/planterbox/compare/v0.1.4...v0.2.0
+[0.1.4]: https://github.com/rhizomatous/planterbox/compare/v0.1.3...v0.1.4
+[0.1.3]: https://github.com/rhizomatous/planterbox/compare/v0.1.1...v0.1.3
+[0.1.1]: https://github.com/rhizomatous/planterbox/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/rhizomatous/planterbox/releases/tag/v0.1.0

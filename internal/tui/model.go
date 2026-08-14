@@ -1,4 +1,4 @@
-// Package tui is jard's dashboard: the sandbox list, its live resource
+// Package tui is plbx's dashboard: the sandbox list, its live resource
 // samples, and the keys that act on them.
 //
 // The model holds an [api.Service] and nothing else. Every action goes through
@@ -12,8 +12,8 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/rhizomatous/jardiniere/internal/api"
-	"github.com/rhizomatous/jardiniere/internal/proxy"
+	"github.com/rhizomatous/planterbox/internal/api"
+	"github.com/rhizomatous/planterbox/internal/proxy"
 )
 
 // refreshEvery is how often the sandbox list is re-read. Status changes are the

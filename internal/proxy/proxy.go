@@ -25,7 +25,7 @@ var ErrBlocked = errors.New("resolves only to addresses a sandbox may not reach"
 // Server is the filtering forward proxy. Sandboxes reach it as their only way
 // out, and it decides every request against the policy.
 type Server struct {
-	// policy is read per request rather than held, so `jard policy allow`
+	// policy is read per request rather than held, so `plbx policy allow`
 	// takes effect on the next connection instead of the next daemon.
 	policy func() Policy
 	log    *Log
@@ -261,7 +261,7 @@ func refuse(w http.ResponseWriter, t Target, v Verdict, err error) {
 		// upstream's problem rather than the sandbox's.
 		status = http.StatusBadGateway
 	}
-	http.Error(w, "jard: "+t.String()+": "+reason, status)
+	http.Error(w, "plbx: "+t.String()+": "+reason, status)
 }
 
 // parseTarget reads a "host" or "host:port" authority, defaulting the port.

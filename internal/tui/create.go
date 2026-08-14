@@ -9,14 +9,14 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/huh/v2"
 
-	"github.com/rhizomatous/jardiniere/internal/api"
+	"github.com/rhizomatous/planterbox/internal/api"
 )
 
 // createForm collects what a new sandbox needs.
 //
 // Only what has no sensible default, or cannot be changed later. Resource
 // limits stay on the CLI, where a flag is quicker than a form field, and ports
-// are not asked for at all because `jard ports` changes them whenever. Clone
+// are not asked for at all because `plbx ports` changes them whenever. Clone
 // mode is here because it is neither: it is fixed when the sandbox is made,
 // and it decides whether an agent can reach the files you keep outside it.
 type createForm struct {
@@ -27,7 +27,7 @@ type createForm struct {
 	clone     bool
 }
 
-// newCreateForm builds the form, defaulting the workspace to the directory jard
+// newCreateForm builds the form, defaulting the workspace to the directory plbx
 // was started in.
 func newCreateForm(cwd string) *createForm {
 	c := &createForm{workspace: cwd, agent: api.DefaultAgent}
@@ -64,7 +64,7 @@ func newCreateForm(cwd string) *createForm {
 	return c
 }
 
-// validWorkspace rejects a path that is not a directory jard can mount, so the
+// validWorkspace rejects a path that is not a directory plbx can mount, so the
 // form says so while the user is still in it.
 func validWorkspace(path string) error {
 	if path == "" {

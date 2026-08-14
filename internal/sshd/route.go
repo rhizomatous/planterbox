@@ -9,7 +9,7 @@ import (
 
 	"charm.land/ssh"
 
-	"github.com/rhizomatous/jardiniere/internal/api"
+	"github.com/rhizomatous/planterbox/internal/api"
 )
 
 // Which sandbox a connection is for arrives ahead of the ssh bytes.
@@ -17,8 +17,8 @@ import (
 // It has to come from somewhere, and ssh itself offers nowhere to put it. The
 // protocol never sends the hostname the client typed — it is used for the
 // known-hosts lookup and then dropped — and the username cannot carry it
-// either, because a single `Host *.jard` block has no token to interpolate one
-// from. So `jard ssh-proxy` writes the name and a newline before it starts
+// either, because a single `Host *.plbx` block has no token to interpolate one
+// from. So `plbx ssh-proxy` writes the name and a newline before it starts
 // relaying, and this reads exactly that much before the handshake begins.
 const (
 	// routeDeadline caps how long a connection may sit having said nothing. A
@@ -78,7 +78,7 @@ func readRoute(conn net.Conn) (string, error) {
 }
 
 // sandboxName reads the name out of what a proxy wrote, which is the hostname
-// ssh was given: "myrepo.jard", or "myrepo" if someone wrote it by hand.
+// ssh was given: "myrepo.plbx", or "myrepo" if someone wrote it by hand.
 func sandboxName(raw string) (string, error) {
 	name := strings.TrimSpace(raw)
 	name = strings.TrimSuffix(name, "."+api.SSHDomain)
