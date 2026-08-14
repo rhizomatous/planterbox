@@ -8,7 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **A Homebrew install could not run anything.** The cask linked `plbx` onto your `$PATH` and left `plbxd` sitting unlinked in the Caskroom, so every command stopped at `cannot find plbxd, which plbx needs to run sandboxes`. The cask now links both.
 - `plbx` looks for its daemon through a symlink as well as beside itself. A package manager puts `plbx` on `$PATH` as a link into wherever it really unpacked the release, and the directory the link lives in holds no `plbxd` — so the install the two binaries actually share was the one place never checked.
+- A Homebrew install stripped macOS's quarantine flag from `plbx` only. `plbxd` kept it, so Gatekeeper killed it on launch — a failure that leaves an empty log behind it. Quarantine is now cleared from both.
 
 ## [0.6.0] - 2026-08-14
 
