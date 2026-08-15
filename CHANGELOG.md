@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- The error formatter mistakenly mangled sandbox names and directories with title case formatting. Instead, errors now quote these identifiers verbatim.
+
 ## [0.6.1] - 2026-08-14
 
 ### Fixed

@@ -56,7 +56,7 @@ func (s *Store) Get(name string) (api.Sandbox, error) {
 	data, err := os.ReadFile(s.path(name))
 	if err != nil {
 		if os.IsNotExist(err) {
-			return api.Sandbox{}, fmt.Errorf("%q: %w", name, ErrNotFound)
+			return api.Sandbox{}, fmt.Errorf("%w: %q", ErrNotFound, name)
 		}
 		return api.Sandbox{}, err
 	}
@@ -102,7 +102,7 @@ func (s *Store) List() ([]api.Sandbox, error) {
 func (s *Store) Delete(name string) error {
 	err := os.Remove(s.path(name))
 	if os.IsNotExist(err) {
-		return fmt.Errorf("%q: %w", name, ErrNotFound)
+		return fmt.Errorf("%w: %q", ErrNotFound, name)
 	}
 	return err
 }
@@ -114,7 +114,7 @@ func (s *Store) Find(ref api.Ref) (api.Sandbox, error) {
 		return s.Get(ref.Name)
 	}
 	if ref.Path == "" {
-		return api.Sandbox{}, fmt.Errorf("%v: %w", ref, ErrNotFound)
+		return api.Sandbox{}, fmt.Errorf("%w: %q", ErrNotFound, ref)
 	}
 	all, err := s.List()
 	if err != nil {
@@ -125,7 +125,7 @@ func (s *Store) Find(ref api.Ref) (api.Sandbox, error) {
 			return sb, nil
 		}
 	}
-	return api.Sandbox{}, fmt.Errorf("%v: %w", ref, ErrNotFound)
+	return api.Sandbox{}, fmt.Errorf("%w: %q", ErrNotFound, ref)
 }
 
 // path is where a named record lives. Reads and deletes take a name from the

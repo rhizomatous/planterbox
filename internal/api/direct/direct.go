@@ -54,7 +54,7 @@ func (s *Service) Create(ctx context.Context, spec api.Spec) (api.Sandbox, error
 		return api.Sandbox{}, err
 	}
 	if _, err := s.store.Get(spec.Name); err == nil {
-		return api.Sandbox{}, fmt.Errorf("%q: %w", spec.Name, api.ErrExists)
+		return api.Sandbox{}, fmt.Errorf("%w: %q", api.ErrExists, spec.Name)
 	} else if !errors.Is(err, store.ErrNotFound) {
 		return api.Sandbox{}, err
 	}
@@ -154,7 +154,7 @@ func (s *Service) Remove(ctx context.Context, ref api.Ref, force bool) error {
 		return err
 	}
 	if !force && s.observe(ctx, sb).Status == api.StatusRunning {
-		return fmt.Errorf("%q: %w (use --force)", sb.Spec.Name, api.ErrRunning)
+		return fmt.Errorf("%w: %q (use --force)", api.ErrRunning, sb.Spec.Name)
 	}
 	if err := s.runner.Remove(ctx, containerID(sb), sb.Spec.Name, force); err != nil {
 		return err
@@ -253,7 +253,7 @@ func (s *Service) act(ctx context.Context, ref api.Ref, fn func(api.Sandbox, run
 func (s *Service) find(ref api.Ref) (api.Sandbox, error) {
 	sb, err := s.store.Find(ref)
 	if errors.Is(err, store.ErrNotFound) {
-		return api.Sandbox{}, fmt.Errorf("%v: %w", ref, api.ErrNotFound)
+		return api.Sandbox{}, fmt.Errorf("%w: %q", api.ErrNotFound, ref)
 	}
 	return sb, err
 }

@@ -4,10 +4,13 @@ package main
 import (
 	"context"
 	"errors"
+	"io"
 	"os"
 	"os/signal"
 	"runtime/debug"
 	"syscall"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/charmbracelet/fang"
 )
@@ -26,7 +29,10 @@ func run() int {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	err := fang.Execute(ctx, newRootCmd(), fang.WithVersion(buildVersion()))
+	err := fang.Execute(ctx, newRootCmd(),
+		fang.WithVersion(buildVersion()),
+		fang.WithErrorHandler(renderError),
+	)
 	if err == nil {
 		return 0
 	}
@@ -38,6 +44,29 @@ func run() int {
 	}
 	// fang prints anything else itself, styled.
 	return 1
+}
+
+// renderError prints an error the way fang does, with its casing transform
+// replaced.
+//
+// fang sentence-cases an error by running the first whitespace-delimited word
+// through Unicode title casing, which treats a hyphen as a word boundary. Our
+// errors lead with a sandbox name and our sandbox names are hyphenated by
+// construction, so `foo-bar: sandbox not found` renders as `Foo-Bar`:
+// a name that does not exist, shown to someone who is at that moment checking
+// whether they typed one correctly.
+func renderError(w io.Writer, styles fang.Styles, err error) {
+	styles.ErrorText = styles.ErrorText.Transform(sentenceCase)
+	fang.DefaultErrorHandler(w, styles, err)
+}
+
+// sentenceCase upper-cases the first rune and leaves every other one alone.
+func sentenceCase(s string) string {
+	if s == "" {
+		return s
+	}
+	r, size := utf8.DecodeRuneInString(s)
+	return string(unicode.ToUpper(r)) + s[size:]
 }
 
 // buildVersion resolves the string shown by --version. It prefers a value

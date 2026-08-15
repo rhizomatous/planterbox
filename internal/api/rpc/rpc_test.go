@@ -186,7 +186,7 @@ func TestErrorMessageIsNotSwallowedByItsSentinel(t *testing.T) {
 	// the daemon's message is what tells the user which sandbox and why, so
 	// mapping onto a sentinel must not replace it.
 	fake := api.NewFake()
-	fake.Err = errors.New(`"web": sandbox is running (use --force)`)
+	fake.Err = errors.New(`sandbox is running: "web" (use --force)`)
 	client := dial(t, fake)
 
 	err := client.Stop(context.Background(), api.ByName("web"))

@@ -22,6 +22,7 @@ All tooling is provided in Nix dev shell: **work inside it.**
 - **Doc comments:** standard Go form. Do not write archaeological comments describing past states and changes.
 - **Prose:** comments are lowercase and terse.
 - **Errors:** lowercase, no trailing punctuation; `errors.New` for static strings, `fmt.Errorf` + `%w` when wrapping.
+- **An error never begins with an identifier.** The CLI's renderer sentence-cases the first word of every error, so a message leading with a sandbox name reports a name nobody has — and hyphens are word boundaries to Unicode title casing, which is how `jardini-re` became `Jardini-Re`. Put the sentinel first and the identifier after it, quoted: `fmt.Errorf("%w: %q", ErrNotFound, ref)`.
 
 ## Layout
 
