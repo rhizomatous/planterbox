@@ -10,6 +10,13 @@ import (
 	"github.com/rhizomatous/planterbox/internal/api"
 )
 
+// agentList names the agents AGENT accepts, for the help of the two commands
+// that take one. It lives here so the two cannot drift apart.
+func agentList() string {
+	return "AGENT is one of " + strings.Join(api.AgentNames(), ", ") +
+		", and defaults to " + api.DefaultAgent + "."
+}
+
 // specFlags are the create-time settings, shared by `create` and `run` because
 // `run` creates a sandbox when none exists yet.
 type specFlags struct {

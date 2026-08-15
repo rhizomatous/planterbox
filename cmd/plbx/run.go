@@ -23,6 +23,7 @@ func newRunCmd(g *globals) *cobra.Command {
 		Long: "Run an agent in a sandbox. If no sandbox exists for the workspace, one is " +
 			"created; otherwise the existing one is reattached, with everything you " +
 			"installed last time still in place.\n\n" +
+			agentList() + "\n\n" +
 			"Reattachment is by workspace path, so running plbx again in the same " +
 			"directory finds the same sandbox. Use --name to reattach from anywhere.\n\n" +
 			"Everything after -- is passed to the agent verbatim.",

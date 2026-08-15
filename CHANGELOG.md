@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Removed
+
+- `plbx agents` is gone. It answered a question you only ask while typing `plbx create` or `plbx run`, from a command you had to already know about — and the two commands that take an `AGENT` never listed one. They do now.
+
+### Changed
+
+- `plbx create --help` and `plbx run --help` name every agent you can pass, and which one you get by default.
+
 ### Fixed
 
 - Two flag descriptions rendered their initialisms as words: `--cpus` read `Cpu limit`, and `plbx setup ssh --config` read `Ssh config to edit`. Both are reworded to lead with an ordinary word.

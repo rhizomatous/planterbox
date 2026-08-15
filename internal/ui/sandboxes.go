@@ -172,19 +172,6 @@ func protoLabel(proto string) string {
 	return "/" + proto
 }
 
-// RenderAgents lists the supported agents, marking the default.
-func RenderAgents(agents []api.Agent, def string) string {
-	lines := make([]string, 0, len(agents))
-	for _, a := range agents {
-		name := Value.Render(a.Name)
-		if a.Name == def {
-			name += OK.Render(" (default)")
-		}
-		lines = append(lines, "  "+name+"\n    "+Faint.Render(a.Image))
-	}
-	return strings.Join(lines, "\n")
-}
-
 // StatusStyle colors a status by how much attention it wants.
 func StatusStyle(s api.Status) lipgloss.Style {
 	switch s {

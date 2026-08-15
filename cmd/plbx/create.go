@@ -20,8 +20,8 @@ func newCreateCmd(g *globals) *cobra.Command {
 		Use:   "create [AGENT] [PATH...]",
 		Short: "create a sandbox without starting it",
 		Long: "Create a sandbox for the given agent over the given workspaces, without " +
-			"starting it. AGENT defaults to " + api.DefaultAgent + ", and the workspace " +
-			"defaults to the current directory.\n\n" +
+			"starting it. " + agentList() + " The workspace defaults to the current " +
+			"directory.\n\n" +
 			"The first workspace is the primary: it becomes the sandbox's working " +
 			"directory and the path `plbx run` reattaches by. Later ones take a :ro suffix " +
 			"to mount read-only.",

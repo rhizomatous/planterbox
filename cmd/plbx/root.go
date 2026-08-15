@@ -91,7 +91,6 @@ func newRootCmd(opts ...rootOption) *cobra.Command {
 		newPortsCmd(g),
 		newSetupCmd(),
 		newSSHProxyCmd(g),
-		newAgentsCmd(g),
 		newDaemonCmd(g),
 		newPolicyCmd(g),
 	)

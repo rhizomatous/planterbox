@@ -250,18 +250,6 @@ func newCpCmd(g *globals) *cobra.Command {
 	}
 }
 
-func newAgentsCmd(_ *globals) *cobra.Command {
-	return &cobra.Command{
-		Use:   "agents",
-		Short: "list the agents plbx can run",
-		Args:  cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			_, err := lipgloss.Fprintln(cmd.OutOrStdout(), ui.RenderAgents(api.Agents(), api.DefaultAgent))
-			return err
-		},
-	}
-}
-
 // cutEnv splits NAME=VALUE, accepting an empty value but not an empty name.
 func cutEnv(s string) (name, value string, ok bool) {
 	for i := range len(s) {

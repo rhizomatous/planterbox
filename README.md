@@ -90,7 +90,6 @@ plbx start myrepo
 plbx rm myrepo                # delete it and everything in it
 plbx exec myrepo bash -lc 'npm test'
 plbx cp myrepo:/home/agent/notes.md ./notes.md
-plbx agents                   # what you can run
 ```
 
 `ls` and `inspect` take `--json`. Every command that takes a sandbox name will default to the one for your current directory if you leave it out.

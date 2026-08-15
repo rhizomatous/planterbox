@@ -148,18 +148,23 @@ func TestCpRefusesACopyNamingNoSandbox(t *testing.T) {
 	}
 }
 
-func TestAgentsListsEveryAgentAndMarksTheDefault(t *testing.T) {
-	out, err := runCLI(t, api.NewFake(), "agents")
-	if err != nil {
-		t.Fatalf("agents: %v", err)
-	}
-	for _, name := range api.AgentNames() {
-		if !strings.Contains(out, name) {
-			t.Errorf("agents output missing %q:\n%s", name, out)
+// TestHelpNamesEveryAgent covers what `plbx agents` used to: the list is only
+// useful where AGENT is typed, so it lives in the help of the two commands
+// that take one.
+func TestHelpNamesEveryAgent(t *testing.T) {
+	for _, cmd := range []string{"create", "run"} {
+		out, err := runCLI(t, api.NewFake(), cmd, "--help")
+		if err != nil {
+			t.Fatalf("%s --help: %v", cmd, err)
 		}
-	}
-	if !strings.Contains(out, api.DefaultAgent+" (default)") {
-		t.Errorf("agents output should mark the default:\n%s", out)
+		for _, name := range api.AgentNames() {
+			if !strings.Contains(out, name) {
+				t.Errorf("%s --help missing agent %q:\n%s", cmd, name, out)
+			}
+		}
+		if !strings.Contains(out, "defaults to "+api.DefaultAgent) {
+			t.Errorf("%s --help should name the default agent:\n%s", cmd, out)
+		}
 	}
 }
 

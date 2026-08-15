@@ -18,7 +18,8 @@ type Agent struct {
 	Command []string
 }
 
-// agents are the supported agents, in the order `plbx agents` lists them.
+// agents are the supported agents, in the order the help and the create form
+// offer them.
 var agents = []Agent{
 	{Name: "claude", Image: imageRepo + "/plbx-claude:latest", Command: []string{"claude"}},
 	{Name: "codex", Image: imageRepo + "/plbx-codex:latest", Command: []string{"codex"}},
