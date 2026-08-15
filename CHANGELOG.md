@@ -10,17 +10,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
-- **A Homebrew install could not run anything.** The cask linked `plbx` onto your `$PATH` and left `plbxd` sitting unlinked in the Caskroom, so every command stopped at `cannot find plbxd, which plbx needs to run sandboxes`. The cask now links both.
-- `plbx` looks for its daemon through a symlink as well as beside itself. A package manager puts `plbx` on `$PATH` as a link into wherever it really unpacked the release, and the directory the link lives in holds no `plbxd` — so the install the two binaries actually share was the one place never checked.
-- A Homebrew install stripped macOS's quarantine flag from `plbx` only. `plbxd` kept it, so Gatekeeper killed it on launch — a failure that leaves an empty log behind it. Quarantine is now cleared from both.
+- Homebrew installs could not find the `plbx` daemon. The cask now links both `plbx` and `plbxd` as expected.
+- `plbx` is better at finding `plbxd`. It now looks for its daemon through a symlink, beside itself, and on `$PATH`.
+- Homebrew installs stripped macOS's quarantine flag from `plbx` only, causing Gatekeeper to kill `plbxd` on launch. Quarantine is now cleared from both.
 
 ## [0.6.0] - 2026-08-14
 
 ### Changed
 
-- **The project is now `planterbox`, and the binaries are `plbx` and `plbxd`.** Nobody knew what a jardinière was, which is a poor property in a name. Everything carrying the old name moved with it: the images, the Homebrew cask, the state and runtime directories, the `PLBX_*` environment variables, the container, volume and network names, the `.plbx` ssh domain, and the git remotes clone mode writes into your repositories.
-- **Existing sandboxes are not migrated, and are not visible to `plbx`.** Their containers, volumes and networks still carry the old prefix, so they keep occupying disk while the new binary cannot see them. Remove them with the old binary before upgrading (`jard rm --force <name>` for each, or `jard ls -q | xargs -n1 jard rm --force`), or clean up by hand afterwards: `docker ps -aq --filter name=jard- | xargs docker rm -f`, then the same for `docker volume ls -q --filter name=jard-` and `docker network ls -q --filter name=jard-`.
-- Older releases below are left as they were written. They describe a tool called jard, because that is what shipped.
+- Project is renamed to `planterbox`, and the binaries are `plbx` and `plbxd`. Nobody knew what a jardinière was.
 
 ## [0.5.0] - 2026-08-12
 
@@ -34,7 +32,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
-- Agents could not start under the `balanced` preset. It allowed the model APIs and nothing else belonging to the vendors, but an agent signs in and checks what it is entitled to before it will run at all — Claude Code stopped at `platform.claude.com` and reported a proxy that would not let it out. The vendors' own domains are now allowed beside their APIs.
+- Agents could not start under the `balanced` preset due to blocked domains. Harness vendors' own domains are now allowed beside their APIs.
 
 ## [0.4.0] - 2026-08-12
 
