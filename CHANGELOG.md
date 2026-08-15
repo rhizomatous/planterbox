@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- Two flag descriptions rendered their initialisms as words: `--cpus` read `Cpu limit`, and `plbx setup ssh --config` read `Ssh config to edit`. Both are reworded to lead with an ordinary word.
+
 ## [0.6.2] - 2026-08-14
 
 ### Fixed

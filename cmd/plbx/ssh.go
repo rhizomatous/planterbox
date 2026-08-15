@@ -130,7 +130,7 @@ func newSetupSSHCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&path, "config", "", "ssh config to edit (default: ~/.ssh/config)")
+	cmd.Flags().StringVar(&path, "config", "", "which ssh config to edit (default: ~/.ssh/config)")
 	cmd.Flags().BoolVar(&toStdout, "print", false, "write the block to stdout instead of editing anything")
 	return cmd
 }

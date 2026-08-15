@@ -27,7 +27,7 @@ func (f *specFlags) bind(cmd *cobra.Command) {
 	fl := cmd.Flags()
 	fl.StringVar(&f.name, "name", "", "sandbox name (default: the workspace directory's name)")
 	fl.StringVar(&f.image, "image", "", "base image to start from (default: the agent's own)")
-	fl.Float64Var(&f.cpus, "cpus", 0, "CPU limit (default: unlimited)")
+	fl.Float64Var(&f.cpus, "cpus", 0, "limit on CPU, in cores (default: unlimited)")
 	fl.StringVarP(&f.memory, "memory", "m", "", "memory limit, e.g. 8GiB (default: unlimited)")
 	fl.StringArrayVarP(&f.ports, "publish", "p", nil, "publish a port, host:sandbox or a bare port (repeatable)")
 	fl.StringArrayVarP(&f.env, "env", "e", nil, "environment variable, NAME=VALUE (repeatable)")
