@@ -27,6 +27,11 @@ func newRunCmd(g *globals) *cobra.Command {
 			"Reattachment is by workspace path, so running plbx again in the same " +
 			"directory finds the same sandbox. Use --name to reattach from anywhere.\n\n" +
 			"Everything after -- is passed to the agent verbatim.",
+		Example: "  plbx run\n" +
+			"  plbx run codex\n" +
+			"  plbx run --name myrepo\n" +
+			"  plbx run claude . ~/src/docs:ro\n" +
+			"  plbx run claude -- --continue",
 		Args: cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// everything after -- goes to the agent. ArgsLenAtDash is -1 when
@@ -103,7 +108,7 @@ func runAgent(
 		return err
 	}
 	if res.ExitCode != 0 {
-		return exitCodeError(res.ExitCode)
+		return exitCodeError{what: "the agent", code: res.ExitCode}
 	}
 	return nil
 }
@@ -220,11 +225,17 @@ func isTerminal(f *os.File) bool {
 	return term.IsTerminal(f.Fd())
 }
 
-// exitCodeError carries an agent's non-zero exit status back to main without
-// printing anything: the agent has already said whatever it wanted to.
-type exitCodeError int
+// exitCodeError carries a non-zero exit status back to main without printing
+// anything: whatever ran has already said what it wanted to. It names what
+// exited, because `run` hosts an agent and `exec` hosts whatever was typed.
+type exitCodeError struct {
+	what string
+	code int
+}
 
-func (e exitCodeError) Error() string { return fmt.Sprintf("agent exited with status %d", int(e)) }
+func (e exitCodeError) Error() string {
+	return fmt.Sprintf("%s exited with status %d", e.what, e.code)
+}
 
 // Code reports the status to exit with.
-func (e exitCodeError) Code() int { return int(e) }
+func (e exitCodeError) Code() int { return e.code }

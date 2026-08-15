@@ -14,7 +14,24 @@ import (
 )
 
 // SandboxColumns are the headers of the `plbx ls` table, in order.
-var SandboxColumns = []string{"NAME", "STATUS", "AGENT", "IMAGE", "WORKSPACE", "CREATED"}
+//
+// The image is not among them. It is long, it is the same for every sandbox of
+// a given agent, and it is one `plbx inspect` away — while its width was
+// enough to wrap the header itself on an ordinary terminal. Ports take its
+// place: they are the one part of a sandbox that changes after it is built.
+//
+// The workspace goes last because it is the only unbounded field, so it is the
+// only one whose overflow costs nothing behind it.
+var SandboxColumns = []string{"NAME", "STATUS", "AGENT", "PORTS", "CREATED", "WORKSPACE"}
+
+// maxWorkspaceWidth keeps a listing inside a normal terminal. Paths under a
+// home directory come in well under it; the ones that do not are elided from
+// the front, which is the half they share with every other path.
+const maxWorkspaceWidth = 44
+
+// labelIndent is the two-space margin plus the label column that every value
+// in a field listing sits to the right of.
+const labelIndent = 14
 
 // RenderSandboxes returns the `plbx ls` table. An empty list renders a single
 // hint line rather than a bare header, which reads better on a fresh install.
@@ -29,9 +46,9 @@ func RenderSandboxes(sandboxes []api.Sandbox, now time.Time) string {
 			sb.Spec.Name,
 			string(sb.State.Status),
 			dash(sb.Spec.Agent),
-			dash(sb.Spec.Image),
-			dash(sb.Spec.Primary().Host),
+			dash(portsInline(sb.Ports)),
 			Age(sb.Spec.CreatedAt, now),
+			dash(ElidePath(sb.Spec.Primary().Host, maxWorkspaceWidth)),
 		})
 	}
 
@@ -63,7 +80,8 @@ func cellStyle(col int, cell string) string {
 // RenderCreated is the line printed when a sandbox is built.
 func RenderCreated(sb api.Sandbox) string {
 	return OK.Render("created ") + Value.Render(sb.Spec.Name) +
-		Faint.Render("  "+dash(sb.Spec.Image))
+		Faint.Render("  "+dash(sb.Spec.Image)) + "\n" +
+		Faint.Render("  attach with  ") + Value.Render("plbx run --name "+sb.Spec.Name)
 }
 
 // RenderAttaching is the line printed before the terminal is handed to the
@@ -83,15 +101,23 @@ func RenderAttaching(sb api.Sandbox, created bool) string {
 
 // RenderSandbox is the detail view behind `plbx inspect`.
 func RenderSandbox(sb api.Sandbox, now time.Time) string {
-	return Title.Render("🪴 "+sb.Spec.Name) + "\n" + RenderSandboxFields(sb, now)
+	return Title.Render("🪴 "+sb.Spec.Name) + "\n" + RenderSandboxFields(sb, now, 0)
 }
 
 // RenderSandboxFields is a sandbox's definition as label/value lines, with no
 // heading, for a caller that has already named the sandbox — the dashboard's
 // detail pane sits under a row that says which one is selected.
-func RenderSandboxFields(sb api.Sandbox, now time.Time) string {
+// width is the room the whole line has, or 0 for no limit. Only the workspace
+// paths can outgrow it, and they are elided from the front so the component
+// that names the workspace survives.
+func RenderSandboxFields(sb api.Sandbox, now time.Time, width int) string {
 	label := lipgloss.NewStyle().Faint(true).Width(12)
 	row := func(k, v string) string { return "  " + label.Render(k) + v }
+	// "  " plus the label column, which every value sits to the right of.
+	valueWidth := 0
+	if width > labelIndent {
+		valueWidth = width - labelIndent
+	}
 
 	lines := []string{
 		"  " + label.Render("status") + StatusStyle(sb.State.Status).Render(string(sb.State.Status)),
@@ -109,7 +135,7 @@ func RenderSandboxFields(sb api.Sandbox, now time.Time) string {
 			if ws.ReadOnly {
 				mode = Faint.Render("  read-only")
 			}
-			lines = append(lines, row(key, ws.Host+mode))
+			lines = append(lines, row(key, ElidePath(ws.Host, valueWidth)+mode))
 		}
 	}
 	if sb.Spec.Clone {
@@ -163,6 +189,24 @@ func cpuLabel(cpus float64) string {
 		return "unlimited"
 	}
 	return strconv.FormatFloat(cpus, 'g', -1, 64)
+}
+
+// portsInline is the listing's one-cell form of what a sandbox publishes.
+// A port mapped to itself is written once, because "3000" and "3000 → 3000"
+// say the same thing and only one of them fits in a table.
+func portsInline(ports []api.Port) string {
+	if len(ports) == 0 {
+		return ""
+	}
+	parts := make([]string, 0, len(ports))
+	for _, p := range ports {
+		if p.Host == p.Sandbox {
+			parts = append(parts, fmt.Sprintf("%d%s", p.Host, protoLabel(p.Proto)))
+			continue
+		}
+		parts = append(parts, fmt.Sprintf("%d→%d%s", p.Host, p.Sandbox, protoLabel(p.Proto)))
+	}
+	return strings.Join(parts, ",")
 }
 
 func protoLabel(proto string) string {

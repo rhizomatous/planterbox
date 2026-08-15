@@ -6,16 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-### Removed
+### Added
 
-- `plbx agents` is gone. It answered a question you only ask while typing `plbx create` or `plbx run`, from a command you had to already know about — and the two commands that take an `AGENT` never listed one. They do now.
+- `plbx ls` shows the ports each sandbox publishes. They are the one part of a sandbox that can change after it is built, and the listing never mentioned them.
+- `plbx rm` asks before it goes ahead. A stopped sandbox used to be discarded on one word, taking everything ever installed in it.
+- `plbx create` ends by saying how to attach to what it just made.
+- Worked examples in the help for `create`, `run`, `exec`, `cp`, `ls` and `policy log`.
 
 ### Changed
 
-- `plbx create --help` and `plbx run --help` name every agent you can pass, and which one you get by default.
+- `plbx ls` drops the IMAGE column and moves WORKSPACE to the end. The image is long, identical for every sandbox of an agent, and was wide enough to wrap the header on an ordinary terminal; `plbx inspect` still has it.
+- `ls`, `exec`, `inspect`, `start`, `setup` and `policy log` have real help text instead of repeating their one-line summary.
+- **Breaking:** `plbx rm` with no terminal to ask on now refuses instead of removing. Scripts want `--force`, which is also how you skip the question.
+- `plbx agents` is gone. It answered a question you only ask while typing `plbx create` or `plbx run`, from a command you had to already know about — and the two commands that take an `AGENT` never listed one. They do now.
 
 ### Fixed
 
+- `plbx exec` against a stopped sandbox printed the container runtime's own complaint and called it an exit status. It now says the sandbox is not running, and which command starts it.
+- A command that failed under `plbx exec` reported that "the agent" exited. Under `exec` the thing that exited is whatever you typed.
+- Paths and reasons cut to fit are marked with an ellipsis, and cut from the end that matters least — paths lose their front, prose loses its tail. A truncated workspace used to drop the directory name and keep the prefix every path shares.
+- A sandbox that could not be found now points at `plbx ls`.
 - Two flag descriptions rendered their initialisms as words: `--cpus` read `Cpu limit`, and `plbx setup ssh --config` read `Ssh config to edit`. Both are reworded to lead with an ordinary word.
 
 ## [0.6.2] - 2026-08-14

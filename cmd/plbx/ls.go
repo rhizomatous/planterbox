@@ -22,7 +22,14 @@ func newLsCmd(g *globals) *cobra.Command {
 		Use:     "ls",
 		Aliases: []string{"list", "ps"},
 		Short:   "list sandboxes",
-		Args:    cobra.NoArgs,
+		Long: "List every sandbox, running or not, with the ports it publishes and the " +
+			"workspace it was made for.\n\n" +
+			"A stopped sandbox still holds everything you installed in it. Removing one " +
+			"is the only thing that discards that.",
+		Example: "  plbx ls\n" +
+			"  plbx ls --quiet\n" +
+			"  plbx ls --json",
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return g.withService(cmd, func(ctx context.Context, svc api.Service) error {
 				sandboxes, err := svc.List(ctx)

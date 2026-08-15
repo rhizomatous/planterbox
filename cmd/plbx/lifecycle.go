@@ -1,11 +1,14 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
+	"strings"
 	"time"
 
 	"charm.land/lipgloss/v2"
@@ -92,7 +95,13 @@ func newStartCmd(g *globals) *cobra.Command {
 	return &cobra.Command{
 		Use:   "start [SANDBOX]",
 		Short: "start a stopped sandbox without attaching",
-		Args:  cobra.MaximumNArgs(1),
+		Long: "Start a sandbox and leave it running, without handing it your terminal. " +
+			"Use it to bring a sandbox up for `plbx exec`, for ssh, or for the ports it " +
+			"publishes.\n\n" +
+			"`plbx run` starts a sandbox too, and attaches the agent to it. This is the " +
+			"same thing without the second half.\n\n" +
+			"Defaults to the sandbox for the current directory.",
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return act(g, cmd, args, "started", ui.OK,
 				func(ctx context.Context, svc api.Service, ref api.Ref) error {
@@ -116,18 +125,73 @@ func newRmCmd(g *globals) *cobra.Command {
 		Short:   "delete a sandbox and everything in it",
 		Long: "Delete a sandbox, its container, and its home volume. Anything you installed " +
 			"inside is gone; your workspace files on the host are untouched.\n\n" +
-			"A running sandbox is refused unless --force is given.",
+			"You are asked to confirm, and a running sandbox is refused outright unless " +
+			"--force is given. --force also answers the question, which is what a script " +
+			"wants: without a terminal there is nobody to ask, so plbx refuses instead " +
+			"of assuming.",
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return act(g, cmd, args, "removed", ui.Faint,
-				func(ctx context.Context, svc api.Service, ref api.Ref) error {
-					return svc.Remove(ctx, ref, force)
-				})
+			ref, err := refArg(args)
+			if err != nil {
+				return err
+			}
+			return g.withService(cmd, func(ctx context.Context, svc api.Service) error {
+				sb, err := svc.Inspect(ctx, ref)
+				if err != nil {
+					return err
+				}
+				if !force {
+					if sb.State.Status == api.StatusRunning {
+						return fmt.Errorf("%w: %q (use --force)", api.ErrRunning, sb.Spec.Name)
+					}
+					ok, err := confirmRemove(cmd.OutOrStdout(), cmd.InOrStdin(), isTerminal(os.Stdin), sb.Spec.Name)
+					if err != nil {
+						return err
+					}
+					if !ok {
+						_, err := lipgloss.Fprintln(cmd.OutOrStdout(),
+							ui.Faint.Render("left ")+ui.Value.Render(sb.Spec.Name)+ui.Faint.Render(" alone"))
+						return err
+					}
+				}
+				if err := svc.Remove(ctx, api.ByName(sb.Spec.Name), force); err != nil {
+					return err
+				}
+				_, err = lipgloss.Fprintln(cmd.OutOrStdout(),
+					ui.Faint.Render("removed ")+ui.Value.Render(sb.Spec.Name))
+				return err
+			})
 		},
 	}
 
 	cmd.Flags().BoolVarP(&force, "force", "f", false, "remove even while running")
 	return cmd
+}
+
+// confirmRemove asks before a removal discards a sandbox's home volume, which
+// is everything ever installed in it. The workspace is untouched either way,
+// so the question is only ever about the part that cannot be got back.
+//
+// Off a terminal there is nobody to ask, so it refuses rather than assuming:
+// --force is how a script says yes deliberately.
+func confirmRemove(out io.Writer, in io.Reader, interactive bool, name string) (bool, error) {
+	if !interactive {
+		return false, fmt.Errorf(
+			"removing %q discards everything installed in it, and there is no terminal to confirm on (use --force)", name)
+	}
+	if _, err := fmt.Fprintf(out, "remove %s and everything installed in it? [y/N] ", name); err != nil {
+		return false, err
+	}
+	line, err := bufio.NewReader(in).ReadString('\n')
+	if err != nil && line == "" {
+		return false, nil // EOF with nothing typed reads as no
+	}
+	switch strings.ToLower(strings.TrimSpace(line)) {
+	case "y", "yes":
+		return true, nil
+	default:
+		return false, nil
+	}
 }
 
 func newInspectCmd(g *globals) *cobra.Command {
@@ -136,7 +200,13 @@ func newInspectCmd(g *globals) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "inspect [SANDBOX]",
 		Short: "show a sandbox's full definition and state",
-		Args:  cobra.MaximumNArgs(1),
+		Long: "Show what a sandbox was built from and what it is doing now: its agent, " +
+			"image, workspaces, and the ports it publishes.\n\n" +
+			"Most of this is fixed when the sandbox is created and cannot be changed " +
+			"afterwards — ports are the exception. --json prints the same record " +
+			"unformatted.\n\n" +
+			"Defaults to the sandbox for the current directory.",
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ref, err := refArg(args)
 			if err != nil {
@@ -173,7 +243,18 @@ func newExecCmd(g *globals) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "exec SANDBOX COMMAND [ARGS...]",
 		Short: "run a command inside a sandbox",
-		Args:  cobra.MinimumNArgs(2),
+		Long: "Run one command inside a running sandbox and exit with its status. The " +
+			"sandbox has to be running: `plbx start` brings one up.\n\n" +
+			"A terminal is allocated when yours is one, so `plbx exec box bash` gives " +
+			"you an interactive shell and a piped command still reads its stdin to EOF. " +
+			"--no-tty forces it off.\n\n" +
+			"Flags go before the sandbox name. Everything after it belongs to the " +
+			"command, so its own flags arrive intact.",
+		Example: "  plbx exec myrepo bash\n" +
+			"  plbx exec myrepo bash -lc 'npm test'\n" +
+			"  plbx exec -u root myrepo apt-get update\n" +
+			"  plbx exec -w /tmp myrepo pwd",
+		Args: cobra.MinimumNArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			command, err := execCommand(args[1:])
 			if err != nil {
@@ -200,12 +281,22 @@ func newExecCmd(g *globals) *cobra.Command {
 			defer stop()
 
 			return g.withService(cmd, func(ctx context.Context, svc api.Service) error {
+				// exec runs against a live container, so a stopped sandbox
+				// would otherwise surface as the runtime's own complaint
+				// wearing an exit status that is not the command's.
+				sb, err := svc.Inspect(ctx, api.ByName(args[0]))
+				if err != nil {
+					return err
+				}
+				if sb.State.Status != api.StatusRunning {
+					return fmt.Errorf("sandbox is not running: %q (start it with plbx start)", sb.Spec.Name)
+				}
 				res, err := svc.Exec(ctx, api.ByName(args[0]), req, streams)
 				if err != nil {
 					return err
 				}
 				if res.ExitCode != 0 {
-					return exitCodeError(res.ExitCode)
+					return exitCodeError{what: "the command", code: res.ExitCode}
 				}
 				return nil
 			})
@@ -233,6 +324,10 @@ func newCpCmd(g *globals) *cobra.Command {
 			"sandbox, written SANDBOX:/path; the other is a host path.\n\n" +
 			"A host path that would otherwise look like a sandbox reference can be " +
 			"written ./like-this.",
+		Example: "  plbx cp ./config.json myrepo:/home/agent/\n" +
+			"  plbx cp myrepo:/home/agent/notes.md ./notes.md\n" +
+			"  plbx cp ./src myrepo:/home/agent/src\n" +
+			"  plbx cp ./myrepo:weird-name myrepo:/home/agent/",
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			src, err := parseCopyPath(args[0])

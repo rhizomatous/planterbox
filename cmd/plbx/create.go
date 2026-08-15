@@ -25,6 +25,10 @@ func newCreateCmd(g *globals) *cobra.Command {
 			"The first workspace is the primary: it becomes the sandbox's working " +
 			"directory and the path `plbx run` reattaches by. Later ones take a :ro suffix " +
 			"to mount read-only.",
+		Example: "  plbx create\n" +
+			"  plbx create codex\n" +
+			"  plbx create claude ~/src/api ~/src/docs:ro\n" +
+			"  plbx create --name scratch --clone claude .",
 		Args: cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			agent, paths := splitAgentAndPaths(args)

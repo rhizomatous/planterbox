@@ -186,7 +186,15 @@ func newPolicyLogCmd(g *globals) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "log",
 		Short: "show what sandboxes have been reaching for",
-		Args:  cobra.NoArgs,
+		Long: "Show the hosts sandboxes have tried to reach, newest last, and what the " +
+			"policy did about each one.\n\n" +
+			"Every connection is listed with the rule or preset that decided it, so a " +
+			"denial says what to allow. --denied narrows it to the refusals, which is " +
+			"usually what you want when something inside a sandbox has just failed.",
+		Example: "  plbx policy log\n" +
+			"  plbx policy log --denied\n" +
+			"  plbx policy log -n 200",
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return g.withService(cmd, func(ctx context.Context, svc api.Service) error {
 				entries, err := svc.Connections(ctx, 0)

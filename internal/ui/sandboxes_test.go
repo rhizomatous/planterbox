@@ -33,6 +33,7 @@ func TestRenderSandboxesTable(t *testing.T) {
 				CreatedAt:  now.Add(-3 * time.Hour),
 			},
 			State: api.State{Status: api.StatusRunning},
+			Ports: []api.Port{{Host: 8080, Sandbox: 80}, {Host: 5432, Sandbox: 5432}},
 		},
 		{
 			Spec:  api.Spec{Name: "scratch", CreatedAt: now.Add(-50 * time.Hour)},
@@ -49,10 +50,15 @@ func TestRenderSandboxesTable(t *testing.T) {
 			t.Errorf("header %q missing column %q", lines[0], col)
 		}
 	}
-	for _, want := range []string{"myrepo", "running", "claude", "ghcr.io/acme/base:1", "/home/viv/myrepo", "3 hours ago"} {
+	for _, want := range []string{"myrepo", "running", "claude", "8080→80,5432", "/home/viv/myrepo", "3 hours ago"} {
 		if !strings.Contains(lines[1], want) {
 			t.Errorf("row %q missing %q", lines[1], want)
 		}
+	}
+	// the image is deliberately not a column: it is long, it is the same for
+	// every sandbox of an agent, and its width wrapped the header.
+	if strings.Contains(out, "ghcr.io/acme/base:1") {
+		t.Errorf("the listing should leave the image to inspect:\n%s", out)
 	}
 	if !strings.Contains(lines[2], "stopped") || !strings.Contains(lines[2], "2 days ago") {
 		t.Errorf("row %q missing its status or age", lines[2])
@@ -134,7 +140,7 @@ func TestRenderSandboxCoversTheSpec(t *testing.T) {
 }
 
 func TestRenderSandboxFieldsLeavesTheNamingToItsCaller(t *testing.T) {
-	fields := plain(RenderSandboxFields(detailed(), now))
+	fields := plain(RenderSandboxFields(detailed(), now, 0))
 	// the workspace paths end in the name too, so this checks the first line
 	// rather than the whole block.
 	if first := strings.SplitN(fields, "\n", 2)[0]; !strings.Contains(first, "status") {

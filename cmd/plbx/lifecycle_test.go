@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"slices"
@@ -77,13 +78,68 @@ func TestRmForceRemovesARunningSandbox(t *testing.T) {
 	}
 }
 
-func TestRmOnAStoppedSandboxNeedsNoForce(t *testing.T) {
+func TestRmOffATerminalRefusesRatherThanAssumingYes(t *testing.T) {
 	fake := seeded(api.StatusStopped)
-	if _, err := runCLI(t, fake, "rm", "demo"); err != nil {
-		t.Fatalf("rm: %v", err)
+	_, err := runCLI(t, fake, "rm", "demo")
+	if err == nil {
+		t.Fatal("rm with nobody to confirm to should refuse")
+	}
+	if !strings.Contains(err.Error(), "--force") {
+		t.Errorf("err = %v, want it to name --force", err)
+	}
+	if len(fake.Sandboxes) != 1 {
+		t.Error("the sandbox should still exist after a refused removal")
+	}
+}
+
+func TestRmForceRemovesAStoppedSandboxWithoutAsking(t *testing.T) {
+	fake := seeded(api.StatusStopped)
+	if _, err := runCLI(t, fake, "rm", "--force", "demo"); err != nil {
+		t.Fatalf("rm --force: %v", err)
 	}
 	if len(fake.Sandboxes) != 0 {
-		t.Error("rm should have removed the stopped sandbox")
+		t.Error("rm --force should have removed the stopped sandbox")
+	}
+}
+
+func TestConfirmRemove(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		typed       string
+		interactive bool
+		want        bool
+		wantErr     bool
+	}{
+		{name: "yes", typed: "y\n", interactive: true, want: true},
+		{name: "spelled out", typed: "YES\n", interactive: true, want: true},
+		{name: "no", typed: "n\n", interactive: true},
+		{name: "just enter", typed: "\n", interactive: true},
+		{name: "anything else", typed: "sure\n", interactive: true},
+		{name: "eof", typed: "", interactive: true},
+		{name: "no terminal", typed: "y\n", interactive: false, wantErr: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var out bytes.Buffer
+			got, err := confirmRemove(&out, strings.NewReader(tc.typed), tc.interactive, "demo")
+			if tc.wantErr {
+				if err == nil {
+					t.Fatal("want an error when there is no terminal to ask on")
+				}
+				if !strings.Contains(err.Error(), "--force") {
+					t.Errorf("err = %v, want it to name --force", err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("confirmRemove: %v", err)
+			}
+			if got != tc.want {
+				t.Errorf("confirmRemove(%q) = %v, want %v", tc.typed, got, tc.want)
+			}
+			if tc.interactive && !strings.Contains(out.String(), "demo") {
+				t.Errorf("the prompt should name the sandbox: %q", out.String())
+			}
+		})
 	}
 }
 

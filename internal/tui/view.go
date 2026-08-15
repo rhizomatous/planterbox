@@ -127,7 +127,7 @@ func (m *Model) renderDetail(list string) string {
 	if !ok || !m.showDetail {
 		return ""
 	}
-	return rule(m.ruleWidth(list)) + "\n" + ui.RenderSandboxFields(sb, m.now())
+	return rule(m.ruleWidth(list)) + "\n" + ui.RenderSandboxFields(sb, m.now(), m.width)
 }
 
 // ruleWidth spans the list, so the divider frames the rows rather than the
@@ -236,6 +236,10 @@ func (m *Model) connectionRows() int {
 	return 1
 }
 
+// reasonIndent is everything to the left of the reason on a connection row:
+// the cursor, the verdict, the target and sandbox columns, and their spaces.
+const reasonIndent = 52
+
 func (m *Model) renderConnectionRow(e proxy.Entry, selected bool) string {
 	marker := "  "
 	if selected {
@@ -252,7 +256,14 @@ func (m *Model) renderConnectionRow(e proxy.Entry, selected bool) string {
 		target = selectedStyle.Render(target)
 	}
 	line := marker + verdict + " " + pad(target, 34) + " " + ui.Faint.Render(pad(dash(e.Sandbox), 12))
-	return line + " " + ui.Faint.Render(e.Reason)
+	// everything to the left of the reason is fixed width, so what is left of
+	// the terminal is the reason's budget. It loses its tail rather than being
+	// clipped without a mark, so a truncated reason still says it was cut.
+	reason := e.Reason
+	if m.width > reasonIndent {
+		reason = ui.Elide(reason, m.width-reasonIndent)
+	}
+	return line + " " + ui.Faint.Render(reason)
 }
 
 // renderFooter shows either the full key list or a one-line reminder.

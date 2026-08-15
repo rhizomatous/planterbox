@@ -13,6 +13,9 @@ import (
 	"unicode/utf8"
 
 	"github.com/charmbracelet/fang"
+
+	"github.com/rhizomatous/planterbox/internal/api"
+	"github.com/rhizomatous/planterbox/internal/ui"
 )
 
 // version is exactly what it says on the tin.
@@ -58,6 +61,11 @@ func run() int {
 func renderError(w io.Writer, styles fang.Styles, err error) {
 	styles.ErrorText = styles.ErrorText.Transform(sentenceCase)
 	fang.DefaultErrorHandler(w, styles, err)
+	// a name that resolved to nothing is the one error where the next step is
+	// always the same, and never obvious from the message alone.
+	if errors.Is(err, api.ErrNotFound) {
+		_, _ = io.WriteString(w, ui.Faint.Render("  plbx ls lists the sandboxes you have.")+"\n\n")
+	}
 }
 
 // sentenceCase upper-cases the first rune and leaves every other one alone.
