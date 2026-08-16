@@ -40,7 +40,8 @@ func run() int {
 		return 0
 	}
 	// an agent's own exit status passes straight through, so `plbx run` is as
-	// usable in a script as running the agent directly would be.
+	// usable in a script as running the agent directly would be. renderError
+	// has already declined to print it.
 	var coded interface{ Code() int }
 	if errors.As(err, &coded) {
 		return coded.Code()
@@ -59,6 +60,15 @@ func run() int {
 // a name that does not exist, shown to someone who is at that moment checking
 // whether they typed one correctly.
 func renderError(w io.Writer, styles fang.Styles, err error) {
+	// A non-zero exit status is not plbx failing. Whatever ran has already
+	// said what it wanted to and returned, and main passes the status
+	// through — an ERROR block over the top would be plbx claiming a failure
+	// of its own that never happened. This is what makes `plbx run` and
+	// `plbx exec` as usable in a script as the command would be on its own.
+	var coded interface{ Code() int }
+	if errors.As(err, &coded) {
+		return
+	}
 	styles.ErrorText = styles.ErrorText.Transform(sentenceCase)
 	fang.DefaultErrorHandler(w, styles, err)
 	// a name that resolved to nothing is the one error where the next step is

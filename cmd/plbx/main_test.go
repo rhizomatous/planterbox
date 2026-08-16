@@ -1,11 +1,17 @@
 package main
 
 import (
+	"bytes"
+	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
+	"github.com/charmbracelet/fang"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+
+	"github.com/rhizomatous/planterbox/internal/api"
 )
 
 // TestSentenceCaseLeavesTheRestOfTheWordAlone guards the reason this exists at
@@ -82,5 +88,31 @@ func checkLeadingWord(t *testing.T, where, desc string) {
 	case initialisms[bare]:
 		t.Errorf("%s: %q opens on the initialism %q, which fang renders as a word; lead with something else",
 			where, desc, first)
+	}
+}
+
+// TestRenderErrorPrintsFailuresAndNotExitStatuses guards the difference between
+// plbx failing and the thing plbx ran failing. `plbx exec box sh -c 'exit 42'`
+// is plbx working exactly as asked; wrapping the status in an ERROR block
+// claims a failure that did not happen, and makes the passthrough useless in a
+// script that reads stderr.
+func TestRenderErrorPrintsFailuresAndNotExitStatuses(t *testing.T) {
+	var out bytes.Buffer
+
+	renderError(&out, fang.Styles{}, exitCodeError{what: "the command", code: 42})
+	if out.Len() != 0 {
+		t.Errorf("an exit status should print nothing, got %q", out.String())
+	}
+
+	out.Reset()
+	renderError(&out, fang.Styles{}, errors.New("the runtime is not reachable"))
+	if !strings.Contains(out.String(), "runtime is not reachable") {
+		t.Errorf("a real failure should still be reported, got %q", out.String())
+	}
+
+	out.Reset()
+	renderError(&out, fang.Styles{}, fmt.Errorf("%w: %q", api.ErrNotFound, "nope"))
+	if !strings.Contains(out.String(), "plbx ls") {
+		t.Errorf("a not-found should still point at the listing, got %q", out.String())
 	}
 }
