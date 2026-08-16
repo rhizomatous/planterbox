@@ -79,23 +79,29 @@ func RenderVerdict(t proxy.Target, v proxy.Verdict) string {
 }
 
 // ConnectionColumns are the headers of the `plbx policy log` table.
-var ConnectionColumns = []string{"", "TARGET", "SANDBOX", "WHEN", "REASON"}
+var ConnectionColumns = []string{"", "TARGET", "SANDBOX", "HITS", "WHEN", "REASON"}
 
 // RenderConnections is the table behind `plbx policy log`.
-func RenderConnections(entries []proxy.Entry) string {
-	if len(entries) == 0 {
+func RenderConnections(groups []proxy.Group, now time.Time) string {
+	if len(groups) == 0 {
 		return Faint.Render("nothing has tried to reach out yet")
 	}
 
-	now := time.Now()
-	rows := make([][]string, 0, len(entries))
-	for _, e := range entries {
+	rows := make([][]string, 0, len(groups))
+	for _, g := range groups {
+		hits := ""
+		// a lone attempt needs no count, and a column of "1" is noise in
+		// front of the ones that are not.
+		if g.Hits > 1 {
+			hits = strconv.Itoa(g.Hits)
+		}
 		rows = append(rows, []string{
-			mark(e.Allowed),
-			e.Target.String(),
-			dash(e.Sandbox),
-			Age(e.At, now),
-			e.Reason,
+			mark(g.Allowed),
+			g.Target.String(),
+			dash(g.Sandbox),
+			hits,
+			Age(g.Last, now),
+			g.Reason,
 		})
 	}
 
@@ -103,7 +109,7 @@ func RenderConnections(entries []proxy.Entry) string {
 	lines := make([]string, 0, len(rows)+1)
 	lines = append(lines, renderRow(ConnectionColumns, widths, headerStyle))
 	for i, row := range rows {
-		lines = append(lines, renderRow(row, widths, connectionCellStyle(entries[i].Allowed)))
+		lines = append(lines, renderRow(row, widths, connectionCellStyle(groups[i].Allowed)))
 	}
 	return strings.Join(lines, "\n")
 }

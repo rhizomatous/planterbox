@@ -71,8 +71,8 @@ type Policy struct {
 
 // Target is one thing a sandbox is trying to reach.
 type Target struct {
-	Host string
-	Port int
+	Host string `json:"host"`
+	Port int    `json:"port"`
 }
 
 // String renders a target the way rules are written, for logs and messages.

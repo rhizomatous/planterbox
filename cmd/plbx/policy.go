@@ -2,11 +2,13 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"charm.land/lipgloss/v2"
 	"github.com/spf13/cobra"
@@ -182,20 +184,25 @@ func newPolicyLogCmd(g *globals) *cobra.Command {
 	var (
 		limit  int
 		denied bool
+		asJSON bool
 	)
 	cmd := &cobra.Command{
-		Use:   "log",
+		Use:   "log [SANDBOX]",
 		Short: "show what sandboxes have been reaching for",
 		Long: "Show the hosts sandboxes have tried to reach, newest last, and what the " +
 			"policy did about each one.\n\n" +
 			"Every connection is listed with the rule or preset that decided it, so a " +
 			"denial says what to allow. --denied narrows it to the refusals, which is " +
-			"usually what you want when something inside a sandbox has just failed.",
+			"usually what you want when something inside a sandbox has just failed.\n\n" +
+			"Repeats are folded together and counted: an agent retrying a host it " +
+			"cannot reach says the same thing a hundred times, and the hundred is worth " +
+			"knowing without being read. Name a sandbox to see only its own.",
 		Example: "  plbx policy log\n" +
 			"  plbx policy log --denied\n" +
-			"  plbx policy log -n 200",
-		Args: cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, _ []string) error {
+			"  plbx policy log myrepo\n" +
+			"  plbx policy log -n 200 --json",
+		Args: cobra.MaximumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
 			return g.withService(cmd, func(ctx context.Context, svc api.Service) error {
 				entries, err := svc.Connections(ctx, 0)
 				if err != nil {
@@ -204,16 +211,28 @@ func newPolicyLogCmd(g *globals) *cobra.Command {
 				if denied {
 					entries = slices.DeleteFunc(entries, func(e proxy.Entry) bool { return e.Allowed })
 				}
-				if limit > 0 && len(entries) > limit {
-					entries = entries[len(entries)-limit:]
+				if len(args) > 0 {
+					entries = slices.DeleteFunc(entries, func(e proxy.Entry) bool { return e.Sandbox != args[0] })
 				}
-				_, err = lipgloss.Fprintln(cmd.OutOrStdout(), ui.RenderConnections(entries))
+				// folded first, so the limit counts distinct decisions rather
+				// than repetitions of one.
+				groups := proxy.Collapse(entries)
+				if limit > 0 && len(groups) > limit {
+					groups = groups[len(groups)-limit:]
+				}
+				if asJSON {
+					enc := json.NewEncoder(cmd.OutOrStdout())
+					enc.SetIndent("", "  ")
+					return enc.Encode(groups)
+				}
+				_, err = lipgloss.Fprintln(cmd.OutOrStdout(), ui.RenderConnections(groups, time.Now()))
 				return err
 			})
 		},
 	}
 	cmd.Flags().IntVarP(&limit, "limit", "n", 50, "how many entries to show")
 	cmd.Flags().BoolVar(&denied, "denied", false, "only what was refused")
+	cmd.Flags().BoolVar(&asJSON, "json", false, "emit JSON")
 	return cmd
 }
 
