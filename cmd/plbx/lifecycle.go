@@ -130,7 +130,7 @@ func newStartCmd(g *globals) *cobra.Command {
 			"`plbx run` starts a sandbox too, and attaches the agent to it. This is the " +
 			"same thing without the second half.\n\n" +
 			"Defaults to the sandbox for the current directory.",
-		Args: cobra.MaximumNArgs(1),
+		Args: cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return act(g, cmd, args, "started", ui.OK,
 				func(ctx context.Context, svc api.Service, ref api.Ref) error {
