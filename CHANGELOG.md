@@ -13,21 +13,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `ls`, `exec`, `inspect`, `start`, `setup` and `policy log` now have real help text, instead of repeating their one-line summary.
 - Added examples in the help for `create`, `run`, `exec`, `cp`, `ls` and `policy log`.
 
-
 ### Changed
 
 - `plbx rm` now asks permission before it deletes. You can bypass this with `plbx rm --force`.
 - `plbx ls` drops the IMAGE column and moves WORKSPACE to the end.
 - `plbx agents` is removed, as it was not useful.
 
-
 ### Fixed
 
 - `plbx exec` against a stopped sandbox printed the container runtime's own error. It now informs you that the sandbox is not running, and states how to start it.
-- A command that failed under `plbx exec` reported that "the agent" exited. Under `exec` the thing that exited is whatever you typed.
-- Paths and prose that are cut to fit are now ellipsized. They are also cut from whichever end matters least: paths lose their front, prose loses its tail.
-- Naming a sandbox that does not exist got you the problem and nothing else. The error now points at `plbx ls`, which is where the names are.
-- Two flag descriptions rendered their initialisms as words: `--cpus` read `Cpu limit`, and `plbx setup ssh --config` read `Ssh config to edit`. Both are reworded to lead with an ordinary word.
+- `plbx run` and `plbx exec`, when the thing they ran exited non-zero, now only pass through the status, so both are usable in a script that reads stderr.
+- `plbx exec --no-tty` hung after the command exited when run from a terminal. The status now comes back as it should.
+- Paths and prose that were trimmed to fit are now ellipsized. They are also cut from whichever end matters least: paths lose their front, prose loses its tail. This means that long workspace paths are now easier to read.
+- The error message when invoking a sandbox that does not exist now points you at `plbx ls`.
+- Flag descriptions no longer mangle initialisms into title case like `Cpu`.
 
 ## [0.6.2] - 2026-08-14
 
@@ -53,10 +52,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- `jard create --clone` gives a sandbox a copy of your repository instead of your repository. The original mounts read-only, the agent works in a clone under its own home, and nothing it does can reach your tree — including a `.git/hooks` script that would otherwise run on your machine the next time you commit.
-- A clone-mode sandbox becomes a `jard-<name>` remote in your repository, so `git fetch jard-<name>` brings its work back. The remote goes when the sandbox does. It reaches the clone over jard's ssh gateway, so `jard setup ssh` wants running first.
-- The clone keeps your repository's own remotes, minus any that name a local path, and calls the read-only original `host`. So `git push origin` in the sandbox reaches GitHub, and `git fetch host` picks up what you have done since.
-- `jard inspect` reports which mode a sandbox is in, and the dashboard's create form asks which one you want — it cannot be changed afterwards.
+- `jard create --clone` gives a sandbox an isolated copy of your repository instead of your repository.
+- A clone-mode sandbox becomes a `jard-<name>` remote in your repository, This allows so `git fetch jard-<name>` to pull the sandbox's work back into the host repo if `jard setup ssh` has been run..
 - Published ports can be bound to a specific host address rather than every interface.
 
 ### Fixed
