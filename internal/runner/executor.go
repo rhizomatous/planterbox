@@ -63,10 +63,41 @@ func (hostExecutor) Session(ctx context.Context, inv Invocation, streams api.Str
 	cmd := exec.CommandContext(ctx, inv.Path, inv.Args...)
 
 	if !tty || isTerminal(streams.Stdin) {
-		cmd.Stdin, cmd.Stdout, cmd.Stderr = streams.Stdin, streams.Stdout, streams.Stderr
-		return waitFor(cmd, inv)
+		cmd.Stdout, cmd.Stderr = streams.Stdout, streams.Stderr
+		if f, ok := streams.Stdin.(*os.File); ok {
+			// the child inherits the descriptor, so os/exec copies nothing
+			// and Wait has only the process to wait for.
+			cmd.Stdin = f
+			return waitFor(cmd, inv)
+		}
+		return pipedStdinSession(cmd, inv, streams.Stdin)
 	}
 	return ptySession(cmd, inv, streams)
+}
+
+// pipedStdinSession runs cmd with stdin fed through a pipe this owns, rather
+// than handing the reader to os/exec.
+//
+// exec.Cmd.Wait waits for its own stdin-copying goroutine whenever Stdin is
+// not an *os.File, and through the daemon it never is: it is the read end of a
+// pipe fed by the client's socket, which stays open as long as the client's
+// terminal does. A terminal sends no EOF, so the command would exit, the
+// copier would stay blocked on a read, and Wait would never return —
+// `plbx exec --no-tty` from a real terminal hung exactly there. Owning the
+// copy leaves Wait waiting only for the process.
+func pipedStdinSession(cmd *exec.Cmd, inv Invocation, stdin io.Reader) (int, error) {
+	w, err := cmd.StdinPipe()
+	if err != nil {
+		return 0, invocationError(inv, nil, err)
+	}
+	if err := cmd.Start(); err != nil {
+		return 0, invocationError(inv, nil, err)
+	}
+	go func() {
+		defer func() { _ = w.Close() }()
+		_, _ = io.Copy(w, stdin)
+	}()
+	return exitStatus(cmd.Wait(), inv)
 }
 
 // ptySession gives the child a pseudo-terminal and relays it to streams.
