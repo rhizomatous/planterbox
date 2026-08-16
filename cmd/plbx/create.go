@@ -51,6 +51,9 @@ func newCreateCmd(g *globals) *cobra.Command {
 				if _, err := lipgloss.Fprintln(cmd.OutOrStdout(), ui.RenderCreating(spec)); err != nil {
 					return err
 				}
+				if err := fetchImage(ctx, cmd, svc, spec.Image); err != nil {
+					return err
+				}
 				sb, err := svc.Create(ctx, spec)
 				if errors.Is(err, api.ErrRemoteNotAdded) {
 					_, _ = fmt.Fprintln(cmd.ErrOrStderr(), ui.Warn.Render(err.Error()))

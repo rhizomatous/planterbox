@@ -203,6 +203,31 @@ func (o *OCI) Stats(ctx context.Context, id ID) (<-chan api.Stats, error) {
 // statsFormat asks for the two fields the dashboard shows, tab-separated.
 const statsFormat = "{{.CPUPerc}}\t{{.MemUsage}}"
 
+// PullImage fetches image unless the runtime already has it.
+//
+// `create` pulls implicitly, which is why nothing here did before — but it
+// does it with its output buffered, so a first run sat silent for however
+// long a multi-gigabyte agent image takes. Doing it as its own step is what
+// gives that wait something to show.
+func (o *OCI) PullImage(ctx context.Context, image string) (<-chan string, error) {
+	if _, err := o.exec.Output(ctx, o.ImageInspectInvocation(image)); err == nil {
+		done := make(chan string)
+		close(done)
+		return done, nil
+	}
+	return o.exec.Stream(ctx, o.PullInvocation(image))
+}
+
+// ImageInspectInvocation renders the check for an image already being here.
+func (o *OCI) ImageInspectInvocation(image string) Invocation {
+	return o.invoke("image", "inspect", image)
+}
+
+// PullInvocation renders the `pull` command line.
+func (o *OCI) PullInvocation(image string) Invocation {
+	return o.invoke("pull", image)
+}
+
 // StatsInvocation renders the streaming `stats` command line.
 func (o *OCI) StatsInvocation(id ID) Invocation {
 	return o.invoke("stats", "--format", statsFormat, string(id))

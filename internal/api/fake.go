@@ -143,6 +143,16 @@ func (f *Fake) Publish(_ context.Context, ref Ref, ports []Port) error {
 	return nil
 }
 
+// PullImage returns a closed channel; the fake fetches nothing.
+func (f *Fake) PullImage(context.Context, string) (<-chan string, error) {
+	if err := f.record("PullImage"); err != nil {
+		return nil, err
+	}
+	ch := make(chan string)
+	close(ch)
+	return ch, nil
+}
+
 // Stats replays [Fake.Samples] once and closes, so a caller ranging over the
 // channel terminates rather than waiting on a live runtime.
 func (f *Fake) Stats(_ context.Context, ref Ref) (<-chan Stats, error) {

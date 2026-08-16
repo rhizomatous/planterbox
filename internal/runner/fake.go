@@ -111,6 +111,16 @@ func (f *Fake) Copy(_ context.Context, id ID, _, _ api.Path) error {
 	return nil
 }
 
+// PullImage returns a closed channel; the fake fetches nothing.
+func (f *Fake) PullImage(context.Context, string) (<-chan string, error) {
+	if err := f.record("PullImage"); err != nil {
+		return nil, err
+	}
+	ch := make(chan string)
+	close(ch)
+	return ch, nil
+}
+
 // Stats returns a closed channel; the fake streams nothing.
 func (f *Fake) Stats(context.Context, ID) (<-chan api.Stats, error) {
 	if err := f.record("Stats"); err != nil {

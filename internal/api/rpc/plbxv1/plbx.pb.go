@@ -558,6 +558,94 @@ func (x *ConnectionsResponse) GetDecisions() []*Decision {
 	return nil
 }
 
+type PullImageRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Image         string                 `protobuf:"bytes,1,opt,name=image,proto3" json:"image,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PullImageRequest) Reset() {
+	*x = PullImageRequest{}
+	mi := &file_plbx_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PullImageRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PullImageRequest) ProtoMessage() {}
+
+func (x *PullImageRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_plbx_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PullImageRequest.ProtoReflect.Descriptor instead.
+func (*PullImageRequest) Descriptor() ([]byte, []int) {
+	return file_plbx_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *PullImageRequest) GetImage() string {
+	if x != nil {
+		return x.Image
+	}
+	return ""
+}
+
+type PullProgress struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Line          string                 `protobuf:"bytes,1,opt,name=line,proto3" json:"line,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PullProgress) Reset() {
+	*x = PullProgress{}
+	mi := &file_plbx_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PullProgress) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PullProgress) ProtoMessage() {}
+
+func (x *PullProgress) ProtoReflect() protoreflect.Message {
+	mi := &file_plbx_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PullProgress.ProtoReflect.Descriptor instead.
+func (*PullProgress) Descriptor() ([]byte, []int) {
+	return file_plbx_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *PullProgress) GetLine() string {
+	if x != nil {
+		return x.Line
+	}
+	return ""
+}
+
 type InfoRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -566,7 +654,7 @@ type InfoRequest struct {
 
 func (x *InfoRequest) Reset() {
 	*x = InfoRequest{}
-	mi := &file_plbx_proto_msgTypes[11]
+	mi := &file_plbx_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -578,7 +666,7 @@ func (x *InfoRequest) String() string {
 func (*InfoRequest) ProtoMessage() {}
 
 func (x *InfoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_plbx_proto_msgTypes[11]
+	mi := &file_plbx_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -591,7 +679,7 @@ func (x *InfoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InfoRequest.ProtoReflect.Descriptor instead.
 func (*InfoRequest) Descriptor() ([]byte, []int) {
-	return file_plbx_proto_rawDescGZIP(), []int{11}
+	return file_plbx_proto_rawDescGZIP(), []int{13}
 }
 
 type InfoResponse struct {
@@ -605,7 +693,7 @@ type InfoResponse struct {
 
 func (x *InfoResponse) Reset() {
 	*x = InfoResponse{}
-	mi := &file_plbx_proto_msgTypes[12]
+	mi := &file_plbx_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -617,7 +705,7 @@ func (x *InfoResponse) String() string {
 func (*InfoResponse) ProtoMessage() {}
 
 func (x *InfoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_plbx_proto_msgTypes[12]
+	mi := &file_plbx_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -630,7 +718,7 @@ func (x *InfoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InfoResponse.ProtoReflect.Descriptor instead.
 func (*InfoResponse) Descriptor() ([]byte, []int) {
-	return file_plbx_proto_rawDescGZIP(), []int{12}
+	return file_plbx_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *InfoResponse) GetVersion() string {
@@ -671,7 +759,7 @@ type Spec struct {
 
 func (x *Spec) Reset() {
 	*x = Spec{}
-	mi := &file_plbx_proto_msgTypes[13]
+	mi := &file_plbx_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -683,7 +771,7 @@ func (x *Spec) String() string {
 func (*Spec) ProtoMessage() {}
 
 func (x *Spec) ProtoReflect() protoreflect.Message {
-	mi := &file_plbx_proto_msgTypes[13]
+	mi := &file_plbx_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -696,7 +784,7 @@ func (x *Spec) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Spec.ProtoReflect.Descriptor instead.
 func (*Spec) Descriptor() ([]byte, []int) {
-	return file_plbx_proto_rawDescGZIP(), []int{13}
+	return file_plbx_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *Spec) GetName() string {
@@ -766,7 +854,7 @@ type Workspace struct {
 
 func (x *Workspace) Reset() {
 	*x = Workspace{}
-	mi := &file_plbx_proto_msgTypes[14]
+	mi := &file_plbx_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -778,7 +866,7 @@ func (x *Workspace) String() string {
 func (*Workspace) ProtoMessage() {}
 
 func (x *Workspace) ProtoReflect() protoreflect.Message {
-	mi := &file_plbx_proto_msgTypes[14]
+	mi := &file_plbx_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -791,7 +879,7 @@ func (x *Workspace) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Workspace.ProtoReflect.Descriptor instead.
 func (*Workspace) Descriptor() ([]byte, []int) {
-	return file_plbx_proto_rawDescGZIP(), []int{14}
+	return file_plbx_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *Workspace) GetHost() string {
@@ -819,7 +907,7 @@ type Resources struct {
 
 func (x *Resources) Reset() {
 	*x = Resources{}
-	mi := &file_plbx_proto_msgTypes[15]
+	mi := &file_plbx_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -831,7 +919,7 @@ func (x *Resources) String() string {
 func (*Resources) ProtoMessage() {}
 
 func (x *Resources) ProtoReflect() protoreflect.Message {
-	mi := &file_plbx_proto_msgTypes[15]
+	mi := &file_plbx_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -844,7 +932,7 @@ func (x *Resources) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Resources.ProtoReflect.Descriptor instead.
 func (*Resources) Descriptor() ([]byte, []int) {
-	return file_plbx_proto_rawDescGZIP(), []int{15}
+	return file_plbx_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *Resources) GetCpus() float64 {
@@ -874,7 +962,7 @@ type Port struct {
 
 func (x *Port) Reset() {
 	*x = Port{}
-	mi := &file_plbx_proto_msgTypes[16]
+	mi := &file_plbx_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -886,7 +974,7 @@ func (x *Port) String() string {
 func (*Port) ProtoMessage() {}
 
 func (x *Port) ProtoReflect() protoreflect.Message {
-	mi := &file_plbx_proto_msgTypes[16]
+	mi := &file_plbx_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -899,7 +987,7 @@ func (x *Port) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Port.ProtoReflect.Descriptor instead.
 func (*Port) Descriptor() ([]byte, []int) {
-	return file_plbx_proto_rawDescGZIP(), []int{16}
+	return file_plbx_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *Port) GetHost() int32 {
@@ -947,7 +1035,7 @@ type State struct {
 
 func (x *State) Reset() {
 	*x = State{}
-	mi := &file_plbx_proto_msgTypes[17]
+	mi := &file_plbx_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -959,7 +1047,7 @@ func (x *State) String() string {
 func (*State) ProtoMessage() {}
 
 func (x *State) ProtoReflect() protoreflect.Message {
-	mi := &file_plbx_proto_msgTypes[17]
+	mi := &file_plbx_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -972,7 +1060,7 @@ func (x *State) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use State.ProtoReflect.Descriptor instead.
 func (*State) Descriptor() ([]byte, []int) {
-	return file_plbx_proto_rawDescGZIP(), []int{17}
+	return file_plbx_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *State) GetStatus() string {
@@ -1015,7 +1103,7 @@ type Sandbox struct {
 
 func (x *Sandbox) Reset() {
 	*x = Sandbox{}
-	mi := &file_plbx_proto_msgTypes[18]
+	mi := &file_plbx_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1027,7 +1115,7 @@ func (x *Sandbox) String() string {
 func (*Sandbox) ProtoMessage() {}
 
 func (x *Sandbox) ProtoReflect() protoreflect.Message {
-	mi := &file_plbx_proto_msgTypes[18]
+	mi := &file_plbx_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1040,7 +1128,7 @@ func (x *Sandbox) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Sandbox.ProtoReflect.Descriptor instead.
 func (*Sandbox) Descriptor() ([]byte, []int) {
-	return file_plbx_proto_rawDescGZIP(), []int{18}
+	return file_plbx_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *Sandbox) GetSpec() *Spec {
@@ -1075,7 +1163,7 @@ type Ref struct {
 
 func (x *Ref) Reset() {
 	*x = Ref{}
-	mi := &file_plbx_proto_msgTypes[19]
+	mi := &file_plbx_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1087,7 +1175,7 @@ func (x *Ref) String() string {
 func (*Ref) ProtoMessage() {}
 
 func (x *Ref) ProtoReflect() protoreflect.Message {
-	mi := &file_plbx_proto_msgTypes[19]
+	mi := &file_plbx_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1100,7 +1188,7 @@ func (x *Ref) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Ref.ProtoReflect.Descriptor instead.
 func (*Ref) Descriptor() ([]byte, []int) {
-	return file_plbx_proto_rawDescGZIP(), []int{19}
+	return file_plbx_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *Ref) GetName() string {
@@ -1128,7 +1216,7 @@ type Path struct {
 
 func (x *Path) Reset() {
 	*x = Path{}
-	mi := &file_plbx_proto_msgTypes[20]
+	mi := &file_plbx_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1140,7 +1228,7 @@ func (x *Path) String() string {
 func (*Path) ProtoMessage() {}
 
 func (x *Path) ProtoReflect() protoreflect.Message {
-	mi := &file_plbx_proto_msgTypes[20]
+	mi := &file_plbx_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1153,7 +1241,7 @@ func (x *Path) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Path.ProtoReflect.Descriptor instead.
 func (*Path) Descriptor() ([]byte, []int) {
-	return file_plbx_proto_rawDescGZIP(), []int{20}
+	return file_plbx_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *Path) GetSandbox() string {
@@ -1185,7 +1273,7 @@ type ExecRequest struct {
 
 func (x *ExecRequest) Reset() {
 	*x = ExecRequest{}
-	mi := &file_plbx_proto_msgTypes[21]
+	mi := &file_plbx_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1197,7 +1285,7 @@ func (x *ExecRequest) String() string {
 func (*ExecRequest) ProtoMessage() {}
 
 func (x *ExecRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_plbx_proto_msgTypes[21]
+	mi := &file_plbx_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1210,7 +1298,7 @@ func (x *ExecRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExecRequest.ProtoReflect.Descriptor instead.
 func (*ExecRequest) Descriptor() ([]byte, []int) {
-	return file_plbx_proto_rawDescGZIP(), []int{21}
+	return file_plbx_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *ExecRequest) GetCmd() []string {
@@ -1267,7 +1355,7 @@ type Sample struct {
 
 func (x *Sample) Reset() {
 	*x = Sample{}
-	mi := &file_plbx_proto_msgTypes[22]
+	mi := &file_plbx_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1279,7 +1367,7 @@ func (x *Sample) String() string {
 func (*Sample) ProtoMessage() {}
 
 func (x *Sample) ProtoReflect() protoreflect.Message {
-	mi := &file_plbx_proto_msgTypes[22]
+	mi := &file_plbx_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1292,7 +1380,7 @@ func (x *Sample) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Sample.ProtoReflect.Descriptor instead.
 func (*Sample) Descriptor() ([]byte, []int) {
-	return file_plbx_proto_rawDescGZIP(), []int{22}
+	return file_plbx_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *Sample) GetCpuPercent() float64 {
@@ -1327,7 +1415,7 @@ type Size struct {
 
 func (x *Size) Reset() {
 	*x = Size{}
-	mi := &file_plbx_proto_msgTypes[23]
+	mi := &file_plbx_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1339,7 +1427,7 @@ func (x *Size) String() string {
 func (*Size) ProtoMessage() {}
 
 func (x *Size) ProtoReflect() protoreflect.Message {
-	mi := &file_plbx_proto_msgTypes[23]
+	mi := &file_plbx_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1352,7 +1440,7 @@ func (x *Size) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Size.ProtoReflect.Descriptor instead.
 func (*Size) Descriptor() ([]byte, []int) {
-	return file_plbx_proto_rawDescGZIP(), []int{23}
+	return file_plbx_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *Size) GetRows() uint32 {
@@ -1378,7 +1466,7 @@ type CreateRequest struct {
 
 func (x *CreateRequest) Reset() {
 	*x = CreateRequest{}
-	mi := &file_plbx_proto_msgTypes[24]
+	mi := &file_plbx_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1390,7 +1478,7 @@ func (x *CreateRequest) String() string {
 func (*CreateRequest) ProtoMessage() {}
 
 func (x *CreateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_plbx_proto_msgTypes[24]
+	mi := &file_plbx_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1403,7 +1491,7 @@ func (x *CreateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateRequest.ProtoReflect.Descriptor instead.
 func (*CreateRequest) Descriptor() ([]byte, []int) {
-	return file_plbx_proto_rawDescGZIP(), []int{24}
+	return file_plbx_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *CreateRequest) GetSpec() *Spec {
@@ -1422,7 +1510,7 @@ type CreateResponse struct {
 
 func (x *CreateResponse) Reset() {
 	*x = CreateResponse{}
-	mi := &file_plbx_proto_msgTypes[25]
+	mi := &file_plbx_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1434,7 +1522,7 @@ func (x *CreateResponse) String() string {
 func (*CreateResponse) ProtoMessage() {}
 
 func (x *CreateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_plbx_proto_msgTypes[25]
+	mi := &file_plbx_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1447,7 +1535,7 @@ func (x *CreateResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateResponse.ProtoReflect.Descriptor instead.
 func (*CreateResponse) Descriptor() ([]byte, []int) {
-	return file_plbx_proto_rawDescGZIP(), []int{25}
+	return file_plbx_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *CreateResponse) GetSandbox() *Sandbox {
@@ -1465,7 +1553,7 @@ type ListRequest struct {
 
 func (x *ListRequest) Reset() {
 	*x = ListRequest{}
-	mi := &file_plbx_proto_msgTypes[26]
+	mi := &file_plbx_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1477,7 +1565,7 @@ func (x *ListRequest) String() string {
 func (*ListRequest) ProtoMessage() {}
 
 func (x *ListRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_plbx_proto_msgTypes[26]
+	mi := &file_plbx_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1490,7 +1578,7 @@ func (x *ListRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRequest.ProtoReflect.Descriptor instead.
 func (*ListRequest) Descriptor() ([]byte, []int) {
-	return file_plbx_proto_rawDescGZIP(), []int{26}
+	return file_plbx_proto_rawDescGZIP(), []int{28}
 }
 
 type ListResponse struct {
@@ -1502,7 +1590,7 @@ type ListResponse struct {
 
 func (x *ListResponse) Reset() {
 	*x = ListResponse{}
-	mi := &file_plbx_proto_msgTypes[27]
+	mi := &file_plbx_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1514,7 +1602,7 @@ func (x *ListResponse) String() string {
 func (*ListResponse) ProtoMessage() {}
 
 func (x *ListResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_plbx_proto_msgTypes[27]
+	mi := &file_plbx_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1527,7 +1615,7 @@ func (x *ListResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListResponse.ProtoReflect.Descriptor instead.
 func (*ListResponse) Descriptor() ([]byte, []int) {
-	return file_plbx_proto_rawDescGZIP(), []int{27}
+	return file_plbx_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *ListResponse) GetSandboxes() []*Sandbox {
@@ -1546,7 +1634,7 @@ type InspectRequest struct {
 
 func (x *InspectRequest) Reset() {
 	*x = InspectRequest{}
-	mi := &file_plbx_proto_msgTypes[28]
+	mi := &file_plbx_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1558,7 +1646,7 @@ func (x *InspectRequest) String() string {
 func (*InspectRequest) ProtoMessage() {}
 
 func (x *InspectRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_plbx_proto_msgTypes[28]
+	mi := &file_plbx_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1571,7 +1659,7 @@ func (x *InspectRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InspectRequest.ProtoReflect.Descriptor instead.
 func (*InspectRequest) Descriptor() ([]byte, []int) {
-	return file_plbx_proto_rawDescGZIP(), []int{28}
+	return file_plbx_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *InspectRequest) GetRef() *Ref {
@@ -1590,7 +1678,7 @@ type InspectResponse struct {
 
 func (x *InspectResponse) Reset() {
 	*x = InspectResponse{}
-	mi := &file_plbx_proto_msgTypes[29]
+	mi := &file_plbx_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1602,7 +1690,7 @@ func (x *InspectResponse) String() string {
 func (*InspectResponse) ProtoMessage() {}
 
 func (x *InspectResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_plbx_proto_msgTypes[29]
+	mi := &file_plbx_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1615,7 +1703,7 @@ func (x *InspectResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InspectResponse.ProtoReflect.Descriptor instead.
 func (*InspectResponse) Descriptor() ([]byte, []int) {
-	return file_plbx_proto_rawDescGZIP(), []int{29}
+	return file_plbx_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *InspectResponse) GetSandbox() *Sandbox {
@@ -1634,7 +1722,7 @@ type StartRequest struct {
 
 func (x *StartRequest) Reset() {
 	*x = StartRequest{}
-	mi := &file_plbx_proto_msgTypes[30]
+	mi := &file_plbx_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1646,7 +1734,7 @@ func (x *StartRequest) String() string {
 func (*StartRequest) ProtoMessage() {}
 
 func (x *StartRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_plbx_proto_msgTypes[30]
+	mi := &file_plbx_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1659,7 +1747,7 @@ func (x *StartRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartRequest.ProtoReflect.Descriptor instead.
 func (*StartRequest) Descriptor() ([]byte, []int) {
-	return file_plbx_proto_rawDescGZIP(), []int{30}
+	return file_plbx_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *StartRequest) GetRef() *Ref {
@@ -1677,7 +1765,7 @@ type StartResponse struct {
 
 func (x *StartResponse) Reset() {
 	*x = StartResponse{}
-	mi := &file_plbx_proto_msgTypes[31]
+	mi := &file_plbx_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1689,7 +1777,7 @@ func (x *StartResponse) String() string {
 func (*StartResponse) ProtoMessage() {}
 
 func (x *StartResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_plbx_proto_msgTypes[31]
+	mi := &file_plbx_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1702,7 +1790,7 @@ func (x *StartResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartResponse.ProtoReflect.Descriptor instead.
 func (*StartResponse) Descriptor() ([]byte, []int) {
-	return file_plbx_proto_rawDescGZIP(), []int{31}
+	return file_plbx_proto_rawDescGZIP(), []int{33}
 }
 
 type StopRequest struct {
@@ -1714,7 +1802,7 @@ type StopRequest struct {
 
 func (x *StopRequest) Reset() {
 	*x = StopRequest{}
-	mi := &file_plbx_proto_msgTypes[32]
+	mi := &file_plbx_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1726,7 +1814,7 @@ func (x *StopRequest) String() string {
 func (*StopRequest) ProtoMessage() {}
 
 func (x *StopRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_plbx_proto_msgTypes[32]
+	mi := &file_plbx_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1739,7 +1827,7 @@ func (x *StopRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StopRequest.ProtoReflect.Descriptor instead.
 func (*StopRequest) Descriptor() ([]byte, []int) {
-	return file_plbx_proto_rawDescGZIP(), []int{32}
+	return file_plbx_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *StopRequest) GetRef() *Ref {
@@ -1757,7 +1845,7 @@ type StopResponse struct {
 
 func (x *StopResponse) Reset() {
 	*x = StopResponse{}
-	mi := &file_plbx_proto_msgTypes[33]
+	mi := &file_plbx_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1769,7 +1857,7 @@ func (x *StopResponse) String() string {
 func (*StopResponse) ProtoMessage() {}
 
 func (x *StopResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_plbx_proto_msgTypes[33]
+	mi := &file_plbx_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1782,7 +1870,7 @@ func (x *StopResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StopResponse.ProtoReflect.Descriptor instead.
 func (*StopResponse) Descriptor() ([]byte, []int) {
-	return file_plbx_proto_rawDescGZIP(), []int{33}
+	return file_plbx_proto_rawDescGZIP(), []int{35}
 }
 
 type RemoveRequest struct {
@@ -1795,7 +1883,7 @@ type RemoveRequest struct {
 
 func (x *RemoveRequest) Reset() {
 	*x = RemoveRequest{}
-	mi := &file_plbx_proto_msgTypes[34]
+	mi := &file_plbx_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1807,7 +1895,7 @@ func (x *RemoveRequest) String() string {
 func (*RemoveRequest) ProtoMessage() {}
 
 func (x *RemoveRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_plbx_proto_msgTypes[34]
+	mi := &file_plbx_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1820,7 +1908,7 @@ func (x *RemoveRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveRequest.ProtoReflect.Descriptor instead.
 func (*RemoveRequest) Descriptor() ([]byte, []int) {
-	return file_plbx_proto_rawDescGZIP(), []int{34}
+	return file_plbx_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *RemoveRequest) GetRef() *Ref {
@@ -1845,7 +1933,7 @@ type RemoveResponse struct {
 
 func (x *RemoveResponse) Reset() {
 	*x = RemoveResponse{}
-	mi := &file_plbx_proto_msgTypes[35]
+	mi := &file_plbx_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1857,7 +1945,7 @@ func (x *RemoveResponse) String() string {
 func (*RemoveResponse) ProtoMessage() {}
 
 func (x *RemoveResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_plbx_proto_msgTypes[35]
+	mi := &file_plbx_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1870,7 +1958,7 @@ func (x *RemoveResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveResponse.ProtoReflect.Descriptor instead.
 func (*RemoveResponse) Descriptor() ([]byte, []int) {
-	return file_plbx_proto_rawDescGZIP(), []int{35}
+	return file_plbx_proto_rawDescGZIP(), []int{37}
 }
 
 type CopyRequest struct {
@@ -1883,7 +1971,7 @@ type CopyRequest struct {
 
 func (x *CopyRequest) Reset() {
 	*x = CopyRequest{}
-	mi := &file_plbx_proto_msgTypes[36]
+	mi := &file_plbx_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1895,7 +1983,7 @@ func (x *CopyRequest) String() string {
 func (*CopyRequest) ProtoMessage() {}
 
 func (x *CopyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_plbx_proto_msgTypes[36]
+	mi := &file_plbx_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1908,7 +1996,7 @@ func (x *CopyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CopyRequest.ProtoReflect.Descriptor instead.
 func (*CopyRequest) Descriptor() ([]byte, []int) {
-	return file_plbx_proto_rawDescGZIP(), []int{36}
+	return file_plbx_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *CopyRequest) GetSrc() *Path {
@@ -1933,7 +2021,7 @@ type CopyResponse struct {
 
 func (x *CopyResponse) Reset() {
 	*x = CopyResponse{}
-	mi := &file_plbx_proto_msgTypes[37]
+	mi := &file_plbx_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1945,7 +2033,7 @@ func (x *CopyResponse) String() string {
 func (*CopyResponse) ProtoMessage() {}
 
 func (x *CopyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_plbx_proto_msgTypes[37]
+	mi := &file_plbx_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1958,7 +2046,7 @@ func (x *CopyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CopyResponse.ProtoReflect.Descriptor instead.
 func (*CopyResponse) Descriptor() ([]byte, []int) {
-	return file_plbx_proto_rawDescGZIP(), []int{37}
+	return file_plbx_proto_rawDescGZIP(), []int{39}
 }
 
 type StatsRequest struct {
@@ -1970,7 +2058,7 @@ type StatsRequest struct {
 
 func (x *StatsRequest) Reset() {
 	*x = StatsRequest{}
-	mi := &file_plbx_proto_msgTypes[38]
+	mi := &file_plbx_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1982,7 +2070,7 @@ func (x *StatsRequest) String() string {
 func (*StatsRequest) ProtoMessage() {}
 
 func (x *StatsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_plbx_proto_msgTypes[38]
+	mi := &file_plbx_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1995,7 +2083,7 @@ func (x *StatsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StatsRequest.ProtoReflect.Descriptor instead.
 func (*StatsRequest) Descriptor() ([]byte, []int) {
-	return file_plbx_proto_rawDescGZIP(), []int{38}
+	return file_plbx_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *StatsRequest) GetRef() *Ref {
@@ -2017,7 +2105,7 @@ type ExecStart struct {
 
 func (x *ExecStart) Reset() {
 	*x = ExecStart{}
-	mi := &file_plbx_proto_msgTypes[39]
+	mi := &file_plbx_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2029,7 +2117,7 @@ func (x *ExecStart) String() string {
 func (*ExecStart) ProtoMessage() {}
 
 func (x *ExecStart) ProtoReflect() protoreflect.Message {
-	mi := &file_plbx_proto_msgTypes[39]
+	mi := &file_plbx_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2042,7 +2130,7 @@ func (x *ExecStart) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExecStart.ProtoReflect.Descriptor instead.
 func (*ExecStart) Descriptor() ([]byte, []int) {
-	return file_plbx_proto_rawDescGZIP(), []int{39}
+	return file_plbx_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *ExecStart) GetRef() *Ref {
@@ -2076,7 +2164,7 @@ type ExecStdinClose struct {
 
 func (x *ExecStdinClose) Reset() {
 	*x = ExecStdinClose{}
-	mi := &file_plbx_proto_msgTypes[40]
+	mi := &file_plbx_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2088,7 +2176,7 @@ func (x *ExecStdinClose) String() string {
 func (*ExecStdinClose) ProtoMessage() {}
 
 func (x *ExecStdinClose) ProtoReflect() protoreflect.Message {
-	mi := &file_plbx_proto_msgTypes[40]
+	mi := &file_plbx_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2101,7 +2189,7 @@ func (x *ExecStdinClose) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExecStdinClose.ProtoReflect.Descriptor instead.
 func (*ExecStdinClose) Descriptor() ([]byte, []int) {
-	return file_plbx_proto_rawDescGZIP(), []int{40}
+	return file_plbx_proto_rawDescGZIP(), []int{42}
 }
 
 // ExecClientFrame is anything the client sends during a session.
@@ -2120,7 +2208,7 @@ type ExecClientFrame struct {
 
 func (x *ExecClientFrame) Reset() {
 	*x = ExecClientFrame{}
-	mi := &file_plbx_proto_msgTypes[41]
+	mi := &file_plbx_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2132,7 +2220,7 @@ func (x *ExecClientFrame) String() string {
 func (*ExecClientFrame) ProtoMessage() {}
 
 func (x *ExecClientFrame) ProtoReflect() protoreflect.Message {
-	mi := &file_plbx_proto_msgTypes[41]
+	mi := &file_plbx_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2145,7 +2233,7 @@ func (x *ExecClientFrame) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExecClientFrame.ProtoReflect.Descriptor instead.
 func (*ExecClientFrame) Descriptor() ([]byte, []int) {
-	return file_plbx_proto_rawDescGZIP(), []int{41}
+	return file_plbx_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *ExecClientFrame) GetFrame() isExecClientFrame_Frame {
@@ -2235,7 +2323,7 @@ type ExecServerFrame struct {
 
 func (x *ExecServerFrame) Reset() {
 	*x = ExecServerFrame{}
-	mi := &file_plbx_proto_msgTypes[42]
+	mi := &file_plbx_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2247,7 +2335,7 @@ func (x *ExecServerFrame) String() string {
 func (*ExecServerFrame) ProtoMessage() {}
 
 func (x *ExecServerFrame) ProtoReflect() protoreflect.Message {
-	mi := &file_plbx_proto_msgTypes[42]
+	mi := &file_plbx_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2260,7 +2348,7 @@ func (x *ExecServerFrame) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExecServerFrame.ProtoReflect.Descriptor instead.
 func (*ExecServerFrame) Descriptor() ([]byte, []int) {
-	return file_plbx_proto_rawDescGZIP(), []int{42}
+	return file_plbx_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *ExecServerFrame) GetFrame() isExecServerFrame_Frame {
@@ -2352,7 +2440,11 @@ const file_plbx_proto_rawDesc = "" +
 	"\x12ConnectionsRequest\x12\x14\n" +
 	"\x05since\x18\x01 \x01(\x04R\x05since\"F\n" +
 	"\x13ConnectionsResponse\x12/\n" +
-	"\tdecisions\x18\x01 \x03(\v2\x11.plbx.v1.DecisionR\tdecisions\"\r\n" +
+	"\tdecisions\x18\x01 \x03(\v2\x11.plbx.v1.DecisionR\tdecisions\"(\n" +
+	"\x10PullImageRequest\x12\x14\n" +
+	"\x05image\x18\x01 \x01(\tR\x05image\"\"\n" +
+	"\fPullProgress\x12\x12\n" +
+	"\x04line\x18\x01 \x01(\tR\x04line\"\r\n" +
 	"\vInfoRequest\"u\n" +
 	"\fInfoResponse\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\tR\aversion\x129\n" +
@@ -2462,7 +2554,7 @@ const file_plbx_proto_rawDesc = "" +
 	"\x06stdout\x18\x01 \x01(\fH\x00R\x06stdout\x12\x18\n" +
 	"\x06stderr\x18\x02 \x01(\fH\x00R\x06stderr\x12\x1d\n" +
 	"\texit_code\x18\x03 \x01(\x05H\x00R\bexitCodeB\a\n" +
-	"\x05frame2\xce\x06\n" +
+	"\x05frame2\x8f\a\n" +
 	"\tSandboxes\x129\n" +
 	"\x06Create\x12\x16.plbx.v1.CreateRequest\x1a\x17.plbx.v1.CreateResponse\x123\n" +
 	"\x04List\x12\x14.plbx.v1.ListRequest\x1a\x15.plbx.v1.ListResponse\x12<\n" +
@@ -2472,7 +2564,8 @@ const file_plbx_proto_rawDesc = "" +
 	"\x06Remove\x12\x16.plbx.v1.RemoveRequest\x1a\x17.plbx.v1.RemoveResponse\x123\n" +
 	"\x04Copy\x12\x14.plbx.v1.CopyRequest\x1a\x15.plbx.v1.CopyResponse\x12<\n" +
 	"\aPublish\x12\x17.plbx.v1.PublishRequest\x1a\x18.plbx.v1.PublishResponse\x121\n" +
-	"\x05Stats\x12\x15.plbx.v1.StatsRequest\x1a\x0f.plbx.v1.Sample0\x01\x12>\n" +
+	"\x05Stats\x12\x15.plbx.v1.StatsRequest\x1a\x0f.plbx.v1.Sample0\x01\x12?\n" +
+	"\tPullImage\x12\x19.plbx.v1.PullImageRequest\x1a\x15.plbx.v1.PullProgress0\x01\x12>\n" +
 	"\x04Exec\x12\x18.plbx.v1.ExecClientFrame\x1a\x18.plbx.v1.ExecServerFrame(\x010\x01\x12B\n" +
 	"\tGetPolicy\x12\x19.plbx.v1.GetPolicyRequest\x1a\x1a.plbx.v1.GetPolicyResponse\x12B\n" +
 	"\tSetPolicy\x12\x19.plbx.v1.SetPolicyRequest\x1a\x1a.plbx.v1.SetPolicyResponse\x12H\n" +
@@ -2491,7 +2584,7 @@ func file_plbx_proto_rawDescGZIP() []byte {
 	return file_plbx_proto_rawDescData
 }
 
-var file_plbx_proto_msgTypes = make([]protoimpl.MessageInfo, 45)
+var file_plbx_proto_msgTypes = make([]protoimpl.MessageInfo, 47)
 var file_plbx_proto_goTypes = []any{
 	(*Policy)(nil),                // 0: plbx.v1.Policy
 	(*Rule)(nil),                  // 1: plbx.v1.Rule
@@ -2504,107 +2597,111 @@ var file_plbx_proto_goTypes = []any{
 	(*SetPolicyResponse)(nil),     // 8: plbx.v1.SetPolicyResponse
 	(*ConnectionsRequest)(nil),    // 9: plbx.v1.ConnectionsRequest
 	(*ConnectionsResponse)(nil),   // 10: plbx.v1.ConnectionsResponse
-	(*InfoRequest)(nil),           // 11: plbx.v1.InfoRequest
-	(*InfoResponse)(nil),          // 12: plbx.v1.InfoResponse
-	(*Spec)(nil),                  // 13: plbx.v1.Spec
-	(*Workspace)(nil),             // 14: plbx.v1.Workspace
-	(*Resources)(nil),             // 15: plbx.v1.Resources
-	(*Port)(nil),                  // 16: plbx.v1.Port
-	(*State)(nil),                 // 17: plbx.v1.State
-	(*Sandbox)(nil),               // 18: plbx.v1.Sandbox
-	(*Ref)(nil),                   // 19: plbx.v1.Ref
-	(*Path)(nil),                  // 20: plbx.v1.Path
-	(*ExecRequest)(nil),           // 21: plbx.v1.ExecRequest
-	(*Sample)(nil),                // 22: plbx.v1.Sample
-	(*Size)(nil),                  // 23: plbx.v1.Size
-	(*CreateRequest)(nil),         // 24: plbx.v1.CreateRequest
-	(*CreateResponse)(nil),        // 25: plbx.v1.CreateResponse
-	(*ListRequest)(nil),           // 26: plbx.v1.ListRequest
-	(*ListResponse)(nil),          // 27: plbx.v1.ListResponse
-	(*InspectRequest)(nil),        // 28: plbx.v1.InspectRequest
-	(*InspectResponse)(nil),       // 29: plbx.v1.InspectResponse
-	(*StartRequest)(nil),          // 30: plbx.v1.StartRequest
-	(*StartResponse)(nil),         // 31: plbx.v1.StartResponse
-	(*StopRequest)(nil),           // 32: plbx.v1.StopRequest
-	(*StopResponse)(nil),          // 33: plbx.v1.StopResponse
-	(*RemoveRequest)(nil),         // 34: plbx.v1.RemoveRequest
-	(*RemoveResponse)(nil),        // 35: plbx.v1.RemoveResponse
-	(*CopyRequest)(nil),           // 36: plbx.v1.CopyRequest
-	(*CopyResponse)(nil),          // 37: plbx.v1.CopyResponse
-	(*StatsRequest)(nil),          // 38: plbx.v1.StatsRequest
-	(*ExecStart)(nil),             // 39: plbx.v1.ExecStart
-	(*ExecStdinClose)(nil),        // 40: plbx.v1.ExecStdinClose
-	(*ExecClientFrame)(nil),       // 41: plbx.v1.ExecClientFrame
-	(*ExecServerFrame)(nil),       // 42: plbx.v1.ExecServerFrame
-	nil,                           // 43: plbx.v1.Spec.EnvEntry
-	nil,                           // 44: plbx.v1.ExecRequest.EnvEntry
-	(*timestamppb.Timestamp)(nil), // 45: google.protobuf.Timestamp
+	(*PullImageRequest)(nil),      // 11: plbx.v1.PullImageRequest
+	(*PullProgress)(nil),          // 12: plbx.v1.PullProgress
+	(*InfoRequest)(nil),           // 13: plbx.v1.InfoRequest
+	(*InfoResponse)(nil),          // 14: plbx.v1.InfoResponse
+	(*Spec)(nil),                  // 15: plbx.v1.Spec
+	(*Workspace)(nil),             // 16: plbx.v1.Workspace
+	(*Resources)(nil),             // 17: plbx.v1.Resources
+	(*Port)(nil),                  // 18: plbx.v1.Port
+	(*State)(nil),                 // 19: plbx.v1.State
+	(*Sandbox)(nil),               // 20: plbx.v1.Sandbox
+	(*Ref)(nil),                   // 21: plbx.v1.Ref
+	(*Path)(nil),                  // 22: plbx.v1.Path
+	(*ExecRequest)(nil),           // 23: plbx.v1.ExecRequest
+	(*Sample)(nil),                // 24: plbx.v1.Sample
+	(*Size)(nil),                  // 25: plbx.v1.Size
+	(*CreateRequest)(nil),         // 26: plbx.v1.CreateRequest
+	(*CreateResponse)(nil),        // 27: plbx.v1.CreateResponse
+	(*ListRequest)(nil),           // 28: plbx.v1.ListRequest
+	(*ListResponse)(nil),          // 29: plbx.v1.ListResponse
+	(*InspectRequest)(nil),        // 30: plbx.v1.InspectRequest
+	(*InspectResponse)(nil),       // 31: plbx.v1.InspectResponse
+	(*StartRequest)(nil),          // 32: plbx.v1.StartRequest
+	(*StartResponse)(nil),         // 33: plbx.v1.StartResponse
+	(*StopRequest)(nil),           // 34: plbx.v1.StopRequest
+	(*StopResponse)(nil),          // 35: plbx.v1.StopResponse
+	(*RemoveRequest)(nil),         // 36: plbx.v1.RemoveRequest
+	(*RemoveResponse)(nil),        // 37: plbx.v1.RemoveResponse
+	(*CopyRequest)(nil),           // 38: plbx.v1.CopyRequest
+	(*CopyResponse)(nil),          // 39: plbx.v1.CopyResponse
+	(*StatsRequest)(nil),          // 40: plbx.v1.StatsRequest
+	(*ExecStart)(nil),             // 41: plbx.v1.ExecStart
+	(*ExecStdinClose)(nil),        // 42: plbx.v1.ExecStdinClose
+	(*ExecClientFrame)(nil),       // 43: plbx.v1.ExecClientFrame
+	(*ExecServerFrame)(nil),       // 44: plbx.v1.ExecServerFrame
+	nil,                           // 45: plbx.v1.Spec.EnvEntry
+	nil,                           // 46: plbx.v1.ExecRequest.EnvEntry
+	(*timestamppb.Timestamp)(nil), // 47: google.protobuf.Timestamp
 }
 var file_plbx_proto_depIdxs = []int32{
 	1,  // 0: plbx.v1.Policy.rules:type_name -> plbx.v1.Rule
-	45, // 1: plbx.v1.Decision.at:type_name -> google.protobuf.Timestamp
-	19, // 2: plbx.v1.PublishRequest.ref:type_name -> plbx.v1.Ref
-	16, // 3: plbx.v1.PublishRequest.ports:type_name -> plbx.v1.Port
+	47, // 1: plbx.v1.Decision.at:type_name -> google.protobuf.Timestamp
+	21, // 2: plbx.v1.PublishRequest.ref:type_name -> plbx.v1.Ref
+	18, // 3: plbx.v1.PublishRequest.ports:type_name -> plbx.v1.Port
 	0,  // 4: plbx.v1.GetPolicyResponse.policy:type_name -> plbx.v1.Policy
 	0,  // 5: plbx.v1.SetPolicyRequest.policy:type_name -> plbx.v1.Policy
 	2,  // 6: plbx.v1.ConnectionsResponse.decisions:type_name -> plbx.v1.Decision
-	45, // 7: plbx.v1.InfoResponse.started_at:type_name -> google.protobuf.Timestamp
-	14, // 8: plbx.v1.Spec.workspaces:type_name -> plbx.v1.Workspace
-	15, // 9: plbx.v1.Spec.resources:type_name -> plbx.v1.Resources
-	43, // 10: plbx.v1.Spec.env:type_name -> plbx.v1.Spec.EnvEntry
-	45, // 11: plbx.v1.Spec.created_at:type_name -> google.protobuf.Timestamp
-	45, // 12: plbx.v1.State.started_at:type_name -> google.protobuf.Timestamp
-	13, // 13: plbx.v1.Sandbox.spec:type_name -> plbx.v1.Spec
-	17, // 14: plbx.v1.Sandbox.state:type_name -> plbx.v1.State
-	16, // 15: plbx.v1.Sandbox.ports:type_name -> plbx.v1.Port
-	44, // 16: plbx.v1.ExecRequest.env:type_name -> plbx.v1.ExecRequest.EnvEntry
-	13, // 17: plbx.v1.CreateRequest.spec:type_name -> plbx.v1.Spec
-	18, // 18: plbx.v1.CreateResponse.sandbox:type_name -> plbx.v1.Sandbox
-	18, // 19: plbx.v1.ListResponse.sandboxes:type_name -> plbx.v1.Sandbox
-	19, // 20: plbx.v1.InspectRequest.ref:type_name -> plbx.v1.Ref
-	18, // 21: plbx.v1.InspectResponse.sandbox:type_name -> plbx.v1.Sandbox
-	19, // 22: plbx.v1.StartRequest.ref:type_name -> plbx.v1.Ref
-	19, // 23: plbx.v1.StopRequest.ref:type_name -> plbx.v1.Ref
-	19, // 24: plbx.v1.RemoveRequest.ref:type_name -> plbx.v1.Ref
-	20, // 25: plbx.v1.CopyRequest.src:type_name -> plbx.v1.Path
-	20, // 26: plbx.v1.CopyRequest.dst:type_name -> plbx.v1.Path
-	19, // 27: plbx.v1.StatsRequest.ref:type_name -> plbx.v1.Ref
-	19, // 28: plbx.v1.ExecStart.ref:type_name -> plbx.v1.Ref
-	21, // 29: plbx.v1.ExecStart.request:type_name -> plbx.v1.ExecRequest
-	23, // 30: plbx.v1.ExecStart.size:type_name -> plbx.v1.Size
-	39, // 31: plbx.v1.ExecClientFrame.start:type_name -> plbx.v1.ExecStart
-	23, // 32: plbx.v1.ExecClientFrame.resize:type_name -> plbx.v1.Size
-	40, // 33: plbx.v1.ExecClientFrame.stdin_close:type_name -> plbx.v1.ExecStdinClose
-	24, // 34: plbx.v1.Sandboxes.Create:input_type -> plbx.v1.CreateRequest
-	26, // 35: plbx.v1.Sandboxes.List:input_type -> plbx.v1.ListRequest
-	28, // 36: plbx.v1.Sandboxes.Inspect:input_type -> plbx.v1.InspectRequest
-	30, // 37: plbx.v1.Sandboxes.Start:input_type -> plbx.v1.StartRequest
-	32, // 38: plbx.v1.Sandboxes.Stop:input_type -> plbx.v1.StopRequest
-	34, // 39: plbx.v1.Sandboxes.Remove:input_type -> plbx.v1.RemoveRequest
-	36, // 40: plbx.v1.Sandboxes.Copy:input_type -> plbx.v1.CopyRequest
+	47, // 7: plbx.v1.InfoResponse.started_at:type_name -> google.protobuf.Timestamp
+	16, // 8: plbx.v1.Spec.workspaces:type_name -> plbx.v1.Workspace
+	17, // 9: plbx.v1.Spec.resources:type_name -> plbx.v1.Resources
+	45, // 10: plbx.v1.Spec.env:type_name -> plbx.v1.Spec.EnvEntry
+	47, // 11: plbx.v1.Spec.created_at:type_name -> google.protobuf.Timestamp
+	47, // 12: plbx.v1.State.started_at:type_name -> google.protobuf.Timestamp
+	15, // 13: plbx.v1.Sandbox.spec:type_name -> plbx.v1.Spec
+	19, // 14: plbx.v1.Sandbox.state:type_name -> plbx.v1.State
+	18, // 15: plbx.v1.Sandbox.ports:type_name -> plbx.v1.Port
+	46, // 16: plbx.v1.ExecRequest.env:type_name -> plbx.v1.ExecRequest.EnvEntry
+	15, // 17: plbx.v1.CreateRequest.spec:type_name -> plbx.v1.Spec
+	20, // 18: plbx.v1.CreateResponse.sandbox:type_name -> plbx.v1.Sandbox
+	20, // 19: plbx.v1.ListResponse.sandboxes:type_name -> plbx.v1.Sandbox
+	21, // 20: plbx.v1.InspectRequest.ref:type_name -> plbx.v1.Ref
+	20, // 21: plbx.v1.InspectResponse.sandbox:type_name -> plbx.v1.Sandbox
+	21, // 22: plbx.v1.StartRequest.ref:type_name -> plbx.v1.Ref
+	21, // 23: plbx.v1.StopRequest.ref:type_name -> plbx.v1.Ref
+	21, // 24: plbx.v1.RemoveRequest.ref:type_name -> plbx.v1.Ref
+	22, // 25: plbx.v1.CopyRequest.src:type_name -> plbx.v1.Path
+	22, // 26: plbx.v1.CopyRequest.dst:type_name -> plbx.v1.Path
+	21, // 27: plbx.v1.StatsRequest.ref:type_name -> plbx.v1.Ref
+	21, // 28: plbx.v1.ExecStart.ref:type_name -> plbx.v1.Ref
+	23, // 29: plbx.v1.ExecStart.request:type_name -> plbx.v1.ExecRequest
+	25, // 30: plbx.v1.ExecStart.size:type_name -> plbx.v1.Size
+	41, // 31: plbx.v1.ExecClientFrame.start:type_name -> plbx.v1.ExecStart
+	25, // 32: plbx.v1.ExecClientFrame.resize:type_name -> plbx.v1.Size
+	42, // 33: plbx.v1.ExecClientFrame.stdin_close:type_name -> plbx.v1.ExecStdinClose
+	26, // 34: plbx.v1.Sandboxes.Create:input_type -> plbx.v1.CreateRequest
+	28, // 35: plbx.v1.Sandboxes.List:input_type -> plbx.v1.ListRequest
+	30, // 36: plbx.v1.Sandboxes.Inspect:input_type -> plbx.v1.InspectRequest
+	32, // 37: plbx.v1.Sandboxes.Start:input_type -> plbx.v1.StartRequest
+	34, // 38: plbx.v1.Sandboxes.Stop:input_type -> plbx.v1.StopRequest
+	36, // 39: plbx.v1.Sandboxes.Remove:input_type -> plbx.v1.RemoveRequest
+	38, // 40: plbx.v1.Sandboxes.Copy:input_type -> plbx.v1.CopyRequest
 	3,  // 41: plbx.v1.Sandboxes.Publish:input_type -> plbx.v1.PublishRequest
-	38, // 42: plbx.v1.Sandboxes.Stats:input_type -> plbx.v1.StatsRequest
-	41, // 43: plbx.v1.Sandboxes.Exec:input_type -> plbx.v1.ExecClientFrame
-	5,  // 44: plbx.v1.Sandboxes.GetPolicy:input_type -> plbx.v1.GetPolicyRequest
-	7,  // 45: plbx.v1.Sandboxes.SetPolicy:input_type -> plbx.v1.SetPolicyRequest
-	9,  // 46: plbx.v1.Sandboxes.Connections:input_type -> plbx.v1.ConnectionsRequest
-	11, // 47: plbx.v1.Sandboxes.Info:input_type -> plbx.v1.InfoRequest
-	25, // 48: plbx.v1.Sandboxes.Create:output_type -> plbx.v1.CreateResponse
-	27, // 49: plbx.v1.Sandboxes.List:output_type -> plbx.v1.ListResponse
-	29, // 50: plbx.v1.Sandboxes.Inspect:output_type -> plbx.v1.InspectResponse
-	31, // 51: plbx.v1.Sandboxes.Start:output_type -> plbx.v1.StartResponse
-	33, // 52: plbx.v1.Sandboxes.Stop:output_type -> plbx.v1.StopResponse
-	35, // 53: plbx.v1.Sandboxes.Remove:output_type -> plbx.v1.RemoveResponse
-	37, // 54: plbx.v1.Sandboxes.Copy:output_type -> plbx.v1.CopyResponse
-	4,  // 55: plbx.v1.Sandboxes.Publish:output_type -> plbx.v1.PublishResponse
-	22, // 56: plbx.v1.Sandboxes.Stats:output_type -> plbx.v1.Sample
-	42, // 57: plbx.v1.Sandboxes.Exec:output_type -> plbx.v1.ExecServerFrame
-	6,  // 58: plbx.v1.Sandboxes.GetPolicy:output_type -> plbx.v1.GetPolicyResponse
-	8,  // 59: plbx.v1.Sandboxes.SetPolicy:output_type -> plbx.v1.SetPolicyResponse
-	10, // 60: plbx.v1.Sandboxes.Connections:output_type -> plbx.v1.ConnectionsResponse
-	12, // 61: plbx.v1.Sandboxes.Info:output_type -> plbx.v1.InfoResponse
-	48, // [48:62] is the sub-list for method output_type
-	34, // [34:48] is the sub-list for method input_type
+	40, // 42: plbx.v1.Sandboxes.Stats:input_type -> plbx.v1.StatsRequest
+	11, // 43: plbx.v1.Sandboxes.PullImage:input_type -> plbx.v1.PullImageRequest
+	43, // 44: plbx.v1.Sandboxes.Exec:input_type -> plbx.v1.ExecClientFrame
+	5,  // 45: plbx.v1.Sandboxes.GetPolicy:input_type -> plbx.v1.GetPolicyRequest
+	7,  // 46: plbx.v1.Sandboxes.SetPolicy:input_type -> plbx.v1.SetPolicyRequest
+	9,  // 47: plbx.v1.Sandboxes.Connections:input_type -> plbx.v1.ConnectionsRequest
+	13, // 48: plbx.v1.Sandboxes.Info:input_type -> plbx.v1.InfoRequest
+	27, // 49: plbx.v1.Sandboxes.Create:output_type -> plbx.v1.CreateResponse
+	29, // 50: plbx.v1.Sandboxes.List:output_type -> plbx.v1.ListResponse
+	31, // 51: plbx.v1.Sandboxes.Inspect:output_type -> plbx.v1.InspectResponse
+	33, // 52: plbx.v1.Sandboxes.Start:output_type -> plbx.v1.StartResponse
+	35, // 53: plbx.v1.Sandboxes.Stop:output_type -> plbx.v1.StopResponse
+	37, // 54: plbx.v1.Sandboxes.Remove:output_type -> plbx.v1.RemoveResponse
+	39, // 55: plbx.v1.Sandboxes.Copy:output_type -> plbx.v1.CopyResponse
+	4,  // 56: plbx.v1.Sandboxes.Publish:output_type -> plbx.v1.PublishResponse
+	24, // 57: plbx.v1.Sandboxes.Stats:output_type -> plbx.v1.Sample
+	12, // 58: plbx.v1.Sandboxes.PullImage:output_type -> plbx.v1.PullProgress
+	44, // 59: plbx.v1.Sandboxes.Exec:output_type -> plbx.v1.ExecServerFrame
+	6,  // 60: plbx.v1.Sandboxes.GetPolicy:output_type -> plbx.v1.GetPolicyResponse
+	8,  // 61: plbx.v1.Sandboxes.SetPolicy:output_type -> plbx.v1.SetPolicyResponse
+	10, // 62: plbx.v1.Sandboxes.Connections:output_type -> plbx.v1.ConnectionsResponse
+	14, // 63: plbx.v1.Sandboxes.Info:output_type -> plbx.v1.InfoResponse
+	49, // [49:64] is the sub-list for method output_type
+	34, // [34:49] is the sub-list for method input_type
 	34, // [34:34] is the sub-list for extension type_name
 	34, // [34:34] is the sub-list for extension extendee
 	0,  // [0:34] is the sub-list for field type_name
@@ -2615,13 +2712,13 @@ func file_plbx_proto_init() {
 	if File_plbx_proto != nil {
 		return
 	}
-	file_plbx_proto_msgTypes[41].OneofWrappers = []any{
+	file_plbx_proto_msgTypes[43].OneofWrappers = []any{
 		(*ExecClientFrame_Start)(nil),
 		(*ExecClientFrame_Stdin)(nil),
 		(*ExecClientFrame_Resize)(nil),
 		(*ExecClientFrame_StdinClose)(nil),
 	}
-	file_plbx_proto_msgTypes[42].OneofWrappers = []any{
+	file_plbx_proto_msgTypes[44].OneofWrappers = []any{
 		(*ExecServerFrame_Stdout)(nil),
 		(*ExecServerFrame_Stderr)(nil),
 		(*ExecServerFrame_ExitCode)(nil),
@@ -2632,7 +2729,7 @@ func file_plbx_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_plbx_proto_rawDesc), len(file_plbx_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   45,
+			NumMessages:   47,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -77,6 +77,15 @@ type Service interface {
 	// SetPolicy replaces the host's egress policy. It applies to every
 	// sandbox from the next connection onward.
 	SetPolicy(ctx context.Context, p proxy.Policy) error
+	// PullImage fetches a sandbox image, yielding the runtime's progress a
+	// line at a time and closing when it is done. An image already present
+	// yields nothing at all, because nothing has to happen.
+	//
+	// Separate from Create because it is the slow half and the only half with
+	// anything to report: a first run waits minutes here and no time at all
+	// in the step that follows.
+	PullImage(ctx context.Context, image string) (<-chan string, error)
+
 	// Connections returns the proxy's decisions recorded after since. Passing
 	// zero returns everything still held.
 	Connections(ctx context.Context, since uint64) ([]proxy.Entry, error)

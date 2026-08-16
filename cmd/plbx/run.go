@@ -69,7 +69,7 @@ func runAgent(
 		return err
 	}
 
-	sb, created, err := resolveOrCreate(ctx, svc, flags, agent, paths, cwd)
+	sb, created, err := resolveOrCreate(ctx, cmd, svc, flags, agent, paths, cwd)
 	if err != nil {
 		return err
 	}
@@ -116,7 +116,7 @@ func runAgent(
 // resolveOrCreate finds the sandbox this invocation refers to, creating it when
 // none exists. It reports whether it created one.
 func resolveOrCreate(
-	ctx context.Context, svc api.Service,
+	ctx context.Context, cmd *cobra.Command, svc api.Service,
 	flags *specFlags, agent string, paths []string, cwd string,
 ) (api.Sandbox, bool, error) {
 	ref, err := runRef(flags, paths, cwd)
@@ -139,6 +139,11 @@ func resolveOrCreate(
 	}
 	ports, err := flags.parsePorts()
 	if err != nil {
+		return api.Sandbox{}, false, err
+	}
+	// a first run for an agent is a multi-gigabyte download, and this is the
+	// only place it has to say so.
+	if err := fetchImage(ctx, cmd, svc, spec.Image); err != nil {
 		return api.Sandbox{}, false, err
 	}
 	sb, err = svc.Create(ctx, spec)

@@ -1,14 +1,47 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
 
+	"charm.land/lipgloss/v2"
 	"github.com/spf13/cobra"
 
 	"github.com/rhizomatous/planterbox/internal/api"
+	"github.com/rhizomatous/planterbox/internal/ui"
 )
+
+// fetchImage pulls a sandbox's image, reporting progress as the runtime
+// gives it.
+//
+// An image already present says nothing and returns at once, so this costs a
+// warm create nothing. A cold one is minutes of a multi-gigabyte download,
+// and it used to spend all of them silent — which reads as a hang, because
+// there is nothing to distinguish it from one.
+func fetchImage(ctx context.Context, cmd *cobra.Command, svc api.Service, image string) error {
+	lines, err := svc.PullImage(ctx, image)
+	if err != nil {
+		return err
+	}
+	var announced bool
+	for line := range lines {
+		if !announced {
+			announced = true
+			if _, err := lipgloss.Fprintln(cmd.OutOrStdout(),
+				ui.Faint.Render("  fetching    ")+image); err != nil {
+				return err
+			}
+		}
+		if line = strings.TrimSpace(line); line != "" {
+			if _, err := lipgloss.Fprintln(cmd.OutOrStdout(), ui.Faint.Render("    "+line)); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
 
 // agentList names the agents AGENT accepts, for the help of the two commands
 // that take one. It lives here so the two cannot drift apart.

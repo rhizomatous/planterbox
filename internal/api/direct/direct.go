@@ -229,6 +229,11 @@ func (s *Service) Stats(ctx context.Context, ref api.Ref) (<-chan api.Stats, err
 	return s.runner.Stats(ctx, containerID(sb))
 }
 
+// PullImage fetches an image if the runtime does not already have it.
+func (s *Service) PullImage(ctx context.Context, image string) (<-chan string, error) {
+	return s.runner.PullImage(ctx, image)
+}
+
 // Close releases nothing: the direct service holds no long-lived handles.
 func (s *Service) Close() error { return nil }
 

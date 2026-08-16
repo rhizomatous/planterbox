@@ -22,6 +22,11 @@ type ID string
 // Runner drives one container runtime.
 type Runner interface {
 	Create(ctx context.Context, spec api.Spec) (ID, error)
+	// PullImage fetches an image if it is not already here, yielding the
+	// runtime's own progress a line at a time. An image already present
+	// yields nothing: `create` only pulls what is missing, and pulling
+	// anyway would put a registry round trip in front of every sandbox.
+	PullImage(ctx context.Context, image string) (<-chan string, error)
 	Start(ctx context.Context, id ID, sandbox string) error
 	Stop(ctx context.Context, id ID) error
 	Remove(ctx context.Context, id ID, sandbox string, force bool) error

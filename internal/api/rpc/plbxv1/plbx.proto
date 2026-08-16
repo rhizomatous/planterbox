@@ -24,6 +24,10 @@ service Sandboxes {
   // Stats streams samples until the sandbox stops or the client goes away.
   rpc Stats(StatsRequest) returns (stream Sample);
 
+  // PullImage fetches an image, streaming the runtime's own progress. An
+  // image already present streams nothing and ends at once.
+  rpc PullImage(PullImageRequest) returns (stream PullProgress);
+
   // Exec runs a command in a sandbox with its stdio streamed both ways. The
   // client's first frame must be a Start; the daemon owns the session, which
   // is what lets it hold a pty and what the SSH gateway will attach to.
@@ -85,6 +89,9 @@ message SetPolicyResponse {}
 
 message ConnectionsRequest { uint64 since = 1; }
 message ConnectionsResponse { repeated Decision decisions = 1; }
+
+message PullImageRequest { string image = 1; }
+message PullProgress { string line = 1; }
 
 message InfoRequest {}
 message InfoResponse {

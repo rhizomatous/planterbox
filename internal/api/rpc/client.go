@@ -146,6 +146,31 @@ func (c *Client) Stats(ctx context.Context, ref api.Ref) (<-chan api.Stats, erro
 	return out, nil
 }
 
+// PullImage fetches an image, relaying the daemon's progress.
+func (c *Client) PullImage(ctx context.Context, image string) (<-chan string, error) {
+	stream, err := c.svc.PullImage(ctx, &plbxv1.PullImageRequest{Image: image})
+	if err != nil {
+		return nil, localError(err)
+	}
+
+	out := make(chan string)
+	go func() {
+		defer close(out)
+		for {
+			progress, err := stream.Recv()
+			if err != nil {
+				return // EOF, a cancelled context, or a dead daemon: all end the feed
+			}
+			select {
+			case out <- progress.GetLine():
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+	return out, nil
+}
+
 // Policy returns the host's egress policy.
 func (c *Client) Policy(ctx context.Context) (proxy.Policy, error) {
 	resp, err := c.svc.GetPolicy(ctx, &plbxv1.GetPolicyRequest{})

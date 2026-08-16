@@ -102,6 +102,20 @@ func (s *Server) Stop(ctx context.Context, req *plbxv1.StopRequest) (*plbxv1.Sto
 	return &plbxv1.StopResponse{}, nil
 }
 
+// PullImage fetches an image and streams the runtime's progress out.
+func (s *Server) PullImage(req *plbxv1.PullImageRequest, stream grpc.ServerStreamingServer[plbxv1.PullProgress]) error {
+	lines, err := s.svc.PullImage(stream.Context(), req.GetImage())
+	if err != nil {
+		return wireError(err)
+	}
+	for line := range lines {
+		if err := stream.Send(&plbxv1.PullProgress{Line: line}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Remove deletes a sandbox, refusing a running one unless force is set.
 func (s *Server) Remove(ctx context.Context, req *plbxv1.RemoveRequest) (*plbxv1.RemoveResponse, error) {
 	if err := s.svc.Remove(ctx, apiRef(req.GetRef()), req.GetForce()); err != nil {

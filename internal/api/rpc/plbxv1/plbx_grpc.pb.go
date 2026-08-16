@@ -28,6 +28,7 @@ const (
 	Sandboxes_Copy_FullMethodName        = "/plbx.v1.Sandboxes/Copy"
 	Sandboxes_Publish_FullMethodName     = "/plbx.v1.Sandboxes/Publish"
 	Sandboxes_Stats_FullMethodName       = "/plbx.v1.Sandboxes/Stats"
+	Sandboxes_PullImage_FullMethodName   = "/plbx.v1.Sandboxes/PullImage"
 	Sandboxes_Exec_FullMethodName        = "/plbx.v1.Sandboxes/Exec"
 	Sandboxes_GetPolicy_FullMethodName   = "/plbx.v1.Sandboxes/GetPolicy"
 	Sandboxes_SetPolicy_FullMethodName   = "/plbx.v1.Sandboxes/SetPolicy"
@@ -55,6 +56,9 @@ type SandboxesClient interface {
 	Publish(ctx context.Context, in *PublishRequest, opts ...grpc.CallOption) (*PublishResponse, error)
 	// Stats streams samples until the sandbox stops or the client goes away.
 	Stats(ctx context.Context, in *StatsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Sample], error)
+	// PullImage fetches an image, streaming the runtime's own progress. An
+	// image already present streams nothing and ends at once.
+	PullImage(ctx context.Context, in *PullImageRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[PullProgress], error)
 	// Exec runs a command in a sandbox with its stdio streamed both ways. The
 	// client's first frame must be a Start; the daemon owns the session, which
 	// is what lets it hold a pty and what the SSH gateway will attach to.
@@ -182,9 +186,28 @@ func (c *sandboxesClient) Stats(ctx context.Context, in *StatsRequest, opts ...g
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type Sandboxes_StatsClient = grpc.ServerStreamingClient[Sample]
 
+func (c *sandboxesClient) PullImage(ctx context.Context, in *PullImageRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[PullProgress], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &Sandboxes_ServiceDesc.Streams[1], Sandboxes_PullImage_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[PullImageRequest, PullProgress]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type Sandboxes_PullImageClient = grpc.ServerStreamingClient[PullProgress]
+
 func (c *sandboxesClient) Exec(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[ExecClientFrame, ExecServerFrame], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &Sandboxes_ServiceDesc.Streams[1], Sandboxes_Exec_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &Sandboxes_ServiceDesc.Streams[2], Sandboxes_Exec_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -255,6 +278,9 @@ type SandboxesServer interface {
 	Publish(context.Context, *PublishRequest) (*PublishResponse, error)
 	// Stats streams samples until the sandbox stops or the client goes away.
 	Stats(*StatsRequest, grpc.ServerStreamingServer[Sample]) error
+	// PullImage fetches an image, streaming the runtime's own progress. An
+	// image already present streams nothing and ends at once.
+	PullImage(*PullImageRequest, grpc.ServerStreamingServer[PullProgress]) error
 	// Exec runs a command in a sandbox with its stdio streamed both ways. The
 	// client's first frame must be a Start; the daemon owns the session, which
 	// is what lets it hold a pty and what the SSH gateway will attach to.
@@ -309,6 +335,9 @@ func (UnimplementedSandboxesServer) Publish(context.Context, *PublishRequest) (*
 }
 func (UnimplementedSandboxesServer) Stats(*StatsRequest, grpc.ServerStreamingServer[Sample]) error {
 	return status.Error(codes.Unimplemented, "method Stats not implemented")
+}
+func (UnimplementedSandboxesServer) PullImage(*PullImageRequest, grpc.ServerStreamingServer[PullProgress]) error {
+	return status.Error(codes.Unimplemented, "method PullImage not implemented")
 }
 func (UnimplementedSandboxesServer) Exec(grpc.BidiStreamingServer[ExecClientFrame, ExecServerFrame]) error {
 	return status.Error(codes.Unimplemented, "method Exec not implemented")
@@ -501,6 +530,17 @@ func _Sandboxes_Stats_Handler(srv interface{}, stream grpc.ServerStream) error {
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type Sandboxes_StatsServer = grpc.ServerStreamingServer[Sample]
 
+func _Sandboxes_PullImage_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(PullImageRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(SandboxesServer).PullImage(m, &grpc.GenericServerStream[PullImageRequest, PullProgress]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type Sandboxes_PullImageServer = grpc.ServerStreamingServer[PullProgress]
+
 func _Sandboxes_Exec_Handler(srv interface{}, stream grpc.ServerStream) error {
 	return srv.(SandboxesServer).Exec(&grpc.GenericServerStream[ExecClientFrame, ExecServerFrame]{ServerStream: stream})
 }
@@ -640,6 +680,11 @@ var Sandboxes_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "Stats",
 			Handler:       _Sandboxes_Stats_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "PullImage",
+			Handler:       _Sandboxes_PullImage_Handler,
 			ServerStreams: true,
 		},
 		{
