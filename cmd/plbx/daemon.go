@@ -3,6 +3,8 @@ package main
 import (
 	"runtime"
 	"strconv"
+	"strings"
+	"time"
 
 	"charm.land/lipgloss/v2"
 	"github.com/spf13/cobra"
@@ -21,7 +23,7 @@ func newDaemonCmd(g *globals) *cobra.Command {
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error { return cmd.Help() },
 	}
-	cmd.AddCommand(newDaemonStartCmd(g), newDaemonStopCmd(), newDaemonStatusCmd())
+	cmd.AddCommand(newDaemonStartCmd(g), newDaemonStopCmd(), newDaemonRestartCmd(g), newDaemonStatusCmd())
 	return cmd
 }
 
@@ -63,6 +65,64 @@ func newDaemonStopCmd() *cobra.Command {
 	}
 }
 
+func newDaemonRestartCmd(g *globals) *cobra.Command {
+	return &cobra.Command{
+		Use:   "restart",
+		Short: "stop the daemon and start it again",
+		Long: "Stop the daemon and start a new one. Sandboxes are containers in their " +
+			"own right and keep running throughout.\n\n" +
+			"This is what picks up an upgrade: plbx starts the daemon on demand, and " +
+			"the one already running stays on the build it was started from until " +
+			"something replaces it.",
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			ctx := cmd.Context()
+			env := daemon.HostEnv(runtime.GOOS)
+
+			if _, ok := daemon.Running(ctx, env); ok {
+				if err := daemon.Stop(ctx, env); err != nil {
+					return err
+				}
+			}
+			if err := daemon.Start(ctx, env, g.stateDir); err != nil {
+				return err
+			}
+			pid, _ := daemon.Running(ctx, env)
+			return report(cmd, ui.OK, "restarted", pid)
+		},
+	}
+}
+
+// daemonVersionLabel names the build a daemon reports, or says plainly that it
+// could not say — which only a daemon predating the call can do, and is
+// therefore an answer about its age.
+func daemonVersionLabel(v string) string {
+	if v == "" {
+		return "unknown (too old to say)"
+	}
+	return v
+}
+
+// versionSkew reports the mismatch between this plbx and the daemon answering
+// it, if there is one.
+//
+// plbx autostarts plbxd and the daemon then outlives the upgrade that replaced
+// it, so a CLI talking to the previous build is the ordinary result of
+// installing a new version rather than an exotic failure. Nothing else about
+// it looks wrong: commands work, and answer as the old build would.
+func versionSkew(daemonVersion string) string {
+	cli := buildVersion()
+	if daemonVersion == cli {
+		return ""
+	}
+	if daemonVersion == "" {
+		return "this daemon predates plbx " + cli + " and is answering as its own build does. " +
+			"plbx daemon restart picks up the current one."
+	}
+	return "plbx is " + cli + " and the daemon is " + daemonVersion +
+		". They will disagree wherever the two builds do — plbx daemon restart fixes it."
+}
+
 func newDaemonStatusCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "status",
@@ -76,17 +136,34 @@ func newDaemonStatusCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			logPath, _ := daemon.LogPath(env)
+
 			pid, ok := daemon.Running(ctx, env)
 			if !ok {
 				_, err := lipgloss.Fprintln(cmd.OutOrStdout(),
 					ui.Faint.Render("not running")+"\n"+
-						ui.Faint.Render("  socket  ")+socket)
+						ui.Faint.Render("  socket  ")+socket+"\n"+
+						ui.Faint.Render("  log     ")+logPath)
 				return err
 			}
-			_, err = lipgloss.Fprintln(cmd.OutOrStdout(),
-				ui.OK.Render("running")+"\n"+
-					ui.Faint.Render("  pid     ")+ui.Value.Render(pidLabel(pid))+"\n"+
-					ui.Faint.Render("  socket  ")+socket)
+
+			lines := []string{ui.OK.Render("running")}
+			info, _ := daemon.Info(ctx, env)
+			// a daemon too old to answer reports nothing, which is itself the
+			// answer: it is not this build.
+			lines = append(lines,
+				ui.Faint.Render("  version ")+ui.Value.Render(daemonVersionLabel(info.Version)),
+				ui.Faint.Render("  pid     ")+ui.Value.Render(pidLabel(pid)))
+			if !info.StartedAt.IsZero() {
+				lines = append(lines, ui.Faint.Render("  uptime  ")+ui.Uptime(info.StartedAt, time.Now()))
+			}
+			lines = append(lines,
+				ui.Faint.Render("  socket  ")+socket,
+				ui.Faint.Render("  log     ")+logPath)
+			if warning := versionSkew(info.Version); warning != "" {
+				lines = append(lines, "", ui.Warn.Render(warning))
+			}
+			_, err = lipgloss.Fprintln(cmd.OutOrStdout(), strings.Join(lines, "\n"))
 			return err
 		},
 	}

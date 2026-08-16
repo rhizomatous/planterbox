@@ -66,6 +66,7 @@ func run() int {
 		StateDir:   stateDir,
 		ProxyAddr:  proxyAddr,
 		RelayImage: relayImage,
+		Version:    version,
 	}
 	opts.Ready = func() {
 		ui.Log.Info("plbxd listening", "socket", socket, "proxy", daemon.ProxyAddress(opts))

@@ -39,6 +39,9 @@ type Options struct {
 	RelayImage string
 	// SSHSocket overrides where the ssh gateway listens.
 	SSHSocket string
+	// Version is the build this daemon is, reported to clients so they can
+	// tell whether it matches theirs.
+	Version string
 	// Ready, when set, is called once the daemon is listening. Tests use it to
 	// learn when it is safe to connect.
 	Ready func()
@@ -125,7 +128,7 @@ func Serve(ctx context.Context, opts Options) error {
 	}
 
 	server := grpc.NewServer()
-	rpc.NewServer(svc).Register(server)
+	rpc.NewServer(svc, rpc.WithVersion(opts.Version)).Register(server)
 
 	served := make(chan error, 1)
 	go func() { served <- server.Serve(lis) }()

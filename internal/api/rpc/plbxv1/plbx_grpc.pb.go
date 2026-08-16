@@ -32,6 +32,7 @@ const (
 	Sandboxes_GetPolicy_FullMethodName   = "/plbx.v1.Sandboxes/GetPolicy"
 	Sandboxes_SetPolicy_FullMethodName   = "/plbx.v1.Sandboxes/SetPolicy"
 	Sandboxes_Connections_FullMethodName = "/plbx.v1.Sandboxes/Connections"
+	Sandboxes_Info_FullMethodName        = "/plbx.v1.Sandboxes/Info"
 )
 
 // SandboxesClient is the client API for Sandboxes service.
@@ -64,6 +65,14 @@ type SandboxesClient interface {
 	// caller already has. Polled rather than streamed: the dashboard re-reads on
 	// a tick anyway, and this costs the daemon no subscription per viewer.
 	Connections(ctx context.Context, in *ConnectionsRequest, opts ...grpc.CallOption) (*ConnectionsResponse, error)
+	// Info reports what the daemon is, so a client can tell whether it is
+	// talking to its own build. plbx autostarts plbxd and the daemon outlives
+	// an upgrade, so the two silently disagreeing about behaviour is the
+	// normal outcome of installing a new version, not an exotic one.
+	//
+	// Not part of api.Service: there is no daemon in the in-process case, so
+	// there is nothing for it to answer.
+	Info(ctx context.Context, in *InfoRequest, opts ...grpc.CallOption) (*InfoResponse, error)
 }
 
 type sandboxesClient struct {
@@ -216,6 +225,16 @@ func (c *sandboxesClient) Connections(ctx context.Context, in *ConnectionsReques
 	return out, nil
 }
 
+func (c *sandboxesClient) Info(ctx context.Context, in *InfoRequest, opts ...grpc.CallOption) (*InfoResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(InfoResponse)
+	err := c.cc.Invoke(ctx, Sandboxes_Info_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // SandboxesServer is the server API for Sandboxes service.
 // All implementations must embed UnimplementedSandboxesServer
 // for forward compatibility.
@@ -246,6 +265,14 @@ type SandboxesServer interface {
 	// caller already has. Polled rather than streamed: the dashboard re-reads on
 	// a tick anyway, and this costs the daemon no subscription per viewer.
 	Connections(context.Context, *ConnectionsRequest) (*ConnectionsResponse, error)
+	// Info reports what the daemon is, so a client can tell whether it is
+	// talking to its own build. plbx autostarts plbxd and the daemon outlives
+	// an upgrade, so the two silently disagreeing about behaviour is the
+	// normal outcome of installing a new version, not an exotic one.
+	//
+	// Not part of api.Service: there is no daemon in the in-process case, so
+	// there is nothing for it to answer.
+	Info(context.Context, *InfoRequest) (*InfoResponse, error)
 	mustEmbedUnimplementedSandboxesServer()
 }
 
@@ -294,6 +321,9 @@ func (UnimplementedSandboxesServer) SetPolicy(context.Context, *SetPolicyRequest
 }
 func (UnimplementedSandboxesServer) Connections(context.Context, *ConnectionsRequest) (*ConnectionsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Connections not implemented")
+}
+func (UnimplementedSandboxesServer) Info(context.Context, *InfoRequest) (*InfoResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Info not implemented")
 }
 func (UnimplementedSandboxesServer) mustEmbedUnimplementedSandboxesServer() {}
 func (UnimplementedSandboxesServer) testEmbeddedByValue()                   {}
@@ -532,6 +562,24 @@ func _Sandboxes_Connections_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Sandboxes_Info_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InfoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SandboxesServer).Info(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Sandboxes_Info_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SandboxesServer).Info(ctx, req.(*InfoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Sandboxes_ServiceDesc is the grpc.ServiceDesc for Sandboxes service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -582,6 +630,10 @@ var Sandboxes_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Connections",
 			Handler:    _Sandboxes_Connections_Handler,
+		},
+		{
+			MethodName: "Info",
+			Handler:    _Sandboxes_Info_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

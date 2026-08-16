@@ -2,12 +2,15 @@ package main
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	"github.com/spf13/cobra"
 
 	"github.com/rhizomatous/planterbox/internal/api"
 	"github.com/rhizomatous/planterbox/internal/api/direct"
 	"github.com/rhizomatous/planterbox/internal/daemon"
+	"github.com/rhizomatous/planterbox/internal/ui"
 )
 
 // globals are the flags every subcommand shares.
@@ -41,7 +44,39 @@ func (g *globals) open(cmd *cobra.Command) (api.Service, error) {
 			DryRunOut: cmd.OutOrStdout(),
 		})
 	}
-	return daemon.Connect(cmd.Context(), daemon.ConnectOptions{})
+	svc, err := daemon.Connect(cmd.Context(), daemon.ConnectOptions{})
+	if err != nil {
+		return nil, err
+	}
+	warnOnVersionSkew(cmd, svc)
+	return svc, nil
+}
+
+// warnOnVersionSkew says so, once, when the daemon answering is not this
+// build.
+//
+// This is the failure that hides: every command works, and answers the way the
+// older build did. It cost an afternoon of chasing a bug that had already been
+// fixed, because the daemon serving the old message had been running since
+// before the fix.
+func warnOnVersionSkew(cmd *cobra.Command, svc api.Service) {
+	asker, ok := svc.(interface {
+		Info(context.Context) (api.DaemonInfo, error)
+	})
+	if !ok {
+		return
+	}
+	info, err := asker.Info(cmd.Context())
+	// a daemon that does not know the call is the oldest kind there is, and
+	// the one this exists to catch — so an unimplemented answer is an answer.
+	// Anything else means the daemon is unwell, which the command itself is
+	// about to say better than a warning could.
+	if err != nil && !errors.Is(err, api.ErrNotImplemented) {
+		return
+	}
+	if warning := versionSkew(info.Version); warning != "" {
+		_, _ = fmt.Fprintln(cmd.ErrOrStderr(), ui.Warn.Render("! "+warning))
+	}
 }
 
 // withService resolves the service, runs fn, and closes it.

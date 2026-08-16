@@ -36,6 +36,15 @@ service Sandboxes {
   // caller already has. Polled rather than streamed: the dashboard re-reads on
   // a tick anyway, and this costs the daemon no subscription per viewer.
   rpc Connections(ConnectionsRequest) returns (ConnectionsResponse);
+
+  // Info reports what the daemon is, so a client can tell whether it is
+  // talking to its own build. plbx autostarts plbxd and the daemon outlives
+  // an upgrade, so the two silently disagreeing about behaviour is the
+  // normal outcome of installing a new version, not an exotic one.
+  //
+  // Not part of api.Service: there is no daemon in the in-process case, so
+  // there is nothing for it to answer.
+  rpc Info(InfoRequest) returns (InfoResponse);
 }
 
 // Policy is the host's egress policy: a preset, plus the rules over it.
@@ -76,6 +85,13 @@ message SetPolicyResponse {}
 
 message ConnectionsRequest { uint64 since = 1; }
 message ConnectionsResponse { repeated Decision decisions = 1; }
+
+message InfoRequest {}
+message InfoResponse {
+  string version = 1;
+  google.protobuf.Timestamp started_at = 2;
+  int32 pid = 3;
+}
 
 // Spec is what a sandbox's container was built from, fixed when it is created.
 message Spec {

@@ -245,6 +245,18 @@ type Sandbox struct {
 	Ports []Port `json:"ports,omitempty"`
 }
 
+// DaemonInfo is what a running daemon reports about itself.
+//
+// The version matters because plbx autostarts plbxd and the daemon then
+// outlives the upgrade that replaced it — so a CLI talking to a daemon from
+// the previous build is what installing a new version normally produces, and
+// nothing else about it looks wrong.
+type DaemonInfo struct {
+	Version   string    `json:"version"`
+	StartedAt time.Time `json:"started_at,omitzero"`
+	PID       int       `json:"pid,omitempty"`
+}
+
 // ExecRequest describes a command to run inside a sandbox.
 type ExecRequest struct {
 	Cmd         []string

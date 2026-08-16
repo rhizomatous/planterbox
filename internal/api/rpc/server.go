@@ -2,8 +2,11 @@ package rpc
 
 import (
 	"context"
+	"os"
+	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/rhizomatous/planterbox/internal/api"
 	"github.com/rhizomatous/planterbox/internal/api/rpc/plbxv1"
@@ -14,13 +17,40 @@ import (
 // so the two implementations cannot drift.
 type Server struct {
 	plbxv1.UnimplementedSandboxesServer
-	svc api.Service
+	svc     api.Service
+	version string
+	started time.Time
 }
 
 var _ plbxv1.SandboxesServer = (*Server)(nil)
 
+// ServerOption configures a [Server].
+type ServerOption func(*Server)
+
+// WithVersion tells the server what build it is, for [Server.Info]. Without
+// it the daemon reports an empty version, which a client reads as "cannot
+// say" rather than as agreement.
+func WithVersion(version string) ServerOption {
+	return func(s *Server) { s.version = version }
+}
+
 // NewServer returns a gRPC service backed by svc.
-func NewServer(svc api.Service) *Server { return &Server{svc: svc} }
+func NewServer(svc api.Service, opts ...ServerOption) *Server {
+	s := &Server{svc: svc, started: time.Now()}
+	for _, opt := range opts {
+		opt(s)
+	}
+	return s
+}
+
+// Info reports the daemon's own build and uptime.
+func (s *Server) Info(_ context.Context, _ *plbxv1.InfoRequest) (*plbxv1.InfoResponse, error) {
+	return &plbxv1.InfoResponse{
+		Version:   s.version,
+		StartedAt: timestamppb.New(s.started),
+		Pid:       int32(os.Getpid()),
+	}, nil
+}
 
 // Register attaches the service to a gRPC server.
 func (s *Server) Register(g *grpc.Server) { plbxv1.RegisterSandboxesServer(g, s) }

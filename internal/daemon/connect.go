@@ -62,6 +62,29 @@ func Connect(ctx context.Context, opts ConnectOptions) (api.Service, error) {
 	return rpc.Dial(socket)
 }
 
+// Info asks a running daemon what it is. It reports whether one answered
+// rather than starting one: a caller checking on the daemon should not bring
+// it into being as a side effect.
+func Info(ctx context.Context, env Env) (api.DaemonInfo, bool) {
+	socket, err := Socket(env)
+	if err != nil || !alive(ctx, socket) {
+		return api.DaemonInfo{}, false
+	}
+	client, err := rpc.Dial(socket)
+	if err != nil {
+		return api.DaemonInfo{}, false
+	}
+	defer func() { _ = client.Close() }()
+
+	info, err := client.Info(ctx)
+	if err != nil {
+		// a daemon too old to know the call is exactly the case worth
+		// reporting, so an empty version is an answer rather than a failure.
+		return api.DaemonInfo{}, true
+	}
+	return info, true
+}
+
 // Start launches a daemon and waits for it to answer.
 //
 // The child is detached into its own session so it outlives the command that
