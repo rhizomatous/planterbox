@@ -25,7 +25,8 @@ const recordExt = ".json"
 
 // Store is a directory of sandbox records.
 type Store struct {
-	dir string
+	dir      string
+	readOnly bool
 }
 
 // Open returns a store rooted at dir, creating it if absent.
@@ -34,6 +35,19 @@ func Open(dir string) (*Store, error) {
 		return nil, fmt.Errorf("creating store %s: %w", dir, err)
 	}
 	return &Store{dir: dir}, nil
+}
+
+// OpenReadOnly returns a store that reads dir and discards every write,
+// without creating the directory if it is absent.
+//
+// This is what --dry-run runs against. Reads have to stay real, because
+// rendering what plbx would do to an existing sandbox means knowing what that
+// sandbox is — but nothing rendered should survive the command, and before
+// this a dry-run create left a record behind and a dry-run rm took one away.
+// Writes still validate; only the write itself is dropped, so a dry run still
+// reports the arguments it would have refused.
+func OpenReadOnly(dir string) (*Store, error) {
+	return &Store{dir: dir, readOnly: true}, nil
 }
 
 // Dir reports where the store keeps its records.
@@ -47,6 +61,9 @@ func (s *Store) Put(sb api.Sandbox) error {
 	data, err := json.MarshalIndent(sb, "", "  ")
 	if err != nil {
 		return fmt.Errorf("encoding sandbox %q: %w", sb.Spec.Name, err)
+	}
+	if s.readOnly {
+		return nil
 	}
 	return writeAtomic(s.path(sb.Spec.Name), append(data, '\n'))
 }
@@ -100,6 +117,14 @@ func (s *Store) List() ([]api.Sandbox, error) {
 
 // Delete removes a sandbox record.
 func (s *Store) Delete(name string) error {
+	if s.readOnly {
+		// still report a name that was never there, so a dry run and a real
+		// one disagree about the disk and nothing else.
+		if _, err := os.Stat(s.path(name)); os.IsNotExist(err) {
+			return fmt.Errorf("%w: %q", ErrNotFound, name)
+		}
+		return nil
+	}
 	err := os.Remove(s.path(name))
 	if os.IsNotExist(err) {
 		return fmt.Errorf("%w: %q", ErrNotFound, name)

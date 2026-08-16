@@ -29,6 +29,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Paths and prose that were trimmed to fit are now ellipsized. They are also cut from whichever end matters least: paths lose their front, prose loses its tail. This means that long workspace paths are now easier to read.
 - The error message when invoking a sandbox that does not exist now points you at `plbx ls`.
 - Flag descriptions no longer mangle initialisms into title case like `Cpu`.
+- `--dry-run` mistakenly wrote to your real sandbox records on `create` or `rm`. Now it doesn't.
 
 ## [0.6.2] - 2026-08-14
 

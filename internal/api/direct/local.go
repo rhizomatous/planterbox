@@ -44,7 +44,13 @@ func Open(ctx context.Context, opts Options) (*Service, error) {
 			return nil, err
 		}
 	}
-	st, err := store.Open(dir)
+	open := store.Open
+	if opts.DryRun {
+		// a dry run reports what plbx would do; leaving a record behind is
+		// something it did.
+		open = store.OpenReadOnly
+	}
+	st, err := open(dir)
 	if err != nil {
 		return nil, err
 	}

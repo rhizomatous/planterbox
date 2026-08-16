@@ -63,6 +63,9 @@ func (s *Store) SetPolicy(p proxy.Policy) error {
 	if err != nil {
 		return fmt.Errorf("encoding the network policy: %w", err)
 	}
+	if s.readOnly {
+		return nil
+	}
 	path := s.PolicyPath()
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return fmt.Errorf("creating %s: %w", filepath.Dir(path), err)
