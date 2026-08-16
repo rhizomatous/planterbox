@@ -48,6 +48,9 @@ func newCreateCmd(g *globals) *cobra.Command {
 				if err := ensurePolicy(ctx, cmd, svc); err != nil {
 					return err
 				}
+				if _, err := lipgloss.Fprintln(cmd.OutOrStdout(), ui.RenderCreating(spec)); err != nil {
+					return err
+				}
 				sb, err := svc.Create(ctx, spec)
 				if errors.Is(err, api.ErrRemoteNotAdded) {
 					_, _ = fmt.Fprintln(cmd.ErrOrStderr(), ui.Warn.Render(err.Error()))

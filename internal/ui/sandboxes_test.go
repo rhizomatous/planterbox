@@ -131,11 +131,41 @@ func TestRenderSandboxCoversTheSpec(t *testing.T) {
 	for _, want := range []string{
 		"myrepo", "running", "claude", "ghcr.io/acme/base:1", "2 hours ago",
 		"/home/viv/myrepo", "/home/viv/shared", "read-only",
-		"4 cpu", "2GiB", "3000 → 3000", "FOO=bar",
+		"4 cpu", "2GiB", "3000 → 3000", "FOO",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("detail view missing %q:\n%s", want, out)
 		}
+	}
+	// a sandbox holds live credentials, so an inspect names them and stops
+	// there. Anything else puts them in every screenshot of one.
+	if strings.Contains(out, "bar") {
+		t.Errorf("the detail view printed an env value:\n%s", out)
+	}
+}
+
+// unset limits and no published ports are still decisions, and the second one
+// is the only part of a sandbox that can still be changed.
+func TestRenderSandboxReportsTheAbsences(t *testing.T) {
+	bare := api.Sandbox{
+		Spec:  api.Spec{Name: "bare", Agent: "shell", Image: "base:1", CreatedAt: now},
+		State: api.State{Status: api.StatusStopped},
+	}
+	out := plain(RenderSandbox(bare, now))
+	for _, want := range []string{"unlimited cpu", "unlimited memory", "none"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("detail view missing %q:\n%s", want, out)
+		}
+	}
+}
+
+// how long it has been up is the half of "running" that says whether it just
+// came back or has been there all week.
+func TestRenderSandboxReportsUptime(t *testing.T) {
+	sb := detailed()
+	sb.State.StartedAt = now.Add(-30 * time.Minute)
+	if out := plain(RenderSandboxFields(sb, now, 0)); !strings.Contains(out, "up 30m") {
+		t.Errorf("a running sandbox should report its uptime:\n%s", out)
 	}
 }
 

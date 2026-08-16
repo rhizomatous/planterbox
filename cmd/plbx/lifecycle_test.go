@@ -120,7 +120,7 @@ func TestConfirmRemove(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			var out bytes.Buffer
-			got, err := confirmRemove(&out, strings.NewReader(tc.typed), tc.interactive, "demo")
+			got, err := confirmRemove(&out, strings.NewReader(tc.typed), tc.interactive, []string{"demo"})
 			if tc.wantErr {
 				if err == nil {
 					t.Fatal("want an error when there is no terminal to ask on")
@@ -279,5 +279,73 @@ func TestExecCommand(t *testing.T) {
 				t.Errorf("execCommand(%v) = %v, want %v", tc.in, got, tc.want)
 			}
 		})
+	}
+}
+
+func TestRmTakesSeveralSandboxes(t *testing.T) {
+	fake := api.NewFake(
+		api.Sandbox{Spec: api.Spec{Name: "one", Workspaces: []api.Workspace{{Host: "/a"}}}, State: api.State{Status: api.StatusStopped}},
+		api.Sandbox{Spec: api.Spec{Name: "two", Workspaces: []api.Workspace{{Host: "/b"}}}, State: api.State{Status: api.StatusStopped}},
+	)
+	out, err := runCLI(t, fake, "rm", "--force", "one", "two")
+	if err != nil {
+		t.Fatalf("rm one two: %v", err)
+	}
+	for _, want := range []string{"one", "two"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("output %q should name %q", out, want)
+		}
+	}
+	if len(fake.Sandboxes) != 0 {
+		t.Errorf("both should be gone, %d left", len(fake.Sandboxes))
+	}
+}
+
+func TestRmAllRemovesEverything(t *testing.T) {
+	fake := api.NewFake(
+		api.Sandbox{Spec: api.Spec{Name: "one", Workspaces: []api.Workspace{{Host: "/a"}}}, State: api.State{Status: api.StatusStopped}},
+		api.Sandbox{Spec: api.Spec{Name: "two", Workspaces: []api.Workspace{{Host: "/b"}}}, State: api.State{Status: api.StatusStopped}},
+	)
+	if _, err := runCLI(t, fake, "rm", "--all", "--force"); err != nil {
+		t.Fatalf("rm --all: %v", err)
+	}
+	if len(fake.Sandboxes) != 0 {
+		t.Errorf("--all should have removed everything, %d left", len(fake.Sandboxes))
+	}
+}
+
+func TestRmAllRefusesNamesAlongsideIt(t *testing.T) {
+	if _, err := runCLI(t, seeded(api.StatusStopped), "rm", "--all", "demo"); err == nil {
+		t.Error("--all with a name should be rejected: one of them is a lie")
+	}
+}
+
+func TestStopTakesSeveralSandboxes(t *testing.T) {
+	fake := api.NewFake(
+		api.Sandbox{Spec: api.Spec{Name: "one", Workspaces: []api.Workspace{{Host: "/a"}}}, State: api.State{Status: api.StatusRunning}},
+		api.Sandbox{Spec: api.Spec{Name: "two", Workspaces: []api.Workspace{{Host: "/b"}}}, State: api.State{Status: api.StatusRunning}},
+	)
+	out, err := runCLI(t, fake, "stop", "one", "two")
+	if err != nil {
+		t.Fatalf("stop one two: %v", err)
+	}
+	for _, want := range []string{"one", "two"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("output %q should name %q", out, want)
+		}
+	}
+}
+
+// a typo in the middle should cost you that one sandbox, not the others.
+func TestStopReportsABadNameAndKeepsGoing(t *testing.T) {
+	fake := api.NewFake(
+		api.Sandbox{Spec: api.Spec{Name: "one", Workspaces: []api.Workspace{{Host: "/a"}}}, State: api.State{Status: api.StatusRunning}},
+	)
+	out, err := runCLI(t, fake, "stop", "nope", "one")
+	if err == nil {
+		t.Fatal("a name that resolves to nothing should still be reported")
+	}
+	if !strings.Contains(out, "one") {
+		t.Errorf("the good name should still have been acted on: %q", out)
 	}
 }

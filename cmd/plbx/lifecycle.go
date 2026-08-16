@@ -32,6 +32,24 @@ func refArg(args []string) (api.Ref, error) {
 	return api.ByPath(cwd), nil
 }
 
+// refArgs is refArg for the commands that accept several sandboxes. No names
+// still means the one for the current directory, so `plbx stop` on its own is
+// unchanged.
+func refArgs(args []string) ([]api.Ref, error) {
+	if len(args) == 0 {
+		ref, err := refArg(nil)
+		if err != nil {
+			return nil, err
+		}
+		return []api.Ref{ref}, nil
+	}
+	refs := make([]api.Ref, len(args))
+	for i, name := range args {
+		refs[i] = api.ByName(name)
+	}
+	return refs, nil
+}
+
 // act resolves a ref, applies fn, and reports the outcome under the sandbox's
 // own name — which a by-path ref does not carry, and which reads far better
 // than echoing an absolute path back at the user.
@@ -40,20 +58,31 @@ func act(
 	verb string, style lipgloss.Style,
 	fn func(context.Context, api.Service, api.Ref) error,
 ) error {
-	ref, err := refArg(args)
+	refs, err := refArgs(args)
 	if err != nil {
 		return err
 	}
 	return g.withService(cmd, func(ctx context.Context, svc api.Service) error {
-		sb, err := svc.Inspect(ctx, ref)
-		if err != nil {
-			return err
+		// one bad name does not cancel the rest: asking for four sandboxes
+		// and getting none because the third was a typo is worse than being
+		// told which one it was.
+		var errs []error
+		for _, ref := range refs {
+			sb, err := svc.Inspect(ctx, ref)
+			if err != nil {
+				errs = append(errs, err)
+				continue
+			}
+			if err := fn(ctx, svc, api.ByName(sb.Spec.Name)); err != nil {
+				errs = append(errs, err)
+				continue
+			}
+			if _, err := lipgloss.Fprintln(cmd.OutOrStdout(),
+				style.Render(verb+" ")+ui.Value.Render(sb.Spec.Name)); err != nil {
+				errs = append(errs, err)
+			}
 		}
-		if err := fn(ctx, svc, api.ByName(sb.Spec.Name)); err != nil {
-			return err
-		}
-		_, err = lipgloss.Fprintln(cmd.OutOrStdout(), style.Render(verb+" ")+ui.Value.Render(sb.Spec.Name))
-		return err
+		return errors.Join(errs...)
 	})
 }
 
@@ -76,12 +105,12 @@ func execCommand(args []string) ([]string, error) {
 
 func newStopCmd(g *globals) *cobra.Command {
 	return &cobra.Command{
-		Use:   "stop [SANDBOX]",
+		Use:   "stop [SANDBOX...]",
 		Short: "stop a sandbox, keeping everything in it",
 		Long: "Stop a running sandbox. Its contents survive: packages, shell history, and " +
 			"agent state are all still there when you start it again.\n\n" +
 			"Defaults to the sandbox for the current directory.",
-		Args: cobra.MaximumNArgs(1),
+		Args: cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return act(g, cmd, args, "stopped", ui.Faint,
 				func(ctx context.Context, svc api.Service, ref api.Ref) error {
@@ -93,7 +122,7 @@ func newStopCmd(g *globals) *cobra.Command {
 
 func newStartCmd(g *globals) *cobra.Command {
 	return &cobra.Command{
-		Use:   "start [SANDBOX]",
+		Use:   "start [SANDBOX...]",
 		Short: "start a stopped sandbox without attaching",
 		Long: "Start a sandbox and leave it running, without handing it your terminal. " +
 			"Use it to bring a sandbox up for `plbx exec`, for ssh, or for the ports it " +
@@ -117,11 +146,11 @@ func newStartCmd(g *globals) *cobra.Command {
 }
 
 func newRmCmd(g *globals) *cobra.Command {
-	var force bool
+	var force, all bool
 
 	cmd := &cobra.Command{
-		Use:     "rm [SANDBOX]",
-		Aliases: []string{"remove"},
+		Use:     "rm [SANDBOX...]",
+		Aliases: []string{"remove", "delete"},
 		Short:   "delete a sandbox and everything in it",
 		Long: "Delete a sandbox, its container, and its home volume. Anything you installed " +
 			"inside is gone; your workspace files on the host are untouched.\n\n" +
@@ -129,43 +158,78 @@ func newRmCmd(g *globals) *cobra.Command {
 			"--force is given. --force also answers the question, which is what a script " +
 			"wants: without a terminal there is nobody to ask, so plbx refuses instead " +
 			"of assuming.",
-		Args: cobra.MaximumNArgs(1),
+		Args: cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ref, err := refArg(args)
-			if err != nil {
-				return err
+			if all && len(args) > 0 {
+				return errors.New("--all removes every sandbox, so it takes no names")
 			}
 			return g.withService(cmd, func(ctx context.Context, svc api.Service) error {
-				sb, err := svc.Inspect(ctx, ref)
-				if err != nil {
+				targets, err := removalTargets(ctx, svc, args, all)
+				if err != nil || len(targets) == 0 {
 					return err
 				}
 				if !force {
-					if sb.State.Status == api.StatusRunning {
-						return fmt.Errorf("%w: %q (use --force)", api.ErrRunning, sb.Spec.Name)
+					// a running sandbox is refused outright, and it is refused
+					// before the question rather than after it.
+					for _, sb := range targets {
+						if sb.State.Status == api.StatusRunning {
+							return fmt.Errorf("%w: %q (use --force)", api.ErrRunning, sb.Spec.Name)
+						}
 					}
-					ok, err := confirmRemove(cmd.OutOrStdout(), cmd.InOrStdin(), isTerminal(os.Stdin), sb.Spec.Name)
+					names := make([]string, len(targets))
+					for i, sb := range targets {
+						names[i] = sb.Spec.Name
+					}
+					ok, err := confirmRemove(cmd.OutOrStdout(), cmd.InOrStdin(), isTerminal(os.Stdin), names)
 					if err != nil {
 						return err
 					}
 					if !ok {
 						_, err := lipgloss.Fprintln(cmd.OutOrStdout(),
-							ui.Faint.Render("left ")+ui.Value.Render(sb.Spec.Name)+ui.Faint.Render(" alone"))
+							ui.Faint.Render("left ")+ui.Value.Render(strings.Join(names, ", "))+ui.Faint.Render(" alone"))
 						return err
 					}
 				}
-				if err := svc.Remove(ctx, api.ByName(sb.Spec.Name), force); err != nil {
-					return err
+				var errs []error
+				for _, sb := range targets {
+					if err := svc.Remove(ctx, api.ByName(sb.Spec.Name), force); err != nil {
+						errs = append(errs, err)
+						continue
+					}
+					if _, err := lipgloss.Fprintln(cmd.OutOrStdout(),
+						ui.Faint.Render("removed ")+ui.Value.Render(sb.Spec.Name)); err != nil {
+						errs = append(errs, err)
+					}
 				}
-				_, err = lipgloss.Fprintln(cmd.OutOrStdout(),
-					ui.Faint.Render("removed ")+ui.Value.Render(sb.Spec.Name))
-				return err
+				return errors.Join(errs...)
 			})
 		},
 	}
 
 	cmd.Flags().BoolVarP(&force, "force", "f", false, "remove even while running")
+	cmd.Flags().BoolVar(&all, "all", false, "remove every sandbox")
 	return cmd
+}
+
+// removalTargets resolves what a removal is about to act on, so the question
+// can name all of it at once rather than once per sandbox.
+func removalTargets(ctx context.Context, svc api.Service, args []string, all bool) ([]api.Sandbox, error) {
+	if all {
+		return svc.List(ctx)
+	}
+	refs, err := refArgs(args)
+	if err != nil {
+		return nil, err
+	}
+	targets := make([]api.Sandbox, 0, len(refs))
+	for _, ref := range refs {
+		sb, err := svc.Inspect(ctx, ref)
+		if err != nil {
+			return nil, err
+		}
+		targets = append(targets, sb)
+	}
+	return targets, nil
 }
 
 // confirmRemove asks before a removal discards a sandbox's home volume, which
@@ -174,12 +238,13 @@ func newRmCmd(g *globals) *cobra.Command {
 //
 // Off a terminal there is nobody to ask, so it refuses rather than assuming:
 // --force is how a script says yes deliberately.
-func confirmRemove(out io.Writer, in io.Reader, interactive bool, name string) (bool, error) {
+func confirmRemove(out io.Writer, in io.Reader, interactive bool, names []string) (bool, error) {
+	what := strings.Join(names, ", ")
 	if !interactive {
 		return false, fmt.Errorf(
-			"removing %q discards everything installed in it, and there is no terminal to confirm on (use --force)", name)
+			"removing %s discards everything installed in it, and there is no terminal to confirm on (use --force)", what)
 	}
-	if _, err := fmt.Fprintf(out, "remove %s and everything installed in it? [y/N] ", name); err != nil {
+	if _, err := fmt.Fprintf(out, "remove %s and everything installed in it? [y/N] ", what); err != nil {
 		return false, err
 	}
 	line, err := bufio.NewReader(in).ReadString('\n')

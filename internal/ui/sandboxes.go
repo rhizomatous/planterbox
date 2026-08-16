@@ -77,6 +77,14 @@ func cellStyle(col int, cell string) string {
 	}
 }
 
+// RenderCreating is the definition a create is about to build, printed before
+// it starts. Ports are absent on purpose: they are the one thing here that can
+// still be changed afterwards, so they are not part of what this is warning
+// about.
+func RenderCreating(spec api.Spec) string {
+	return Title.Render("🪴 creating "+spec.Name) + "\n" + RenderSpecFields(spec, 0)
+}
+
 // RenderCreated is the line printed when a sandbox is built.
 func RenderCreated(sb api.Sandbox) string {
 	return OK.Render("created ") + Value.Render(sb.Spec.Name) +
@@ -111,56 +119,103 @@ func RenderSandbox(sb api.Sandbox, now time.Time) string {
 // paths can outgrow it, and they are elided from the front so the component
 // that names the workspace survives.
 func RenderSandboxFields(sb api.Sandbox, now time.Time, width int) string {
-	label := lipgloss.NewStyle().Faint(true).Width(12)
-	row := func(k, v string) string { return "  " + label.Render(k) + v }
-	// "  " plus the label column, which every value sits to the right of.
+	status := string(sb.State.Status)
+	// how long it has been up is the part of "running" that says whether it
+	// just came back or has been there all week.
+	if sb.State.Status == api.StatusRunning && !sb.State.StartedAt.IsZero() {
+		status += Faint.Render("  up " + Uptime(sb.State.StartedAt, now))
+	}
+
+	lines := []string{
+		fieldRow("status", StatusStyle(sb.State.Status).Render(status)),
+		fieldRow("created", Age(sb.Spec.CreatedAt, now)),
+	}
+	lines = append(lines, specLines(sb.Spec, width)...)
+	lines = append(lines, portLines(sb.Ports)...)
+	return strings.Join(lines, "\n")
+}
+
+// RenderSpecFields is the part of a sandbox that a create fixes for good, for
+// echoing back before the container is built. Everything here costs a rebuild
+// to change, and a rebuild costs whatever the old sandbox held outside its
+// home volume — so this is the last cheap moment to notice a wrong value.
+func RenderSpecFields(spec api.Spec, width int) string {
+	return strings.Join(specLines(spec, width), "\n")
+}
+
+// specLines renders the frozen half of a definition, shared so that what a
+// create echoes and what an inspect reports cannot drift apart.
+func specLines(spec api.Spec, width int) []string {
 	valueWidth := 0
 	if width > labelIndent {
 		valueWidth = width - labelIndent
 	}
 
 	lines := []string{
-		"  " + label.Render("status") + StatusStyle(sb.State.Status).Render(string(sb.State.Status)),
-		row("agent", dash(sb.Spec.Agent)),
-		row("image", dash(sb.Spec.Image)),
-		row("created", Age(sb.Spec.CreatedAt, now)),
+		fieldRow("agent", dash(spec.Agent)),
+		fieldRow("image", dash(spec.Image)),
 	}
-	if len(sb.Spec.Workspaces) > 0 {
-		for i, ws := range sb.Spec.Workspaces {
-			key := "workspaces"
-			if i > 0 {
-				key = ""
-			}
-			mode := ""
-			if ws.ReadOnly {
-				mode = Faint.Render("  read-only")
-			}
-			lines = append(lines, row(key, ElidePath(ws.Host, valueWidth)+mode))
-		}
-	}
-	if sb.Spec.Clone {
-		lines = append(lines, row("mode", "clone"+Faint.Render(
-			"  your repository is read-only; the agent works in "+sb.Spec.CloneDir())))
-	}
-	if r := sb.Spec.Resources; r.CPUs > 0 || r.Memory > 0 {
-		lines = append(lines, row("limits", fmt.Sprintf("%s cpu, %s memory",
-			cpuLabel(r.CPUs), api.FormatBytes(r.Memory))))
-	}
-	for i, p := range sb.Ports {
-		key := "ports"
+	for i, ws := range spec.Workspaces {
+		key := "workspaces"
 		if i > 0 {
 			key = ""
 		}
-		lines = append(lines, row(key, fmt.Sprintf("%d → %d%s", p.Host, p.Sandbox, protoLabel(p.Proto))))
+		mode := Faint.Render("  read-write")
+		if ws.ReadOnly {
+			mode = Faint.Render("  read-only")
+		}
+		lines = append(lines, fieldRow(key, ElidePath(ws.Host, valueWidth)+mode))
 	}
-	for i, k := range slices.Sorted(maps.Keys(sb.Spec.Env)) {
+	if spec.Clone {
+		lines = append(lines, fieldRow("mode", "clone"+Faint.Render(
+			"  your repository is read-only; the agent works in "+spec.CloneDir())))
+	}
+	// reported even when unset, because "unlimited" is a decision this
+	// sandbox is now stuck with rather than an absence of one.
+	lines = append(lines, fieldRow("limits", fmt.Sprintf("%s cpu, %s memory",
+		cpuLabel(spec.Resources.CPUs), memoryLabel(spec.Resources.Memory))))
+	for i, k := range slices.Sorted(maps.Keys(spec.Env)) {
 		key := "env"
 		if i > 0 {
 			key = ""
 		}
-		lines = append(lines, row(key, k+"="+sb.Spec.Env[k]))
+		// names only. A sandbox holds live credentials — `docs/concessions.md`
+		// says so plainly — and printing their values puts them in every
+		// screenshot and paste of an inspect.
+		lines = append(lines, fieldRow(key, k+Faint.Render("  set")))
 	}
-	return strings.Join(lines, "\n")
+	return lines
+}
+
+// portLines reports what a sandbox publishes, saying so even when it publishes
+// nothing: ports are the one part of a sandbox that can still change, so their
+// absence is worth stating rather than leaving to be inferred.
+func portLines(ports []api.Port) []string {
+	if len(ports) == 0 {
+		return []string{fieldRow("ports", Faint.Render("none"))}
+	}
+	lines := make([]string, 0, len(ports))
+	for i, p := range ports {
+		key := "ports"
+		if i > 0 {
+			key = ""
+		}
+		lines = append(lines, fieldRow(key, fmt.Sprintf("%d → %d%s", p.Host, p.Sandbox, protoLabel(p.Proto))))
+	}
+	return lines
+}
+
+// fieldRow is one label/value line of a definition listing.
+func fieldRow(k, v string) string {
+	return "  " + lipgloss.NewStyle().Faint(true).Width(12).Render(k) + v
+}
+
+// memoryLabel names a byte limit, or the absence of one.
+func memoryLabel(bytes int64) string {
+	if bytes <= 0 {
+		return "unlimited"
+	}
+	return api.FormatBytes(bytes)
 }
 
 // RenderPorts lists what a sandbox publishes on the host.
@@ -227,6 +282,29 @@ func StatusStyle(s api.Status) lipgloss.Style {
 		return Bad
 	default:
 		return Warn
+	}
+}
+
+// Uptime is how long something has been going, as a span rather than a point:
+// "up 30m" says what "up 30 minutes ago" only implies, and takes less room
+// doing it.
+func Uptime(since, now time.Time) string {
+	if since.IsZero() {
+		return "-"
+	}
+	d := now.Sub(since)
+	if d < 0 {
+		d = 0
+	}
+	switch {
+	case d < time.Minute:
+		return fmt.Sprintf("%ds", int(d.Seconds()))
+	case d < time.Hour:
+		return fmt.Sprintf("%dm", int(d.Minutes()))
+	case d < 24*time.Hour:
+		return fmt.Sprintf("%dh%dm", int(d.Hours()), int(d.Minutes())%60)
+	default:
+		return fmt.Sprintf("%dd%dh", int(d.Hours()/24), int(d.Hours())%24)
 	}
 }
 
