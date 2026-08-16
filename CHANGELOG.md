@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-08-16
+
 ### Added
 
 - `plbx ls` now shows the ports each sandbox publishes.
@@ -143,7 +145,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `jardiniere.toml` config file, supporting a custom `startup` command, `image` override, and network policy.
 - Kong-based CLI with `--version` and `--dry-run` flags.
 
-[Unreleased]: https://github.com/rhizomatous/planterbox/compare/v0.6.2...HEAD
+[Unreleased]: https://github.com/rhizomatous/planterbox/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/rhizomatous/planterbox/compare/v0.6.2...v0.7.0
 [0.6.2]: https://github.com/rhizomatous/planterbox/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/rhizomatous/planterbox/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/rhizomatous/planterbox/compare/v0.5.0...v0.6.0
