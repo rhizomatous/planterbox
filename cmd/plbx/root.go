@@ -127,6 +127,7 @@ func newRootCmd(opts ...rootOption) *cobra.Command {
 		newSetupCmd(),
 		newSSHProxyCmd(g),
 		newDaemonCmd(g),
+		newDoctorCmd(),
 		newPolicyCmd(g),
 	)
 
