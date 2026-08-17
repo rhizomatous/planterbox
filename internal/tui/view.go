@@ -113,6 +113,15 @@ func (m *Model) renderRow(sb api.Sandbox, selected bool) string {
 	} else if ws := sb.Spec.Primary().Host; ws != "" {
 		line += " " + ui.Faint.Render(ws)
 	}
+	// how long it has been up, when the row has room left. The detail pane
+	// always has it; this is the glance version, and a glance that wraps is
+	// worse than one that stops short.
+	if sb.State.Status == api.StatusRunning && !sb.State.StartedAt.IsZero() {
+		up := ui.Faint.Render("  up " + ui.Uptime(sb.State.StartedAt, m.now()))
+		if m.width <= 0 || lipgloss.Width(line)+lipgloss.Width(up) <= m.width {
+			line += up
+		}
+	}
 	return line
 }
 
@@ -180,6 +189,11 @@ func memLabel(s api.Stats) string {
 // renderTabs names the two panels and marks which has the keyboard.
 func (m *Model) renderTabs() string {
 	sandboxes, network := "sandboxes", "network"
+	if m.connFilter {
+		if name := m.selectedName(); name != "" {
+			network += " · " + name
+		}
+	}
 	if m.panel == networkPanel {
 		if denied := m.deniedCount(); denied > 0 {
 			// a count on the tab is what makes the panel worth switching to
@@ -197,7 +211,7 @@ func (m *Model) renderTabs() string {
 // deniedCount is how many of the held decisions were refusals.
 func (m *Model) deniedCount() int {
 	var n int
-	for _, e := range m.connections {
+	for _, e := range m.visibleConnections() {
 		if !e.Allowed {
 			n++
 		}
@@ -208,14 +222,18 @@ func (m *Model) deniedCount() int {
 // renderConnections draws the network panel: what has been reached for, and
 // what was refused.
 func (m *Model) renderConnections() string {
-	if len(m.connections) == 0 {
+	entries := m.visibleConnections()
+	if len(entries) == 0 {
+		if m.connFilter {
+			return ui.Faint.Render(m.selectedName() + " has not tried to reach anything yet")
+		}
 		return ui.Faint.Render("nothing has tried to reach out yet")
 	}
 
 	// show the tail, newest last, so the most recent decision is nearest the
 	// footer where the eye already is.
-	rows := make([]string, 0, len(m.connections))
-	for i, e := range m.connections {
+	rows := make([]string, 0, len(entries))
+	for i, e := range entries {
 		rows = append(rows, m.renderConnectionRow(e, i == m.connCursor))
 	}
 	if visible := m.connectionRows(); len(rows) > visible {
@@ -266,13 +284,42 @@ func (m *Model) renderConnectionRow(e proxy.Entry, selected bool) string {
 	return line + " " + ui.Faint.Render(reason)
 }
 
+// sandboxKeys is the reminder line for the sandbox panel, naming what the
+// highlighted sandbox can actually do.
+//
+// A fixed bar offered `s start/stop` against a sandbox that could only be one
+// of those, and offered attach, shell and remove with nothing to apply them
+// to on a fresh install — where `c create` is the only key that does
+// anything and was buried in the middle of the list.
+func (m *Model) sandboxKeys() string {
+	sb, ok := m.selected()
+	if !ok {
+		return "c create · tab network · ? help · q quit"
+	}
+	lifecycle := "s start"
+	if sb.State.Status == api.StatusRunning {
+		lifecycle = "s stop"
+	}
+	return "↑/↓ move · tab network · i details · c create · enter attach · x shell · " +
+		lifecycle + " · r remove · ? help · q quit"
+}
+
 // renderFooter shows either the full key list or a one-line reminder.
 func (m *Model) renderFooter() string {
 	if !m.showHelp {
 		if m.panel == networkPanel {
-			return ui.Faint.Render("↑/↓ move · a allow · d deny · tab sandboxes · ? help · q quit")
+			scope := "f only " + m.selectedName()
+			if m.connFilter {
+				scope = "f all sandboxes"
+			}
+			if m.selectedName() == "" {
+				scope = ""
+			} else {
+				scope += " · "
+			}
+			return ui.Faint.Render("↑/↓ move · a allow · d deny · " + scope + "tab sandboxes · ? help · q quit")
 		}
-		return ui.Faint.Render("↑/↓ move · tab network · i details · c create · enter attach · x shell · s start/stop · r remove · ? help · q quit")
+		return ui.Faint.Render(m.sandboxKeys())
 	}
 	lines := make([]string, 0, len(Keys))
 	for _, k := range Keys {

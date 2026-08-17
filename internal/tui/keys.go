@@ -29,6 +29,7 @@ var Keys = []Key{
 	{Keys: []string{"r"}, Help: "remove"},
 	{Keys: []string{"a"}, Help: "allow the selected host (network)"},
 	{Keys: []string{"d"}, Help: "deny the selected host (network)"},
+	{Keys: []string{"f"}, Help: "show only the selected sandbox (network)"},
 	{Keys: []string{"?"}, Help: "help"},
 	{Keys: []string{"q"}, Help: "quit"},
 }
@@ -194,7 +195,13 @@ func (m *Model) handleNetworkKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case "g", "home":
 		m.connCursor = 0
 	case "G", "end":
-		m.connCursor = len(m.connections) - 1
+		m.connCursor = len(m.visibleConnections()) - 1
+		m.clampConnCursor()
+	case "f":
+		// narrowing to one sandbox is what turns a shared log into that
+		// sandbox's own, which is the question being asked when an agent
+		// has just failed to reach something.
+		m.connFilter = !m.connFilter
 		m.clampConnCursor()
 	case "a":
 		return m, m.ruleForSelected(true)

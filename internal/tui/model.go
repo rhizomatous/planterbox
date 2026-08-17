@@ -41,6 +41,10 @@ type Model struct {
 	// connCursor is the selected decision, and connSeq the newest one already
 	// seen — the feed is polled, so it asks only for what is new.
 	connCursor int
+	// connFilter narrows the network panel to the selected sandbox. Off by
+	// default: the whole point of the panel is noticing a denial you were not
+	// looking for, which a filter would hide.
+	connFilter bool
 	connSeq    uint64
 	err        error
 	// now measures the detail pane's ages, so tests can pin them.
@@ -339,11 +343,33 @@ func (m *Model) appendConnections(batch []proxy.Entry) {
 // more; this is only what can be scrolled.
 const connectionLimit = 200
 
+// visibleConnections is the decisions the network panel is showing, which is
+// all of them unless the filter is on.
+//
+// Every cursor operation goes through this rather than the held list, so the
+// selection means the same thing whichever view is up.
+func (m *Model) visibleConnections() []proxy.Entry {
+	if !m.connFilter {
+		return m.connections
+	}
+	name := m.selectedName()
+	if name == "" {
+		return m.connections
+	}
+	out := make([]proxy.Entry, 0, len(m.connections))
+	for _, e := range m.connections {
+		if e.Sandbox == name {
+			out = append(out, e)
+		}
+	}
+	return out
+}
+
 // restoreConnCursor keeps the cursor on the same decision as entries arrive
 // beneath it, so a denial does not slide away while being read.
 func (m *Model) restoreConnCursor(seq uint64) {
 	if seq != 0 {
-		for i, e := range m.connections {
+		for i, e := range m.visibleConnections() {
 			if e.Seq == seq {
 				m.connCursor = i
 				return
@@ -351,13 +377,13 @@ func (m *Model) restoreConnCursor(seq uint64) {
 		}
 	}
 	// nothing was selected, or it aged out: follow the newest.
-	m.connCursor = len(m.connections) - 1
+	m.connCursor = len(m.visibleConnections()) - 1
 	m.clampConnCursor()
 }
 
 func (m *Model) clampConnCursor() {
-	if m.connCursor >= len(m.connections) {
-		m.connCursor = len(m.connections) - 1
+	if visible := m.visibleConnections(); m.connCursor >= len(visible) {
+		m.connCursor = len(visible) - 1
 	}
 	if m.connCursor < 0 {
 		m.connCursor = 0
@@ -366,16 +392,18 @@ func (m *Model) clampConnCursor() {
 
 // selectedConnection returns the sequence under the cursor, or zero.
 func (m *Model) selectedConnection() uint64 {
-	if m.connCursor < 0 || m.connCursor >= len(m.connections) {
+	visible := m.visibleConnections()
+	if m.connCursor < 0 || m.connCursor >= len(visible) {
 		return 0
 	}
-	return m.connections[m.connCursor].Seq
+	return visible[m.connCursor].Seq
 }
 
 // selectedEntry returns the decision under the cursor, and whether there is one.
 func (m *Model) selectedEntry() (proxy.Entry, bool) {
-	if m.connCursor < 0 || m.connCursor >= len(m.connections) {
+	visible := m.visibleConnections()
+	if m.connCursor < 0 || m.connCursor >= len(visible) {
 		return proxy.Entry{}, false
 	}
-	return m.connections[m.connCursor], true
+	return visible[m.connCursor], true
 }

@@ -42,7 +42,7 @@ func newCreateForm(cwd string) *createForm {
 
 			huh.NewSelect[string]().
 				Title("agent").
-				Options(huh.NewOptions(api.AgentNames()...)...).
+				Options(agentOptions()...).
 				Value(&c.agent),
 
 			huh.NewInput().
@@ -62,6 +62,18 @@ func newCreateForm(cwd string) *createForm {
 		),
 	)
 	return c
+}
+
+// agentOptions offers each agent by the name it calls itself, and yields the
+// slug the rest of plbx uses. A list of four slugs is fine once you know them
+// and no help at all before.
+func agentOptions() []huh.Option[string] {
+	agents := api.Agents()
+	options := make([]huh.Option[string], 0, len(agents))
+	for _, a := range agents {
+		options = append(options, huh.NewOption(a.Label(), a.Name))
+	}
+	return options
 }
 
 // validWorkspace rejects a path that is not a directory plbx can mount, so the
