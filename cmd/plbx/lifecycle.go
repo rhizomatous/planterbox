@@ -268,8 +268,10 @@ func newInspectCmd(g *globals) *cobra.Command {
 		Long: "Show what a sandbox was built from and what it is doing now: its agent, " +
 			"image, workspaces, and the ports it publishes.\n\n" +
 			"Most of this is fixed when the sandbox is created and cannot be changed " +
-			"afterwards — ports are the exception. --json prints the same record " +
-			"unformatted.\n\n" +
+			"afterwards — ports are the exception.\n\n" +
+			"--json prints the same record unformatted, except that it names the " +
+			"environment rather than quoting it: a sandbox holds live credentials, " +
+			"and this output gets piped and pasted.\n\n" +
 			"Defaults to the sandbox for the current directory.",
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -285,7 +287,7 @@ func newInspectCmd(g *globals) *cobra.Command {
 				if asJSON {
 					enc := json.NewEncoder(cmd.OutOrStdout())
 					enc.SetIndent("", "  ")
-					return enc.Encode(sb)
+					return enc.Encode(api.Redact(sb))
 				}
 				_, err = lipgloss.Fprintln(cmd.OutOrStdout(), ui.RenderSandbox(sb, time.Now()))
 				return err

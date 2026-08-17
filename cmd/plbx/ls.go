@@ -53,11 +53,7 @@ func writeSandboxes(cmd *cobra.Command, sandboxes []api.Sandbox, asJSON, quiet b
 	case asJSON:
 		enc := json.NewEncoder(out)
 		enc.SetIndent("", "  ")
-		// an empty listing is [], not null: callers pipe this into jq.
-		if sandboxes == nil {
-			sandboxes = []api.Sandbox{}
-		}
-		return enc.Encode(sandboxes)
+		return enc.Encode(api.RedactAll(sandboxes))
 	case quiet:
 		for _, sb := range sandboxes {
 			if _, err := lipgloss.Fprintln(out, sb.Spec.Name); err != nil {
