@@ -64,6 +64,20 @@ RUN userdel -r ubuntu 2>/dev/null || true \
     && echo 'agent ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/agent \
     && chmod 0440 /etc/sudoers.d/agent
 
+# the prompt names the working directory rather than spelling out the path to
+# it. A workspace is bind-mounted at its absolute host path, so bash's \w has
+# no ~ to shorten and spends most of a line on a prefix every path on the
+# machine shares before saying which directory this is. \W is that directory's
+# own name, which is the part that differs.
+#
+# The xterm title on the line below it keeps \w: a window title has room, and
+# nothing else is competing for it.
+#
+# This is /home/agent, which a sandbox's volume takes over on first use — so it
+# reaches new sandboxes and leaves existing ones with the prompt they already
+# have. It is the agent's own file either way, and editing it is allowed.
+RUN sed -i "/PS1='/s/\\\\w/\\\\W/g" /home/agent/.bashrc
+
 # egress policy is enforced by a host-side proxy the sandbox is pointed at, so
 # anything run under sudo would bypass it entirely unless the proxy variables
 # survive the sudo environment.
