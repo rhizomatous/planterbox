@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- `plbx create` and `plbx run` now report that they're pulling an image, instead of stiting silently until completion.
+- `plbx create` now echoes the definition before it builds anything.
+- `plbx rm --all`
+- `plbx policy log SANDBOX` nnow arrows the log to one sandbox, and `--json` emits it as JSON.
+- `plbx daemon restart` and `plbx daemon status` commands.
+- Every command now warns when the daemon answering it is a different build from the CLI.
+- `plbx inspect` reports how long a running sandbox has been up.
+
+### Changed
+
+- `plbx rm`, `plbx stop` and `plbx start` now take multiple sandboxes.
+- `plbx inspect` now always states the resource limits and ports, even when there are none to report.
+- `plbx policy log` folds repeated entries into one line with a count. `--limit` now counts distinct entries rather than repetitions of one.
+- `plbx inspect` and `plbx ls --json` now both redact a sandbox's environment variables.
+
 ## [0.7.0] - 2026-08-16
 
 ### Added
