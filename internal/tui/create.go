@@ -47,7 +47,10 @@ func newCreateForm(cwd string) *createForm {
 
 			huh.NewInput().
 				Title("name").
-				Description("leave blank to name it after the directory").
+				// the only field whose effective value is not the one on
+				// screen: blank means the workspace's own name, and saying
+				// which saves finding out after the sandbox exists.
+				DescriptionFunc(c.nameDescription, &c.workspace).
 				Value(&c.name).
 				Validate(validOptionalName),
 
@@ -62,6 +65,19 @@ func newCreateForm(cwd string) *createForm {
 		),
 	)
 	return c
+}
+
+// nameDescription says what a blank name will actually produce, which follows
+// the workspace as it is typed.
+func (c *createForm) nameDescription() string {
+	if c.name != "" {
+		return "the sandbox's name"
+	}
+	abs, err := filepath.Abs(c.workspace)
+	if err != nil || c.workspace == "" {
+		return "leave blank to name it after the directory"
+	}
+	return "leave blank for " + api.SandboxName(abs)
 }
 
 // agentOptions offers each agent by the name it calls itself, and yields the
