@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- `plbx doctor` checks the health of your installation, and informs you how to fix if anything's broken.
+- The dashboard's create form now refers to agents by company and harness: `Claude Code · Anthropic`, rather than just `claude`.
+- The create form now states what name will be produced if you leave it blank and go with the default.
+- A running sandbox's row now shows its uptime, when the terminal has room for it.
+- `f` in the dashboard's network tab filters the log to the selected sandbox.
+
+### Changed
+
+- The dashboard's key reminder now only shows the possible interactions based on your cursor. Previously, it offered all options at all times, even when they were not valid.
+- Sandbox shells have briefer names: `agent@myrepo:myrepo$`, rather than `agent@myrepo:/Users/you/src/myrepo$`.
+
+### Fixed
+
+- Creating a sandbox from the dashboard now shows a loading state during creation, instead of a non-interactive empty state.
+- Creating a sandbox from the dashboard now jumps the cursor to it.
+
 ## [0.8.0] - 2026-08-16
 
 ### Added
