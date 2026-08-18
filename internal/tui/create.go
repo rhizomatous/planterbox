@@ -229,8 +229,8 @@ func (m *Model) buildSandbox(spec api.Spec) tea.Cmd {
 		// the sandbox is made either way; what failed is writing a remote into
 		// a repository that is the user's, not ours.
 		if errors.Is(err, api.ErrRemoteNotAdded) {
-			return actionMsg{verb: "created, without a git remote", name: spec.Name}
+			return actionMsg{verb: "created, without a git remote", name: spec.Name, created: true}
 		}
-		return actionMsg{verb: "created", name: spec.Name, err: err}
+		return actionMsg{verb: "created", name: spec.Name, err: err, created: true}
 	}
 }

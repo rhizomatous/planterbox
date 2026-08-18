@@ -8,6 +8,7 @@ package tui
 
 import (
 	"context"
+	"slices"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
@@ -65,6 +66,9 @@ type Model struct {
 	// buildStep is what that work is doing, since fetching an image and
 	// making a container are minutes and seconds apart.
 	buildStep string
+	// focus is a sandbox the next listing should select, rather than keeping
+	// whatever was selected before it arrived.
+	focus string
 	// quitting suppresses a final render of stale state on the way out.
 	quitting bool
 	// attach, when set, is the sandbox to hand the terminal to on exit.
@@ -116,6 +120,8 @@ type (
 		verb string
 		name string
 		err  error
+		// created marks the one action that brings a sandbox into being.
+		created bool
 	}
 	// pullMsg carries an image fetch in progress: the open channel, so the
 	// next line can be read, and the spec to build once it closes. A create
@@ -203,6 +209,14 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case actionMsg:
 		m.pending = ""
+		// a create is the one action that produces something new, so it is
+		// the one where the cursor should move: you have just decided this
+		// sandbox should exist, and the next thing you do is to it. After a
+		// stop or a remove, moving would take the selection off whatever you
+		// were working through.
+		if msg.created && msg.err == nil {
+			m.focus = msg.name
+		}
 		m.building, m.buildStep = nil, ""
 		if msg.err != nil {
 			m.status = msg.verb + " " + msg.name + ": " + msg.err.Error()
@@ -262,6 +276,14 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // sandbox where it can, and starts a stats feed for anything newly running.
 func (m *Model) applyListing(sandboxes []api.Sandbox) tea.Cmd {
 	selected := m.selectedName()
+	// a focus survives listings that do not have it yet. The periodic refresh
+	// races a create, and a listing taken before the sandbox existed would
+	// otherwise spend the focus on a name it could not find.
+	if m.focus != "" {
+		if slices.ContainsFunc(sandboxes, func(sb api.Sandbox) bool { return sb.Spec.Name == m.focus }) {
+			selected, m.focus = m.focus, ""
+		}
+	}
 	running := make(map[string]bool, len(sandboxes))
 	for _, sb := range sandboxes {
 		if sb.State.Status == api.StatusRunning {
