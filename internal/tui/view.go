@@ -64,7 +64,7 @@ func (m *Model) render() string {
 	switch {
 	case m.err != nil:
 		b.WriteString(ui.Bad.Render("could not read sandboxes: " + m.err.Error()))
-	case len(m.sandboxes) == 0:
+	case len(m.sandboxes) == 0 && m.building == nil:
 		b.WriteString(ui.Faint.Render("no sandboxes yet — run `plbx run` in a repo to make one"))
 	default:
 		list := m.renderList()
@@ -84,11 +84,48 @@ func (m *Model) render() string {
 
 // renderList draws one row per sandbox.
 func (m *Model) renderList() string {
-	rows := make([]string, 0, len(m.sandboxes))
+	rows := make([]string, 0, len(m.sandboxes)+1)
 	for i, sb := range m.sandboxes {
 		rows = append(rows, m.renderRow(sb, i == m.cursor))
 	}
+	if row := m.buildingRow(); row != "" {
+		rows = append(rows, row)
+	}
 	return strings.Join(rows, "\n")
+}
+
+// buildingRow stands in for a sandbox that is being made.
+//
+// It has no record to render from until it exists, so without this the form
+// closes onto an unchanged list and nothing happens for as long as the work
+// takes — which on a first run for an agent is a multi-gigabyte download, and
+// reads as the action having quietly failed.
+func (m *Model) buildingRow() string {
+	if m.building == nil {
+		return ""
+	}
+	for _, sb := range m.sandboxes {
+		if sb.Spec.Name == m.building.Name {
+			return "" // it exists now; the real row has it
+		}
+	}
+	step := m.buildStep
+	if step == "" {
+		step = "creating…"
+	}
+	return "  " + pad(m.building.Name, 20) + " " +
+		ui.Warn.Render(pad("building", 9)) + " " +
+		ui.Faint.Render(pad(dash(m.building.Agent), 10)) + " " +
+		ui.Faint.Render(ui.Elide(step, m.stepWidth()))
+}
+
+// stepWidth is what is left of the row for the step to describe itself in.
+func (m *Model) stepWidth() int {
+	const used = 2 + 20 + 1 + 9 + 1 + 10 + 1
+	if m.width <= used {
+		return 0
+	}
+	return m.width - used
 }
 
 func (m *Model) renderRow(sb api.Sandbox, selected bool) string {

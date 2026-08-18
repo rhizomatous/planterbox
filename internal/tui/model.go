@@ -57,6 +57,14 @@ type Model struct {
 	pending string
 	// create is the open new-sandbox form, or nil when the list has focus.
 	create *createForm
+	// building is the sandbox a create is working on. It has no record yet,
+	// so it cannot be marked in the listing the way a running action on an
+	// existing sandbox is — and without it the form simply closes and
+	// nothing happens for as long as the work takes.
+	building *api.Spec
+	// buildStep is what that work is doing, since fetching an image and
+	// making a container are minutes and seconds apart.
+	buildStep string
 	// quitting suppresses a final render of stale state on the way out.
 	quitting bool
 	// attach, when set, is the sandbox to hand the terminal to on exit.
@@ -108,6 +116,16 @@ type (
 		verb string
 		name string
 		err  error
+	}
+	// pullMsg carries an image fetch in progress: the open channel, so the
+	// next line can be read, and the spec to build once it closes. A create
+	// is the one action long enough to need reporting, because a first run
+	// for an agent fetches an image before it makes anything.
+	pullMsg struct {
+		spec  api.Spec
+		lines <-chan string
+		line  string
+		done  bool
 	}
 	// tickMsg asks for another listing.
 	tickMsg time.Time
@@ -173,8 +191,19 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.stats[msg.name] = msg.sample
 		return m, nil
 
+	case pullMsg:
+		if msg.done {
+			m.buildStep = "creating…"
+			return m, m.buildSandbox(msg.spec)
+		}
+		if msg.line != "" {
+			m.buildStep = msg.line
+		}
+		return m, m.nextPullLine(msg)
+
 	case actionMsg:
 		m.pending = ""
+		m.building, m.buildStep = nil, ""
 		if msg.err != nil {
 			m.status = msg.verb + " " + msg.name + ": " + msg.err.Error()
 		} else {

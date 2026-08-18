@@ -235,11 +235,9 @@ func TestSubmitCreateGoesThroughTheService(t *testing.T) {
 	if err != nil {
 		t.Fatalf("spec: %v", err)
 	}
-	msg := m.submitCreate(spec)()
-
-	got, ok := msg.(actionMsg)
+	got, ok := runCreate(t, m, spec).(actionMsg)
 	if !ok || got.err != nil {
-		t.Fatalf("action = %+v, want a successful create", msg)
+		t.Fatalf("action = %+v, want a successful create", got)
 	}
 	if len(fake.Sandboxes) != 1 || fake.Sandboxes[0].Spec.Name != "myrepo" {
 		t.Errorf("sandboxes = %+v, want the new one", fake.Sandboxes)
@@ -255,9 +253,68 @@ func TestSubmitCreateReportsAFailure(t *testing.T) {
 	if err != nil {
 		t.Fatalf("spec: %v", err)
 	}
-	got, ok := m.submitCreate(spec)().(actionMsg)
+	got, ok := runCreate(t, m, spec).(actionMsg)
 	if !ok || got.err == nil {
 		t.Fatalf("action = %+v, want a duplicate-name failure", got)
+	}
+}
+
+// runCreate drives a create to its outcome the way the update loop does: the
+// pull reports itself a line at a time, and the container is built once it
+// closes.
+func runCreate(t *testing.T, m *Model, spec api.Spec) tea.Msg {
+	t.Helper()
+	msg := m.submitCreate(spec)()
+	for range 100 {
+		pull, ok := msg.(pullMsg)
+		if !ok {
+			return msg
+		}
+		if pull.done {
+			return m.buildSandbox(pull.spec)()
+		}
+		msg = m.nextPullLine(pull)()
+	}
+	t.Fatal("a pull that never ends")
+	return nil
+}
+
+// TestCreateReportsWhatItIsDoing covers the gap this closed: the form used to
+// close onto an unchanged list, with nothing to say the work had started.
+func TestCreateReportsWhatItIsDoing(t *testing.T) {
+	dir := tempDir(t, "myrepo")
+	m := loaded(t, api.NewFake())
+
+	spec, err := newCreateForm(dir).spec()
+	if err != nil {
+		t.Fatalf("spec: %v", err)
+	}
+	m.building, m.buildStep = &spec, "creating…"
+
+	view := view(m)
+	if !strings.Contains(view, "myrepo") || !strings.Contains(view, "building") {
+		t.Errorf("a sandbox being made should be on screen:\n%s", view)
+	}
+
+	// and it goes when the real record arrives, rather than sitting beside it
+	m.sandboxes = []api.Sandbox{sandbox("myrepo", api.StatusCreated)}
+	if row := m.buildingRow(); row != "" {
+		t.Errorf("the placeholder should give way to the real row: %q", row)
+	}
+}
+
+// an empty list plus a create in flight is not an empty list.
+func TestCreateReplacesTheEmptyMessage(t *testing.T) {
+	dir := tempDir(t, "myrepo")
+	m := loaded(t, api.NewFake())
+	spec, err := newCreateForm(dir).spec()
+	if err != nil {
+		t.Fatalf("spec: %v", err)
+	}
+	m.building = &spec
+
+	if view := view(m); strings.Contains(view, "no sandboxes yet") {
+		t.Errorf("a create in flight should replace the empty state:\n%s", view)
 	}
 }
 

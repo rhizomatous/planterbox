@@ -181,7 +181,7 @@ func (m *Model) updateCreate(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.status = err.Error()
 			return m, nil
 		}
-		m.pending = spec.Name
+		m.building, m.buildStep = &spec, "creating…"
 		return m, m.submitCreate(spec)
 
 	case huh.StateAborted:
@@ -193,6 +193,37 @@ func (m *Model) updateCreate(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 // submitCreate builds the sandbox.
 func (m *Model) submitCreate(spec api.Spec) tea.Cmd {
+	return func() tea.Msg {
+		// the pull runs here rather than inside Create so the dashboard can
+		// report it. On a first run for an agent it is a multi-gigabyte
+		// download and the container that follows is instant, so a single
+		// "creating…" would sit through minutes of the wrong explanation.
+		lines, err := m.svc.PullImage(context.Background(), spec.Image)
+		if err != nil {
+			// Create pulls on its own if it must; let it fail properly
+			// rather than reporting this instead.
+			return pullMsg{spec: spec, done: true}
+		}
+		return pullMsg{spec: spec, lines: lines}
+	}
+}
+
+// nextPullLine reads one line of an open pull.
+//
+// The channel travels in the message rather than living on the model: it
+// belongs to this one create, and a model field would outlive it.
+func (m *Model) nextPullLine(p pullMsg) tea.Cmd {
+	return func() tea.Msg {
+		line, ok := <-p.lines
+		if !ok {
+			return pullMsg{spec: p.spec, done: true}
+		}
+		return pullMsg{spec: p.spec, lines: p.lines, line: line}
+	}
+}
+
+// buildSandbox makes the container, once its image is here.
+func (m *Model) buildSandbox(spec api.Spec) tea.Cmd {
 	return func() tea.Msg {
 		_, err := m.svc.Create(context.Background(), spec)
 		// the sandbox is made either way; what failed is writing a remote into
