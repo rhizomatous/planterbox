@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-08-18
+
 ### Added
 
 - `plbx doctor` checks the health of your installation, and informs you how to fix if anything's broken.
@@ -183,7 +185,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `jardiniere.toml` config file, supporting a custom `startup` command, `image` override, and network policy.
 - Kong-based CLI with `--version` and `--dry-run` flags.
 
-[Unreleased]: https://github.com/rhizomatous/planterbox/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/rhizomatous/planterbox/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/rhizomatous/planterbox/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/rhizomatous/planterbox/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/rhizomatous/planterbox/compare/v0.6.2...v0.7.0
 [0.6.2]: https://github.com/rhizomatous/planterbox/compare/v0.6.1...v0.6.2
