@@ -20,7 +20,7 @@ All tooling is provided in Nix dev shell: **work inside it.**
 - **Doc comments:** standard Go form. Do not write archaeological comments describing past states and changes.
 - **Prose:** comments are lowercase and terse.
 - **Errors:** lowercase, no trailing punctuation; `errors.New` for static strings, `fmt.Errorf` + `%w` when wrapping.
-- **An error never begins with an identifier.** The CLI's renderer sentence-cases the first word of every error, so a message leading with a sandbox name reports a name nobody has. Hyphens are word boundaries to Unicode title casing, which is how `jardini-re` became `Jardini-Re`. Put the sentinel first and the identifier after it, quoted: `fmt.Errorf("%w: %q", ErrNotFound, ref)`.
+- **An error never begins with a name the user supplied.** The CLI's renderer upper-cases an error's first letter, so a message leading with a sandbox name reports a name nobody has: `myrepo` comes back as `Myrepo`. Put the sentinel first and the identifier after it, quoted: `fmt.Errorf("%w: %q", ErrNotFound, ref)`. A fixed leading word is fine, and reads correctly capitalised: `docker create: ...`.
 
 ## Layout
 
