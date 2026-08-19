@@ -37,8 +37,6 @@ type Options struct {
 	// RelayImage overrides the published relay, for testing against one built
 	// locally.
 	RelayImage string
-	// SSHSocket overrides where the ssh gateway listens.
-	SSHSocket string
 	// Version is the build this daemon is, reported to clients so they can
 	// tell whether it matches theirs.
 	Version string
@@ -203,12 +201,11 @@ func resolvePaths(opts Options) (paths, error) {
 
 	pid := filepath.Join(socketDir, pidFile)
 
-	ssh := opts.SSHSocket
-	if ssh == "" {
-		ssh = filepath.Join(socketDir, sshFile)
-	}
-
-	return paths{socket: socket, pid: pid, ssh: ssh}, nil
+	return paths{
+		socket: socket,
+		pid:    pid,
+		ssh:    filepath.Join(socketDir, sshFile),
+	}, nil
 }
 
 func writePid(p paths) error {

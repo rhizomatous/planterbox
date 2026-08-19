@@ -410,3 +410,32 @@ func tempDir(t *testing.T) string {
 func replaceBase(path, name string) string {
 	return filepath.Join(filepath.Dir(path), name)
 }
+
+// A client finds the daemon's sidefiles by resolving the socket the same way
+// the daemon does, so pointing PLBX_SOCKET outside the runtime directory must
+// move them together rather than leave the client reading an empty runtime dir.
+func TestSidefilesFollowAnOverriddenSocket(t *testing.T) {
+	e := env("linux", map[string]string{
+		"PLBX_SOCKET":     "/somewhere/else/plbxd.sock",
+		"XDG_RUNTIME_DIR": "/run/user/501",
+	})
+	for _, tc := range []struct {
+		name string
+		got  func(Env) (string, error)
+		want string
+	}{
+		{name: "pid", got: PidPath, want: "/somewhere/else/plbxd.pid"},
+		{name: "ssh", got: SSHSocket, want: "/somewhere/else/plbxd-ssh.sock"},
+		{name: "log", got: LogPath, want: "/somewhere/else/plbxd.log"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := tc.got(e)
+			if err != nil {
+				t.Fatalf("%s: %v", tc.name, err)
+			}
+			if got != tc.want {
+				t.Errorf("%s = %q, want %q", tc.name, got, tc.want)
+			}
+		})
+	}
+}

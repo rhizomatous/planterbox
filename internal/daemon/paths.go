@@ -82,29 +82,28 @@ func Socket(env Env) (string, error) {
 	return filepath.Join(dir, socketFile), nil
 }
 
-// SSHSocket resolves where the ssh gateway listens. PLBX_SSH_SOCKET names it
-// outright, alongside PLBX_SOCKET, so a daemon of your own is reachable both
-// ways.
-func SSHSocket(env Env) (string, error) {
-	if path := env.Getenv("PLBX_SSH_SOCKET"); path != "" {
-		return path, nil
-	}
-	return runtimePath(env, sshFile)
-}
+// SSHSocket resolves where the ssh gateway listens.
+func SSHSocket(env Env) (string, error) { return beside(env, sshFile) }
 
 // PidPath resolves the file recording the running daemon's process id.
-func PidPath(env Env) (string, error) { return runtimePath(env, pidFile) }
+func PidPath(env Env) (string, error) { return beside(env, pidFile) }
 
 // LogPath resolves the file an autostarted daemon writes to. A daemon started
 // by hand keeps its output.
-func LogPath(env Env) (string, error) { return runtimePath(env, logFile) }
+func LogPath(env Env) (string, error) { return beside(env, logFile) }
 
-func runtimePath(env Env, name string) (string, error) {
-	dir, err := RuntimeDir(env)
+// beside resolves a daemon-owned file next to the daemon's socket.
+//
+// Everything the daemon owns hangs off the socket, and a client resolves the
+// socket the same way the daemon does, so the two agree wherever PLBX_SOCKET
+// points. Deriving these from the runtime directory instead would put them
+// somewhere the daemon is not whenever the socket sits outside it.
+func beside(env Env, name string) (string, error) {
+	socket, err := Socket(env)
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(dir, name), nil
+	return filepath.Join(filepath.Dir(socket), name), nil
 }
 
 // ensureRuntimeDir creates the runtime directory, private to its owner, and
