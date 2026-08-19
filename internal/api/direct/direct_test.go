@@ -21,7 +21,7 @@ func testService(t *testing.T) (*Service, *runner.Fake) {
 		t.Fatalf("store.Open: %v", err)
 	}
 	rn := runner.NewFake()
-	return New(st, rn, WithClock(func() time.Time { return epoch })), rn
+	return New(st, rn, func() time.Time { return epoch }, nil), rn
 }
 
 func spec(name string) api.Spec {

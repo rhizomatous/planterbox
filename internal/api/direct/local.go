@@ -69,11 +69,6 @@ func Open(ctx context.Context, opts Options) (*Service, error) {
 		runnerOpts = append(runnerOpts, runner.WithDryRun(out))
 	}
 
-	var serviceOpts []Option
-	if opts.ConnectionLog != nil {
-		serviceOpts = append(serviceOpts, WithConnectionLog(opts.ConnectionLog))
-	}
-
 	// a runtime we can't reach isn't fatal on its own. hand back a runner that
 	// fails every call with this error, so it surfaces on the first command
 	// that actually needs one.
@@ -86,7 +81,7 @@ func Open(ctx context.Context, opts Options) (*Service, error) {
 		// one thing that must work on a machine with no runtime at all.
 		rt = runner.Runtime{Name: "docker", Path: "docker"}
 	default:
-		return New(st, runner.Unavailable(err), serviceOpts...), nil
+		return New(st, runner.Unavailable(err), nil, opts.ConnectionLog), nil
 	}
-	return New(st, runner.NewOCI(rt, runnerOpts...), serviceOpts...), nil
+	return New(st, runner.NewOCI(rt, runnerOpts...), nil, opts.ConnectionLog), nil
 }

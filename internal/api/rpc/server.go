@@ -25,23 +25,10 @@ type Server struct {
 
 var _ plbxv1.SandboxesServer = (*Server)(nil)
 
-// ServerOption configures a [Server].
-type ServerOption func(*Server)
-
-// WithVersion tells the server what build it is, for [Server.Info]. Without
-// it the daemon reports an empty version, which a client reads as "cannot
-// say" rather than as agreement.
-func WithVersion(version string) ServerOption {
-	return func(s *Server) { s.version = version }
-}
-
-// NewServer returns a gRPC service backed by svc.
-func NewServer(svc api.Service, opts ...ServerOption) *Server {
-	s := &Server{svc: svc, started: time.Now()}
-	for _, opt := range opts {
-		opt(s)
-	}
-	return s
+// NewServer returns a gRPC service backed by svc. version is optional and
+// defaults to empty, which clients interpret as "cannot say".
+func NewServer(svc api.Service, version string) *Server {
+	return &Server{svc: svc, version: version, started: time.Now()}
 }
 
 // Info reports the daemon's own build and uptime.

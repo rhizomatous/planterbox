@@ -125,7 +125,7 @@ func Serve(ctx context.Context, opts Options) error {
 	}
 
 	server := grpc.NewServer()
-	rpc.NewServer(svc, rpc.WithVersion(opts.Version)).Register(server)
+	rpc.NewServer(svc, opts.Version).Register(server)
 
 	served := make(chan error, 1)
 	go func() { served <- server.Serve(lis) }()

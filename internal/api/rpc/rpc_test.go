@@ -27,7 +27,7 @@ func dial(t *testing.T, svc api.Service) *Client {
 
 	lis := bufconn.Listen(1024 * 1024)
 	srv := grpc.NewServer()
-	NewServer(svc).Register(srv)
+	NewServer(svc, "").Register(srv)
 	go func() { _ = srv.Serve(lis) }()
 
 	conn, err := grpc.NewClient("passthrough://bufnet",

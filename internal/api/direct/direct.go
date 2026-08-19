@@ -23,29 +23,15 @@ type Service struct {
 	log *proxy.Log
 }
 
-// WithConnectionLog gives the service the proxy's log to read. The daemon
-// passes the same one it hands the proxy.
-func WithConnectionLog(l *proxy.Log) Option {
-	return func(s *Service) { s.log = l }
-}
-
 var _ api.Service = (*Service)(nil)
 
-// Option configures a [Service].
-type Option func(*Service)
-
-// WithClock replaces the clock used for created-at timestamps.
-func WithClock(now func() time.Time) Option {
-	return func(s *Service) { s.now = now }
-}
-
-// New returns a service backed by st and rn.
-func New(st *store.Store, rn runner.Runner, opts ...Option) *Service {
-	s := &Service{store: st, runner: rn, now: time.Now}
-	for _, opt := range opts {
-		opt(s)
+// New returns a service backed by st and rn. Pass clock and log when
+// overriding defaults; the zero values are time.Now and nil.
+func New(st *store.Store, rn runner.Runner, clock func() time.Time, log *proxy.Log) *Service {
+	if clock == nil {
+		clock = time.Now
 	}
-	return s
+	return &Service{store: st, runner: rn, now: clock, log: log}
 }
 
 // Create registers a sandbox and builds its container, without starting it.
