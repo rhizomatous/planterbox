@@ -176,7 +176,7 @@ func newPolicyCheckCmd(g *globals) *cobra.Command {
 				if err != nil {
 					return err
 				}
-				target, err := parsePolicyTarget(args[0])
+				target, err := proxy.ParseAuthority(args[0], 443)
 				if err != nil {
 					return err
 				}
@@ -318,19 +318,6 @@ func validPattern(pattern string) error {
 		return fmt.Errorf("invalid pattern %q: a wildcard is written *.example.com", pattern)
 	}
 	return nil
-}
-
-// parsePolicyTarget reads "host" or "host:port", defaulting to https.
-func parsePolicyTarget(s string) (proxy.Target, error) {
-	host, port, found := strings.Cut(s, ":")
-	if !found {
-		return proxy.Target{Host: s, Port: 443}, nil
-	}
-	n, err := strconv.Atoi(port)
-	if err != nil || n <= 0 || n > 65535 {
-		return proxy.Target{}, fmt.Errorf("invalid port in %q", s)
-	}
-	return proxy.Target{Host: host, Port: n}, nil
 }
 
 func presetNames() string {

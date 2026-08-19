@@ -314,18 +314,18 @@ func TestParseTarget(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(fmt.Sprintf("%s with default %d", tc.authority, tc.def), func(t *testing.T) {
-			got, err := parseTarget(tc.authority, tc.def)
+			got, err := ParseAuthority(tc.authority, tc.def)
 			if tc.wantErr {
 				if err == nil {
-					t.Errorf("parseTarget(%q) = %v, want an error", tc.authority, got)
+					t.Errorf("ParseAuthority(%q) = %v, want an error", tc.authority, got)
 				}
 				return
 			}
 			if err != nil {
-				t.Fatalf("parseTarget(%q): %v", tc.authority, err)
+				t.Fatalf("ParseAuthority(%q): %v", tc.authority, err)
 			}
 			if got.Host != tc.host || got.Port != tc.port {
-				t.Errorf("parseTarget(%q) = %v, want %s:%d", tc.authority, got, tc.host, tc.port)
+				t.Errorf("ParseAuthority(%q) = %v, want %s:%d", tc.authority, got, tc.host, tc.port)
 			}
 		})
 	}

@@ -355,3 +355,52 @@ func TestPresetAllowancesAreOnlyBalanced(t *testing.T) {
 		}
 	}
 }
+
+// An IPv6 rule has to reach the target it names. The pattern and the request
+// are parsed by different callers, so a parser that disagreed with itself let
+// an allow match nothing and, worse, let a deny report success and permit the
+// traffic.
+func TestIPv6PatternsMatchTheAddressTheyName(t *testing.T) {
+	const addr = "2606:4700:4700::1111"
+	for _, tc := range []struct {
+		name    string
+		pattern string
+		port    int
+		want    bool
+	}{
+		{name: "bare literal covers every port", pattern: addr, port: 443, want: true},
+		{name: "bracketed literal", pattern: "[" + addr + "]", port: 443, want: true},
+		{name: "bracketed with a port", pattern: "[" + addr + "]:443", port: 443, want: true},
+		{name: "a port that does not match", pattern: "[" + addr + "]:8080", port: 443, want: false},
+		{name: "a different address", pattern: "2001:db8::1", port: 443, want: false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := Matches(tc.pattern, Target{Host: addr, Port: tc.port}); got != tc.want {
+				t.Errorf("Matches(%q, %s:%d) = %v, want %v", tc.pattern, addr, tc.port, got, tc.want)
+			}
+		})
+	}
+}
+
+// A deny that matches nothing is a control reporting success and doing nothing,
+// which is the one direction of this bug that fails open.
+func TestAnIPv6DenyActuallyDenies(t *testing.T) {
+	p := Policy{Preset: PresetOpen, Rules: []Rule{{Pattern: "2606:4700:4700::1111"}}}
+	if v := p.Check(Target{Host: "2606:4700:4700::1111", Port: 443}); v.Allowed {
+		t.Errorf("a deny on an IPv6 literal was ignored: %s", v.Reason)
+	}
+}
+
+// However it is written, a rule and the request it covers have to parse the
+// same way, or the two halves of the policy disagree in silence.
+func TestParseAuthorityAgreesWithTheRulesItMatches(t *testing.T) {
+	for _, in := range []string{"2606:4700:4700::1111", "[2606:4700:4700::1111]", "[2606:4700:4700::1111]:443"} {
+		got, err := ParseAuthority(in, 443)
+		if err != nil {
+			t.Fatalf("ParseAuthority(%q): %v", in, err)
+		}
+		if got.Host != "2606:4700:4700::1111" || got.Port != 443 {
+			t.Errorf("ParseAuthority(%q) = %+v, want the bare address on 443", in, got)
+		}
+	}
+}

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
-	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -96,7 +95,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // serveConnect decides on a tunnel, then hands the connection over to it.
 func (s *Server) serveConnect(w http.ResponseWriter, r *http.Request) {
-	target, err := parseTarget(r.Host, 443)
+	target, err := ParseAuthority(r.Host, 443)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -135,7 +134,7 @@ func (s *Server) serveHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "expected an absolute URI, which is what a proxy is asked for", http.StatusBadRequest)
 		return
 	}
-	target, err := parseTarget(r.Host, 80)
+	target, err := ParseAuthority(r.Host, 80)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -264,28 +263,6 @@ func refuse(w http.ResponseWriter, t Target, v Verdict, err error) {
 	http.Error(w, "plbx: "+t.String()+": "+reason, status)
 }
 
-// parseTarget reads a "host" or "host:port" authority, defaulting the port.
-func parseTarget(authority string, defaultPort int) (Target, error) {
-	if authority == "" {
-		return Target{}, errors.New("no host in the request")
-	}
-	// an authority with no port is normal for plain HTTP, and SplitHostPort
-	// calls that an error. Deciding first keeps a genuinely malformed
-	// authority from being read as a bare hostname.
-	if !hasPort(authority) {
-		return Target{Host: strings.Trim(authority, "[]"), Port: defaultPort}, nil
-	}
-	host, port, err := net.SplitHostPort(authority)
-	if err != nil {
-		return Target{}, fmt.Errorf("invalid host %q", authority)
-	}
-	n, err := strconv.Atoi(port)
-	if err != nil || n <= 0 || n > 65535 {
-		return Target{}, fmt.Errorf("invalid port %q", port)
-	}
-	return Target{Host: strings.Trim(host, "[]"), Port: n}, nil
-}
-
 // sandboxOf reads which sandbox a request came from.
 //
 // Every sandbox is handed its own token in the proxy URL it is given, so the
@@ -312,15 +289,4 @@ func parseBasic(encoded string) (user, pass string, ok bool) {
 	}
 	user, pass, ok = strings.Cut(string(raw), ":")
 	return user, pass, ok
-}
-
-// hasPort reports whether an authority carries one. A bracketed address keeps
-// its colons inside the brackets, so only what follows them counts; an
-// unbracketed address with several colons is a bare IPv6 literal rather than a
-// host and port.
-func hasPort(authority string) bool {
-	if i := strings.LastIndex(authority, "]"); i >= 0 {
-		return strings.Contains(authority[i:], ":")
-	}
-	return strings.Count(authority, ":") == 1
 }

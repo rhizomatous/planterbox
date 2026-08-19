@@ -7,6 +7,9 @@
 package proxy
 
 import (
+	"errors"
+	"fmt"
+	"net"
 	"net/netip"
 	"slices"
 	"strconv"
@@ -151,19 +154,60 @@ func Matches(pattern string, t Target) bool {
 	}
 }
 
+// ParseAuthority reads a "host" or "host:port" authority, defaulting the port.
+//
+// Brackets around an IPv6 literal are stripped, so a host compares equal
+// wherever it was written. Everything that turns text into a [Target] comes
+// through here: a rule that parsed differently from the request it is meant to
+// cover would match nothing and say nothing.
+func ParseAuthority(authority string, defaultPort int) (Target, error) {
+	if authority == "" {
+		return Target{}, errors.New("no host given")
+	}
+	// an authority with no port is normal for plain HTTP, and SplitHostPort
+	// calls that an error. Deciding first keeps a genuinely malformed
+	// authority from being read as a bare hostname.
+	if !hasPort(authority) {
+		return Target{Host: strings.Trim(authority, "[]"), Port: defaultPort}, nil
+	}
+	host, port, err := net.SplitHostPort(authority)
+	if err != nil {
+		return Target{}, fmt.Errorf("invalid host %q", authority)
+	}
+	n, err := strconv.Atoi(port)
+	if err != nil || n <= 0 || n > 65535 {
+		return Target{}, fmt.Errorf("invalid port %q", port)
+	}
+	return Target{Host: strings.Trim(host, "[]"), Port: n}, nil
+}
+
+// hasPort reports whether an authority carries one. A bracketed address keeps
+// its colons inside the brackets, so only what follows them counts; an
+// unbracketed address with several colons is a bare IPv6 literal rather than a
+// host and port.
+func hasPort(authority string) bool {
+	if i := strings.LastIndex(authority, "]"); i >= 0 {
+		return strings.Contains(authority[i:], ":")
+	}
+	return strings.Count(authority, ":") == 1
+}
+
 // splitPattern separates a pattern's host from its port, tolerating a pattern
-// with no port at all. A malformed port is treated as part of the host, which
-// then matches nothing, rather than silently covering every port.
+// with no port at all. A malformed port leaves the pattern whole, so it matches
+// nothing rather than silently covering every port.
 func splitPattern(pattern string) (host string, port int) {
-	i := strings.LastIndex(pattern, ":")
-	if i < 0 {
+	if !hasPort(pattern) {
+		return strings.Trim(pattern, "[]"), 0
+	}
+	h, p, err := net.SplitHostPort(pattern)
+	if err != nil {
 		return pattern, 0
 	}
-	n, err := strconv.Atoi(pattern[i+1:])
+	n, err := strconv.Atoi(p)
 	if err != nil || n <= 0 {
 		return pattern, 0
 	}
-	return pattern[:i], n
+	return strings.Trim(h, "[]"), n
 }
 
 // AllowsAddress reports whether an address may be connected to at all.
