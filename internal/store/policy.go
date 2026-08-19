@@ -29,12 +29,12 @@ const hostKeyFile = "ssh_host_ed25519_key"
 
 // SSHHostKeyPath reports where the ssh gateway's identity is kept.
 func (s *Store) SSHHostKeyPath() string {
-	return filepath.Join(filepath.Dir(s.dir), hostKeyFile)
+	return filepath.Join(s.stateDir, hostKeyFile)
 }
 
 // PolicyPath reports where the policy is kept.
 func (s *Store) PolicyPath() string {
-	return filepath.Join(filepath.Dir(s.dir), policyFile)
+	return filepath.Join(s.stateDir, policyFile)
 }
 
 // Policy reads the host's egress policy, reporting [ErrNoPolicy] when there is

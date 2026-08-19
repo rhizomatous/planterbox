@@ -26,15 +26,17 @@ const recordExt = ".json"
 // Store is a directory of sandbox records.
 type Store struct {
 	dir      string
+	stateDir string
 	readOnly bool
 }
 
-// Open returns a store rooted at dir, creating it if absent.
+// Open returns a store rooted at dir, creating it if absent. The state
+// directory (for policy and host keys) is the parent directory.
 func Open(dir string) (*Store, error) {
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return nil, fmt.Errorf("creating store %s: %w", dir, err)
 	}
-	return &Store{dir: dir}, nil
+	return &Store{dir: dir, stateDir: filepath.Dir(dir)}, nil
 }
 
 // OpenReadOnly returns a store that reads dir and discards every write,
@@ -46,7 +48,7 @@ func Open(dir string) (*Store, error) {
 // validate; only the write itself is dropped, so a dry run still reports the
 // arguments it would have refused.
 func OpenReadOnly(dir string) (*Store, error) {
-	return &Store{dir: dir, readOnly: true}, nil
+	return &Store{dir: dir, stateDir: filepath.Dir(dir), readOnly: true}, nil
 }
 
 // Dir reports where the store keeps its records.
