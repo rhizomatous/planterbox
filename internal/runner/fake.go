@@ -51,8 +51,11 @@ func (f *Fake) Start(_ context.Context, id ID, _ string) error {
 }
 
 // Stop marks a container stopped.
-func (f *Fake) Stop(_ context.Context, id ID) error {
-	return f.setStatus("Stop", id, api.StatusStopped)
+func (f *Fake) Stop(ctx context.Context, id ID, sandbox string) error {
+	if err := f.setStatus("Stop", id, api.StatusStopped); err != nil {
+		return err
+	}
+	return f.Unpublish(ctx, sandbox)
 }
 
 // Remove drops a container.

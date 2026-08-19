@@ -7,25 +7,20 @@ import (
 	"net/netip"
 	"net/url"
 	"strconv"
-	"strings"
 )
 
 // Sandboxes reach the outside through one narrow path and no other.
 //
 // Each sandbox gets its own network, and with egress control on it is an
 // internal one: no route off the host, and no route to another sandbox. The
-// only other thing on it is the relay, which is attached to every sandbox
-// network and to one ordinary network of its own, and which forwards to the
-// proxy on the host and nowhere else.
+// only other thing on it is that sandbox's own relay, which is attached to
+// this network and to one ordinary network it reaches the host from, and which
+// forwards to the proxy and nowhere else.
 //
 // The relay exists because an internal network cannot reach the host at all on
 // macOS, where containers live inside the runtime's own VM. See
 // docs/concessions.md.
 const (
-	// relayName is the shared relay container. One serves every sandbox: it
-	// forwards to a single fixed address, so it grants nothing that being on
-	// its network does not already grant.
-	relayName = "plbx-relay"
 	// relayEgressNet is the ordinary network the relay reaches the host from.
 	relayEgressNet = "plbx-egress"
 	// relayPort is where the relay accepts a sandbox's connections.
@@ -37,6 +32,10 @@ const (
 
 // sandboxNetwork is the network a sandbox is alone on.
 func sandboxNetwork(sandbox string) string { return containerPrefix + sandbox + "-net" }
+
+// relayName is a sandbox's own relay. One per sandbox, so its lifetime is the
+// sandbox's: up on start, down on stop.
+func relayName(sandbox string) string { return containerPrefix + sandbox + "-relay" }
 
 // proxyEnv is what a sandbox is told about its way out.
 //
@@ -50,7 +49,7 @@ func sandboxNetwork(sandbox string) string { return containerPrefix + sandbox + 
 // is host-side and identical for every sandbox, so the name grants nothing and
 // proves nothing.
 func proxyEnv(sandbox string) map[string]string {
-	addr := "http://" + url.UserPassword(sandbox, "x").String() + "@" + relayName + ":" + strconv.Itoa(relayPort)
+	addr := "http://" + url.UserPassword(sandbox, "x").String() + "@" + relayName(sandbox) + ":" + strconv.Itoa(relayPort)
 	return map[string]string{
 		"HTTP_PROXY":  addr,
 		"HTTPS_PROXY": addr,
@@ -88,45 +87,43 @@ func (o *OCI) ensureNetwork(ctx context.Context, sandbox string) error {
 
 // removeNetwork drops a sandbox's network, tolerating one already gone.
 //
-// The relay is detached first. It is attached to every sandbox's network, and
-// a runtime refuses to remove a network that still has endpoints on it. Without
-// this, removing any sandbox fails once egress control is on, and fails after
-// the container is already gone.
+// Everything on it belongs to this sandbox and has already been removed by the
+// time this runs; a runtime refuses to remove a network that still has
+// endpoints.
 func (o *OCI) removeNetwork(ctx context.Context, sandbox string) error {
-	_, err := o.exec.Output(ctx, o.invoke("network", "disconnect", "--force",
-		sandboxNetwork(sandbox), relayName))
-	if err != nil && !isNotFound(err) && !isNotConnected(err) {
-		return err
-	}
 	if _, err := o.exec.Output(ctx, o.removeNetworkInvocation(sandbox)); err != nil && !isNotFound(err) {
 		return err
 	}
 	return nil
 }
 
-// ensureRelay brings the relay up if it is not already, and attaches it to a
-// sandbox's network.
+// ensureRelay gives a sandbox a fresh relay on its own network.
 //
-// Called on every start rather than once: the relay is shared, and a sandbox
-// starting after the relay was removed by hand would otherwise have no way out
-// with nothing to say about why.
+// Replaced rather than reused on every start: the upstream address is baked
+// into its arguments, so a daemon that moved would otherwise leave a relay
+// dialling where it used to be.
 func (o *OCI) ensureRelay(ctx context.Context, sandbox, image, upstream string) error {
 	if err := o.ensureEgressNetwork(ctx); err != nil {
 		return err
 	}
-
-	running, err := o.relayRunning(ctx)
-	if err != nil {
+	if err := o.removeRelay(ctx, sandbox); err != nil {
 		return err
 	}
-	if !running {
-		if err := o.startRelay(ctx, image, upstream); err != nil {
-			return err
-		}
+	if _, err := o.exec.Output(ctx, o.relayInvocation(sandbox, image, upstream)); err != nil {
+		return err
 	}
-
-	if err := o.connectNetwork(ctx, sandboxNetwork(sandbox), relayName); err != nil {
+	// the relay reaches the host across its own network and the sandbox across
+	// this one; a run can only join the first.
+	if err := o.connectNetwork(ctx, sandboxNetwork(sandbox), relayName(sandbox)); err != nil {
 		return fmt.Errorf("attaching the relay to %s: %w", sandboxNetwork(sandbox), err)
+	}
+	return nil
+}
+
+// removeRelay takes a sandbox's relay away, tolerating one already gone.
+func (o *OCI) removeRelay(ctx context.Context, sandbox string) error {
+	if _, err := o.exec.Output(ctx, o.invoke("rm", "--force", relayName(sandbox))); err != nil && !isNotFound(err) {
+		return err
 	}
 	return nil
 }
@@ -135,37 +132,11 @@ func (o *OCI) ensureEgressNetwork(ctx context.Context) error {
 	return o.createNetwork(ctx, o.sharedNetworkInvocation(relayEgressNet))
 }
 
-// relayRunning reports whether the relay container is up.
-func (o *OCI) relayRunning(ctx context.Context) (bool, error) {
-	out, err := o.exec.Output(ctx, o.invoke("inspect", "--type", "container",
-		"--format", "{{.State.Running}}", relayName))
-	if err != nil {
-		if isNotFound(err) {
-			return false, nil
-		}
-		return false, err
-	}
-	return strings.TrimSpace(string(out)) == "true", nil
-}
-
-// startRelay removes any stopped relay and runs a fresh one.
-//
-// Replacing rather than restarting keeps the upstream address current: it is
-// baked into the container's arguments, and a daemon that moved would
-// otherwise be talking to a relay still pointed at where it used to be.
-func (o *OCI) startRelay(ctx context.Context, image, upstream string) error {
-	if _, err := o.exec.Output(ctx, o.invoke("rm", "--force", relayName)); err != nil && !isNotFound(err) {
-		return err
-	}
-	_, err := o.exec.Output(ctx, o.relayInvocation(image, upstream))
-	return err
-}
-
 // relayInvocation renders the command that runs the relay.
-func (o *OCI) relayInvocation(image, upstream string) Invocation {
+func (o *OCI) relayInvocation(sandbox, image, upstream string) Invocation {
 	args := []string{
 		"run", "--detach",
-		"--name", relayName,
+		"--name", relayName(sandbox),
 		"--label", "plbx.relay=true",
 		"--restart", "unless-stopped",
 		"--network", relayEgressNet,
@@ -210,12 +181,6 @@ func hostGatewayArgs(goos, upstream string) []string {
 // something twice. docker says "already exists", podman "already used".
 func isAlreadyExists(err error) bool {
 	return runtimeSays(err, "already exists", "already used")
-}
-
-// isNotConnected reports whether err is a runtime declining to detach a
-// container from a network it was never on.
-func isNotConnected(err error) bool {
-	return runtimeSays(err, "is not connected", "not connected to network")
 }
 
 // isAlreadyConnected reports whether err is a runtime refusing to attach a

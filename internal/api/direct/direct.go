@@ -121,10 +121,7 @@ func (s *Service) Start(ctx context.Context, ref api.Ref) error {
 // listening.
 func (s *Service) Stop(ctx context.Context, ref api.Ref) error {
 	return s.act(ctx, ref, func(sb api.Sandbox, id runner.ID) error {
-		if err := s.runner.Stop(ctx, id); err != nil {
-			return err
-		}
-		return s.runner.Unpublish(ctx, sb.Spec.Name)
+		return s.runner.Stop(ctx, id, sb.Spec.Name)
 	})
 }
 

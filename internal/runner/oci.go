@@ -120,12 +120,17 @@ func (o *OCI) Start(ctx context.Context, id ID, sandbox string) error {
 }
 
 // Stop halts a running container.
-func (o *OCI) Stop(ctx context.Context, id ID) error {
+func (o *OCI) Stop(ctx context.Context, id ID, sandbox string) error {
 	_, err := o.exec.Output(ctx, o.invoke("stop", string(id)))
-	if isNotFound(err) {
-		return nil // already gone; the caller wanted it stopped, and it is
+	if err != nil && !isNotFound(err) {
+		return err
 	}
-	return err
+	// the sidecars serve a running sandbox and hold host resources while they
+	// live: the forwarder binds host ports, the relay keeps a route open.
+	if err := o.Unpublish(ctx, sandbox); err != nil {
+		return err
+	}
+	return o.removeRelay(ctx, sandbox)
 }
 
 // Remove deletes a container and the home volume behind it.
@@ -151,8 +156,11 @@ func (o *OCI) Remove(ctx context.Context, id ID, sandbox string, force bool) err
 		return err
 	}
 	// the network goes last: it cannot be removed while anything is still
-	// attached to it, and the port forwarder is one of those things.
+	// attached to it, and the sidecars are what is attached.
 	if err := o.Unpublish(ctx, sandbox); err != nil {
+		return err
+	}
+	if err := o.removeRelay(ctx, sandbox); err != nil {
 		return err
 	}
 	if err := o.removeNetwork(ctx, sandbox); err != nil {
@@ -293,8 +301,7 @@ func (o *OCI) Inspect(ctx context.Context, id ID) (api.State, error) {
 	return parseInspect(string(out)), nil
 }
 
-// createInvocation renders the `create` command line for spec. It is pure, so
-// arg-building is testable without a runtime.
+// createInvocation renders the `create` command line for spec.
 func (o *OCI) createInvocation(spec api.Spec) Invocation {
 	args := []string{
 		"create",

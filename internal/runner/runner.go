@@ -24,7 +24,10 @@ type Runner interface {
 	// anyway would put a registry round trip in front of every sandbox.
 	PullImage(ctx context.Context, image string) (<-chan string, error)
 	Start(ctx context.Context, id ID, sandbox string) error
-	Stop(ctx context.Context, id ID) error
+	// Stop halts a sandbox and takes its sidecars down with it. The relay and
+	// the port forwarder exist to serve a running sandbox and hold host
+	// resources while they live, so they go when it does.
+	Stop(ctx context.Context, id ID, sandbox string) error
 	Remove(ctx context.Context, id ID, sandbox string, force bool) error
 	Exec(ctx context.Context, id ID, req api.ExecRequest, streams api.Streams) (api.ExecResult, error)
 	Copy(ctx context.Context, id ID, src, dst api.Path) error
@@ -35,7 +38,7 @@ type Runner interface {
 	// Unpublish takes them back off, tolerating a sandbox that published none.
 	Unpublish(ctx context.Context, sandbox string) error
 	Inspect(ctx context.Context, id ID) (api.State, error)
-	// Handle returns the runtime's identifier for a sandbox, reconstructing it
-	// from the sandbox name when necessary (for sandboxes predating stored IDs).
+	// Handle is the identifier a sandbox's container has before the runtime
+	// gives it one of its own, derived from the sandbox's name.
 	Handle(sandbox string) ID
 }

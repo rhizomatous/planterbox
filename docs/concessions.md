@@ -102,8 +102,10 @@ sandbox](#credentials-live-inside-the-sandbox).
 
 ### what it costs
 
-- **an extra moving part.** A relay container and a small image to publish and
-  keep current, neither of which the plan accounted for.
+- **an extra moving part.** A relay container per running sandbox, and a small
+  image to publish and keep current, neither of which the plan accounted for.
+  The relay is scratch-based and holds one static binary, so the per-sandbox
+  cost is a couple of megabytes; its lifetime is the sandbox's.
 - **a hop.** Every request crosses the VM boundary twice rather than once.
   Immaterial next to the network round trip, but it is not nothing.
 - **a second thing that can be down.** "The daemon is running" is no longer

@@ -253,7 +253,7 @@ func TestDryRunCoversEveryMutation(t *testing.T) {
 	if err := o.Start(ctx, "plbx-demo", "demo"); err != nil {
 		t.Fatalf("Start: %v", err)
 	}
-	if err := o.Stop(ctx, "plbx-demo"); err != nil {
+	if err := o.Stop(ctx, "plbx-demo", "demo"); err != nil {
 		t.Fatalf("Stop: %v", err)
 	}
 	if err := o.Remove(ctx, "plbx-demo", "demo", true); err != nil {
@@ -264,12 +264,15 @@ func TestDryRunCoversEveryMutation(t *testing.T) {
 	want := []string{
 		"start plbx-demo",
 		"stop plbx-demo",
+		// a stop takes the sidecars with it: they serve a running sandbox, and
+		// the forwarder holds host ports while it lives.
+		"rm --force plbx-demo-ports",
+		"rm --force plbx-demo-relay",
 		"rm --volumes --force plbx-demo",
 		"volume rm plbx-demo-home",
-		// a sandbox's own belongings go with it: the forwarder holding its
-		// ports, and the network both of them were on.
+		// and a remove repeats it, because it does not require a stop first
 		"rm --force plbx-demo-ports",
-		"network disconnect --force plbx-demo-net plbx-relay",
+		"rm --force plbx-demo-relay",
 		"network rm plbx-demo-net",
 	}
 	if len(lines) != len(want) {
@@ -441,7 +444,7 @@ func TestCreateInvocationTellsTheSandboxItsWayOut(t *testing.T) {
 	inv := testEgressOCI().createInvocation(api.Spec{Name: "demo", Image: "base:1"})
 
 	env := strings.Join(allAfter(inv.Args, "--env"), " ")
-	for _, want := range []string{"HTTP_PROXY=", "HTTPS_PROXY=", "plbx-relay:8080", "NO_PROXY="} {
+	for _, want := range []string{"HTTP_PROXY=", "HTTPS_PROXY=", "plbx-demo-relay:8080", "NO_PROXY="} {
 		if !strings.Contains(env, want) {
 			t.Errorf("env %q missing %q", env, want)
 		}
@@ -497,7 +500,7 @@ func TestSandboxNetworkIsInternal(t *testing.T) {
 }
 
 func TestRelayIsGivenOneAddressAndNoMore(t *testing.T) {
-	inv := testEgressOCI().relayInvocation("plbx-relay:test", "host.docker.internal:47821")
+	inv := testEgressOCI().relayInvocation("demo", "plbx-relay:test", "host.docker.internal:47821")
 	joined := strings.Join(inv.Args, " ")
 
 	if !strings.Contains(joined, "-upstream host.docker.internal:47821") {
@@ -528,34 +531,31 @@ func TestRemoveDropsTheNetworkToo(t *testing.T) {
 	}
 }
 
-func TestRemoveDetachesTheRelayBeforeDroppingTheNetwork(t *testing.T) {
-	// the relay is attached to every sandbox's network, and a runtime refuses
-	// to remove a network that still has endpoints. Without the detach, every
-	// removal fails, and fails after the container is already gone, leaving a
-	// record for a sandbox that no longer exists.
+func TestRemoveDropsTheRelayBeforeTheNetwork(t *testing.T) {
+	// a runtime refuses to remove a network anything is still attached to, and
+	// the sandbox's relay is attached to it.
 	e := &scriptedExecutor{}
 	if err := testEgressOCI(WithExecutor(e)).Remove(context.Background(), "plbx-demo", "demo", false); err != nil {
 		t.Fatalf("Remove: %v", err)
 	}
 
-	disconnect, remove := -1, -1
+	relay, network := -1, -1
 	for i, inv := range e.ran {
-		joined := strings.Join(inv.Args, " ")
-		if strings.HasPrefix(joined, "network disconnect") {
-			disconnect = i
-		}
-		if strings.HasPrefix(joined, "network rm") {
-			remove = i
+		switch joined := strings.Join(inv.Args, " "); {
+		case strings.HasPrefix(joined, "rm --force plbx-demo-relay"):
+			relay = i
+		case strings.HasPrefix(joined, "network rm"):
+			network = i
 		}
 	}
-	if disconnect < 0 {
-		t.Fatal("the relay was never detached")
+	if relay < 0 {
+		t.Fatal("the sandbox's relay was never removed")
 	}
-	if remove < 0 {
+	if network < 0 {
 		t.Fatal("the network was never removed")
 	}
-	if disconnect > remove {
-		t.Error("the detach must come before the removal, or the removal fails")
+	if relay > network {
+		t.Error("the relay must go before the network, or the removal fails")
 	}
 }
 
@@ -665,7 +665,7 @@ func TestRelayIsToldHowToReachTheHostOnLinuxOnly(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			o := testEgressOCI()
 			o.goos = tc.goos
-			joined := strings.Join(o.relayInvocation("plbx-relay:1", tc.upstream).Args, " ")
+			joined := strings.Join(o.relayInvocation("demo", "plbx-relay:1", tc.upstream).Args, " ")
 			if got := strings.Contains(joined, "--add-host host.docker.internal:host-gateway"); got != tc.want {
 				t.Errorf("relay args = %q, --add-host present = %v, want %v", joined, got, tc.want)
 			}
@@ -674,4 +674,45 @@ func TestRelayIsToldHowToReachTheHostOnLinuxOnly(t *testing.T) {
 			}
 		})
 	}
+}
+
+// A relay belongs to one sandbox, and no other sandbox's lifecycle reaches it.
+// Anything that serves several has to survive all of them, and a sandbox that
+// took one down would cut off the rest without saying so.
+func TestEachSandboxGetsItsOwnRelay(t *testing.T) {
+	e := &scriptedExecutor{}
+	o := testEgressOCI(WithExecutor(e))
+	ctx := context.Background()
+
+	for _, name := range []string{"alpha", "beta"} {
+		if err := o.Start(ctx, ID("plbx-"+name), name); err != nil {
+			t.Fatalf("Start %s: %v", name, err)
+		}
+	}
+	for _, want := range []string{"plbx-alpha-relay", "plbx-beta-relay"} {
+		if !strings.Contains(strings.Join(flatten(e.ran), "\n"), want) {
+			t.Errorf("no relay named %q was started", want)
+		}
+	}
+
+	// stopping one must not reach for the other's
+	e.ran = nil
+	if err := o.Stop(ctx, "plbx-alpha", "alpha"); err != nil {
+		t.Fatalf("Stop: %v", err)
+	}
+	joined := strings.Join(flatten(e.ran), "\n")
+	if !strings.Contains(joined, "rm --force plbx-alpha-relay") {
+		t.Errorf("stopping alpha should take its own relay: %s", joined)
+	}
+	if strings.Contains(joined, "plbx-beta-relay") {
+		t.Errorf("stopping alpha touched beta's relay: %s", joined)
+	}
+}
+
+func flatten(invs []Invocation) []string {
+	out := make([]string, 0, len(invs))
+	for _, inv := range invs {
+		out = append(out, strings.Join(inv.Args, " "))
+	}
+	return out
 }

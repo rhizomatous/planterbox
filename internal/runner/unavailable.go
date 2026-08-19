@@ -19,7 +19,7 @@ func Unavailable(err error) Runner { return unavailable{err: err} }
 
 func (u unavailable) Create(context.Context, api.Spec) (ID, error)      { return "", u.err }
 func (u unavailable) Start(context.Context, ID, string) error           { return u.err }
-func (u unavailable) Stop(context.Context, ID) error                    { return u.err }
+func (u unavailable) Stop(context.Context, ID, string) error            { return u.err }
 func (u unavailable) Remove(context.Context, ID, string, bool) error    { return u.err }
 func (u unavailable) Publish(context.Context, string, []api.Port) error { return u.err }
 func (u unavailable) Unpublish(context.Context, string) error           { return u.err }
