@@ -45,8 +45,8 @@ func Open(stateDir string) (*Store, error) {
 	return &Store{dir: dir, stateDir: stateDir}, nil
 }
 
-// OpenReadOnly returns a store that reads dir and discards every write,
-// without creating the directory if it is absent.
+// OpenReadOnly returns a store under stateDir that reads and discards every
+// write, creating nothing.
 //
 // This is what --dry-run runs against. Reads have to stay real, because
 // rendering what plbx would do to an existing sandbox means knowing what that

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/rhizomatous/planterbox/internal/api"
+	"github.com/rhizomatous/planterbox/internal/proxy"
 	"github.com/rhizomatous/planterbox/internal/runner"
 	"github.com/rhizomatous/planterbox/internal/store"
 )
@@ -460,5 +461,48 @@ func TestPublishValidates(t *testing.T) {
 	}
 	if err := svc.Publish(ctx, api.ByName("demo"), []api.Port{{Host: 0, Sandbox: 80}}); err == nil {
 		t.Error("Publish accepted an out-of-range host port")
+	}
+}
+
+// A sandbox is the first thing that makes a policy matter, and every way of
+// making one comes through Create. Leaving it to the caller meant a sandbox
+// made from the dashboard ran under a posture nobody chose and nothing wrote.
+func TestCreateSettlesThePolicy(t *testing.T) {
+	svc, _ := testService(t)
+	ctx := context.Background()
+
+	if _, err := svc.Policy(ctx); !errors.Is(err, api.ErrNoPolicy) {
+		t.Fatalf("a fresh store should have no policy, got %v", err)
+	}
+	if _, err := svc.Create(ctx, spec("demo")); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	got, err := svc.Policy(ctx)
+	if err != nil {
+		t.Fatalf("Policy after Create: %v", err)
+	}
+	if got.Preset != proxy.Default().Preset {
+		t.Errorf("preset = %q, want the default %q", got.Preset, proxy.Default().Preset)
+	}
+}
+
+// A policy someone chose is not overwritten by making a sandbox.
+func TestCreateLeavesAChosenPolicyAlone(t *testing.T) {
+	svc, _ := testService(t)
+	ctx := context.Background()
+	chosen := proxy.Policy{Preset: proxy.PresetLockedDown, Rules: []proxy.Rule{{Pattern: "mine.test", Allow: true}}}
+	if err := svc.SetPolicy(ctx, chosen); err != nil {
+		t.Fatalf("SetPolicy: %v", err)
+	}
+
+	if _, err := svc.Create(ctx, spec("demo")); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	got, err := svc.Policy(ctx)
+	if err != nil {
+		t.Fatalf("Policy: %v", err)
+	}
+	if got.Preset != proxy.PresetLockedDown || len(got.Rules) != 1 {
+		t.Errorf("policy = %+v, want the one that was chosen", got)
 	}
 }

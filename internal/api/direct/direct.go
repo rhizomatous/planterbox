@@ -42,6 +42,13 @@ func (s *Service) Create(ctx context.Context, spec api.Spec) (api.Sandbox, error
 		return api.Sandbox{}, err
 	}
 
+	// a sandbox is the first thing that makes a policy matter, and every way
+	// of making one comes through here. Settling it in the caller instead left
+	// whichever caller forgot silently on the default without it being written.
+	if err := s.settlePolicy(); err != nil {
+		return api.Sandbox{}, err
+	}
+
 	if spec.CreatedAt.IsZero() {
 		spec.CreatedAt = s.now().UTC()
 	}
@@ -282,6 +289,15 @@ func (s *Service) Policy(context.Context) (proxy.Policy, error) {
 // SetPolicy replaces the host's egress policy.
 func (s *Service) SetPolicy(_ context.Context, p proxy.Policy) error {
 	return s.store.SetPolicy(p)
+}
+
+// settlePolicy writes the default posture when none has been chosen, so that
+// what the proxy enforces is what `plbx policy` reports.
+func (s *Service) settlePolicy() error {
+	if _, err := s.store.Policy(); !errors.Is(err, store.ErrNoPolicy) {
+		return err
+	}
+	return s.store.SetPolicy(proxy.Default())
 }
 
 // SSHHostKeyPath reports where the ssh gateway's identity is kept. The daemon

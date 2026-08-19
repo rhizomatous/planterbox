@@ -1,9 +1,14 @@
 package main
 
 import (
+	"bytes"
+	"context"
+	"fmt"
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/spf13/cobra"
 
 	"github.com/rhizomatous/planterbox/internal/api"
 )
@@ -121,5 +126,28 @@ func TestPortsRejectsUDP(t *testing.T) {
 	fake := api.NewFake(api.Sandbox{Spec: api.Spec{Name: "demo"}})
 	if _, err := runCLI(t, fake, "ports", "demo", "--publish", "5353:53/udp"); err == nil {
 		t.Error("ports accepted a udp mapping; only tcp can be published")
+	}
+}
+
+// Attaching from the dashboard tolerates ports the same way `plbx run` does:
+// the sandbox is running, and a session has nothing to do with what it
+// publishes. Returning the error instead dropped the user out of the dashboard.
+func TestAttachingToleratesPortsThatCouldNotBind(t *testing.T) {
+	fake := api.NewFake(api.Sandbox{
+		Spec:  api.Spec{Name: "demo", Workspaces: []api.Workspace{{Host: "/a"}}},
+		State: api.State{Status: api.StatusStopped},
+	})
+	fake.StartErr = fmt.Errorf("%w: host port 8080 is in use", api.ErrPortsUnavailable)
+
+	cmd := &cobra.Command{}
+	var out bytes.Buffer
+	cmd.SetOut(&out)
+	cmd.SetErr(&out)
+
+	if err := startForSession(context.Background(), cmd, fake, "demo"); err != nil {
+		t.Fatalf("startForSession = %v, want the failure reported rather than returned", err)
+	}
+	if !strings.Contains(out.String(), "8080") {
+		t.Errorf("output %q should say which port could not bind", out.String())
 	}
 }

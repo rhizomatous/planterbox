@@ -154,6 +154,28 @@ func Matches(pattern string, t Target) bool {
 	}
 }
 
+// ValidPattern reports whether a rule could ever match anything.
+//
+// It reads the pattern the way Matches does, so a rule that passes here is one
+// the engine can act on. A rule that matches nothing is the one failure a
+// policy cannot report for itself: the traffic stays blocked and nothing says
+// why.
+func ValidPattern(pattern string) error {
+	if pattern == "" {
+		return errors.New("an empty pattern matches nothing")
+	}
+	if strings.ContainsAny(pattern, " \t/") {
+		return fmt.Errorf("invalid pattern %q: expected a host like example.com or *.example.com", pattern)
+	}
+	if strings.HasPrefix(pattern, "*") && !strings.HasPrefix(pattern, "*.") && pattern != "*" {
+		return fmt.Errorf("invalid pattern %q: a wildcard is written *.example.com", pattern)
+	}
+	if _, port := splitPattern(pattern); hasPort(pattern) && port == 0 {
+		return fmt.Errorf("invalid pattern %q: expected a port between 1 and 65535", pattern)
+	}
+	return nil
+}
+
 // ParseAuthority reads a "host" or "host:port" authority, defaulting the port.
 //
 // Brackets around an IPv6 literal are stripped, so a host compares equal

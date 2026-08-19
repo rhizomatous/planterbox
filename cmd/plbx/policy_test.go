@@ -306,3 +306,16 @@ func TestCreatingASandboxLeavesAChosenPolicyAlone(t *testing.T) {
 		t.Errorf("preset = %q, want the one already chosen", fake.NetworkPolicy.Preset)
 	}
 }
+
+// A rule that passes validation has to be one the engine can act on. Validation
+// and matching read a pattern with the same parser, so a pattern accepted here
+// cannot turn out to match nothing.
+func TestValidationRejectsWhatMatchingCannotUse(t *testing.T) {
+	for _, pattern := range []string{"example.com:notaport", "example.com:70000", "example.com:0"} {
+		t.Run(pattern, func(t *testing.T) {
+			if _, err := runCLI(t, withPolicy(proxy.Default()), "policy", "allow", pattern); err == nil {
+				t.Errorf("allow %q was accepted; it can never match", pattern)
+			}
+		})
+	}
+}

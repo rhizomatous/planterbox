@@ -103,7 +103,7 @@ func editRules(g *globals, cmd *cobra.Command, patterns []string, allow bool) er
 			return err
 		}
 		for _, pattern := range patterns {
-			if err := validPattern(pattern); err != nil {
+			if err := proxy.ValidPattern(pattern); err != nil {
 				return err
 			}
 			p.Rules = slices.DeleteFunc(p.Rules, func(r proxy.Rule) bool {
@@ -299,25 +299,10 @@ func effectivePolicy(ctx context.Context, svc api.Service) (proxy.Policy, error)
 	case err == nil:
 		return p, nil
 	case errors.Is(err, api.ErrNoPolicy):
-		return proxy.New(defaultPreset), nil
+		return proxy.Default(), nil
 	default:
 		return proxy.Policy{}, err
 	}
-}
-
-// validPattern rejects a rule that would never match, which is otherwise a
-// silent no-op the user only discovers when their traffic is still blocked.
-func validPattern(pattern string) error {
-	if pattern == "" {
-		return errors.New("an empty pattern matches nothing")
-	}
-	if strings.ContainsAny(pattern, " \t/") {
-		return fmt.Errorf("invalid pattern %q: expected a host like example.com or *.example.com", pattern)
-	}
-	if strings.HasPrefix(pattern, "*") && !strings.HasPrefix(pattern, "*.") && pattern != "*" {
-		return fmt.Errorf("invalid pattern %q: a wildcard is written *.example.com", pattern)
-	}
-	return nil
 }
 
 func presetNames() string {

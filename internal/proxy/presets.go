@@ -8,6 +8,11 @@ package proxy
 // preset's whole list forward and change nothing at all.
 func New(preset Preset) Policy { return Policy{Preset: preset} }
 
+// Default is the posture that applies until someone chooses another. It denies
+// by default, so a sandbox created before anyone was asked is not a sandbox
+// that can reach anything.
+func Default() Policy { return New(PresetBalanced) }
+
 // Allows reports whether a preset permits a target on its own, and which of its
 // entries said so.
 func (p Preset) Allows(t Target) (pattern string, ok bool) {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 
@@ -91,8 +92,8 @@ func parseHostPorts(args []string) ([]int, error) {
 // applyPorts folds additions and removals into the set a sandbox publishes.
 //
 // A published host port is replaced rather than duplicated, so publishing 8080
-// twice with different sandbox ports means the last one, and the order of the
-// remaining entries is left alone so the listing does not shuffle.
+// twice with different sandbox ports means the last one. The result is ordered
+// by host port, so the listing reads the same however it was arrived at.
 func applyPorts(current, added []api.Port, removed []int) []api.Port {
 	ports := slices.Clone(current)
 	for _, add := range added {
@@ -104,6 +105,18 @@ func applyPorts(current, added []api.Port, removed []int) []api.Port {
 	}
 	slices.SortStableFunc(ports, func(a, b api.Port) int { return a.Host - b.Host })
 	return ports
+}
+
+// startForSession brings a sandbox up for a session. Ports that could not be
+// published are said rather than returned: the sandbox is running, and a
+// session has nothing to do with what it publishes.
+func startForSession(ctx context.Context, cmd *cobra.Command, svc api.Service, name string) error {
+	err := svc.Start(ctx, api.ByName(name))
+	if errors.Is(err, api.ErrPortsUnavailable) {
+		startedWithoutPorts(cmd, name, err)
+		return nil
+	}
+	return err
 }
 
 // startedWithoutPorts reports a start that could not publish. The sandbox is

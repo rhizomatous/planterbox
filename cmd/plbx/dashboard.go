@@ -37,7 +37,7 @@ func runDashboard(cmd *cobra.Command, g *globals) error {
 			if attach == nil {
 				return nil // the user quit
 			}
-			if err := attachSession(ctx, svc, attach); err != nil {
+			if err := attachSession(ctx, cmd, svc, attach); err != nil {
 				return err
 			}
 			select {
@@ -52,8 +52,8 @@ func runDashboard(cmd *cobra.Command, g *globals) error {
 
 // attachSession hands the terminal to a sandbox until the session ends. A
 // non-zero exit is the agent's own, and is not worth ending the dashboard over.
-func attachSession(ctx context.Context, svc api.Service, req *tui.AttachRequest) error {
-	if err := svc.Start(ctx, api.ByName(req.Sandbox)); err != nil {
+func attachSession(ctx context.Context, cmd *cobra.Command, svc api.Service, req *tui.AttachRequest) error {
+	if err := startForSession(ctx, cmd, svc, req.Sandbox); err != nil {
 		return err
 	}
 	tty := isTerminal(os.Stdin)

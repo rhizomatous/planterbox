@@ -2,9 +2,7 @@
 
 **planterbox** (`plbx`) is a Go CLI that runs coding agents inside isolated, persistent container sandboxes. Read `README.md` for what it does and what it protects against.
 
-`docs/next/plan.md` is the plan of record: where each piece is headed. Read it before adding one.
-
-`docs/concessions.md` records where the plan met reality and lost: what we wanted, what turned out to be true, and what would have to change to get it back. Read it before re-litigating a design that looks wrong. Add to it when a requirement forces a design you wouldn't otherwise have chosen.
+`docs/concessions.md` records where an intended design met reality and lost: what was wanted, what turned out to be true, and what would have to change to get it back. Read it before re-litigating a design that looks wrong. Add to it when a requirement forces a design you wouldn't otherwise have chosen.
 
 ## Dev environment
 

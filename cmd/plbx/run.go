@@ -79,10 +79,7 @@ func runAgent(
 	}
 
 	if sb.State.Status != api.StatusRunning {
-		switch err := svc.Start(ctx, api.ByName(sb.Spec.Name)); {
-		case errors.Is(err, api.ErrPortsUnavailable):
-			startedWithoutPorts(cmd, sb.Spec.Name, err)
-		case err != nil:
+		if err := startForSession(ctx, cmd, svc, sb.Spec.Name); err != nil {
 			return err
 		}
 	}

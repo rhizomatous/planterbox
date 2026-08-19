@@ -236,7 +236,7 @@ func serveProxy(ctx context.Context, addr string, svc *direct.Service, log *prox
 			// the documented default and denies by default, so the failure
 			// mode is a sandbox that cannot reach something rather than one
 			// that can reach everything.
-			return proxy.New(proxy.PresetBalanced)
+			return proxy.Default()
 		}
 		return p
 	}, proxy.WithLog(log))

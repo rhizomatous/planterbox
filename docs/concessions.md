@@ -7,14 +7,13 @@ about it, and what would have to change for the original plan to become
 possible again. a later revisit starts from evidence rather than from
 re-running the same experiments.
 
-this is not a list of bugs or of work not yet done; `docs/next/plan.md` covers
-those. it is a list of places where a deliberate, defensible choice cost us
-something real.
+this is not a list of bugs, nor of work not yet done. it is a list of places
+where a deliberate, defensible choice cost us something real.
 
 ## host-side egress proxy, under a bring-your-own runtime
 
 **status:** live, since phase 3.
-**forced by:** "bring your own runtime" in `docs/next/plan.md`.
+**forced by:** bring your own runtime.
 
 ### what we wanted
 

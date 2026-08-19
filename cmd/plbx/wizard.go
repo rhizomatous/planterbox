@@ -15,9 +15,6 @@ import (
 	"github.com/rhizomatous/planterbox/internal/ui"
 )
 
-// defaultPreset is what applies until someone chooses otherwise.
-const defaultPreset = proxy.PresetBalanced
-
 // ensurePolicy asks which posture to start from, once, before the first
 // sandbox exists. That is the moment the answer starts mattering, and the only
 // moment the user is plainly thinking about giving an agent a network.
@@ -41,7 +38,7 @@ func ensurePolicy(ctx context.Context, cmd *cobra.Command, svc api.Service) erro
 
 // choosePolicy asks which posture to start from and stores the answer.
 func choosePolicy(ctx context.Context, cmd *cobra.Command, svc api.Service) (proxy.Policy, error) {
-	preset := defaultPreset
+	preset := proxy.Default().Preset
 
 	if isTerminal(os.Stdin) {
 		var err error
@@ -67,7 +64,7 @@ func askPreset(cmd *cobra.Command) (proxy.Preset, error) {
 		options = append(options, huh.NewOption(string(p)+" — "+p.Description(), p))
 	}
 
-	choice := proxy.PresetBalanced
+	choice := proxy.Default().Preset
 	form := huh.NewForm(huh.NewGroup(
 		huh.NewSelect[proxy.Preset]().
 			Title("What should sandboxes be allowed to reach?").

@@ -23,6 +23,10 @@ type Fake struct {
 	Calls []string
 	// NetworkPolicy is what Policy reports. Nil means none has been set.
 	NetworkPolicy *proxy.Policy
+	// StartErr, when set, fails only Start, and after the sandbox is marked
+	// running. That is the case worth telling apart: a start whose ports were
+	// refused has still started.
+	StartErr error
 	// Decisions is what Connections replays.
 	Decisions []proxy.Entry
 }
@@ -74,7 +78,10 @@ func (f *Fake) Inspect(_ context.Context, ref Ref) (Sandbox, error) {
 
 // Start marks a sandbox running.
 func (f *Fake) Start(_ context.Context, ref Ref) error {
-	return f.setStatus("Start", ref, StatusRunning)
+	if err := f.setStatus("Start", ref, StatusRunning); err != nil {
+		return err
+	}
+	return f.StartErr
 }
 
 // Stop marks a sandbox stopped.
