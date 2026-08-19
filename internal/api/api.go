@@ -91,6 +91,11 @@ type Service interface {
 // ssh config from matching anything else in it.
 const SSHDomain = "plbx"
 
+// AgentHome is the base image contract's home directory. It gets its own named
+// volume, which makes a sandbox persistent: packages, shell history, and
+// agent state all live under it.
+const AgentHome = "/home/agent"
+
 // SSHHost is the ssh hostname for a sandbox.
 func SSHHost(sandbox string) string { return sandbox + "." + SSHDomain }
 

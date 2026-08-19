@@ -33,24 +33,20 @@ const (
 	portsNet = "plbx-ports"
 )
 
-// PortsContainer is the forwarder publishing a sandbox's ports.
-func PortsContainer(sandbox string) string { return containerPrefix + sandbox + "-ports" }
+// portsContainer is the forwarder publishing a sandbox's ports.
+func portsContainer(sandbox string) string { return containerPrefix + sandbox + "-ports" }
 
-// relayRef is the image both forwarders run, the published one unless
-// overridden.
+// relayRef is the image both forwarders run.
 func (o *OCI) relayRef() string {
-	if o.relayImage != "" {
-		return o.relayImage
-	}
-	return DefaultRelayImage
+	return o.relayImage
 }
 
-// PortsInvocation renders the command running a sandbox's port forwarder. It is
+// portsInvocation renders the command running a sandbox's port forwarder. It is
 // pure, so the mapping it builds is testable without a runtime.
-func (o *OCI) PortsInvocation(sandbox string, ports []api.Port) Invocation {
+func (o *OCI) portsInvocation(sandbox string, ports []api.Port) Invocation {
 	args := []string{
 		"run", "--detach",
-		"--name", PortsContainer(sandbox),
+		"--name", portsContainer(sandbox),
 		"--label", "plbx.sandbox=" + sandbox,
 		"--label", "plbx.ports=true",
 		"--network", portsNet,
@@ -94,18 +90,14 @@ func (o *OCI) Publish(ctx context.Context, sandbox string, ports []api.Port) err
 	if err := o.ensurePortsNetwork(ctx); err != nil {
 		return err
 	}
-	if _, err := o.exec.Output(ctx, o.PortsInvocation(sandbox, ports)); err != nil {
+	if _, err := o.exec.Output(ctx, o.portsInvocation(sandbox, ports)); err != nil {
 		// a run that fails partway still leaves the container record behind,
 		// holding nothing and cluttering `docker ps -a`.
 		_ = o.Unpublish(ctx, sandbox)
 		return publishFailure(err, ports)
 	}
-	// being published is only half of it; reaching the sandbox means being on
-	// its network too.
-	_, err := o.exec.Output(ctx, o.invoke("network", "connect",
-		SandboxNetwork(sandbox), PortsContainer(sandbox)))
-	if err != nil && !isAlreadyExists(err) && !isAlreadyConnected(err) {
-		return fmt.Errorf("attaching the port forwarder to %s: %w", SandboxNetwork(sandbox), err)
+	if err := o.connectNetwork(ctx, sandboxNetwork(sandbox), portsContainer(sandbox)); err != nil {
+		return fmt.Errorf("attaching the port forwarder to %s: %w", sandboxNetwork(sandbox), err)
 	}
 	return nil
 }
@@ -117,7 +109,7 @@ func (o *OCI) Publish(ctx context.Context, sandbox string, ports []api.Port) err
 // its host ports bound against a sandbox that is no longer listening, which
 // denies them to whatever wants them next and answers on them meanwhile.
 func (o *OCI) Unpublish(ctx context.Context, sandbox string) error {
-	_, err := o.exec.Output(ctx, o.invoke("rm", "--force", PortsContainer(sandbox)))
+	_, err := o.exec.Output(ctx, o.invoke("rm", "--force", portsContainer(sandbox)))
 	if err != nil && !isNotFound(err) {
 		return fmt.Errorf("removing the port forwarder for %s: %w", sandbox, err)
 	}
@@ -125,11 +117,7 @@ func (o *OCI) Unpublish(ctx context.Context, sandbox string) error {
 }
 
 func (o *OCI) ensurePortsNetwork(ctx context.Context) error {
-	_, err := o.exec.Output(ctx, o.invoke("network", "create", portsNet))
-	if err != nil && !isAlreadyExists(err) {
-		return err
-	}
-	return nil
+	return o.createNetwork(ctx, portsNet, false)
 }
 
 // bindConflict matches a runtime reporting a host port it could not take.

@@ -36,7 +36,7 @@ func allAfter(args []string, flag string) []string {
 }
 
 func TestCreateInvocationCoreShape(t *testing.T) {
-	inv := testOCI().CreateInvocation(api.Spec{Name: "demo", Image: "base:1"})
+	inv := testOCI().createInvocation(api.Spec{Name: "demo", Image: "base:1"})
 
 	if inv.Path != "/usr/bin/docker" {
 		t.Errorf("path = %q, want the detected runtime binary", inv.Path)
@@ -58,7 +58,7 @@ func TestCreateInvocationCoreShape(t *testing.T) {
 }
 
 func TestCreateInvocationNeverPrivileged(t *testing.T) {
-	inv := testOCI().CreateInvocation(api.Spec{Name: "demo", Image: "base:1"})
+	inv := testOCI().createInvocation(api.Spec{Name: "demo", Image: "base:1"})
 	for _, a := range inv.Args {
 		if a == "--privileged" {
 			t.Fatal("sandboxes must never run privileged")
@@ -67,7 +67,7 @@ func TestCreateInvocationNeverPrivileged(t *testing.T) {
 }
 
 func TestCreateInvocationWorkspacesBindAtHostPaths(t *testing.T) {
-	inv := testOCI().CreateInvocation(api.Spec{
+	inv := testOCI().createInvocation(api.Spec{
 		Name:  "demo",
 		Image: "base:1",
 		Workspaces: []api.Workspace{
@@ -96,7 +96,7 @@ func TestCreateInvocationWorkspacesBindAtHostPaths(t *testing.T) {
 }
 
 func TestCreateInvocationResources(t *testing.T) {
-	inv := testOCI().CreateInvocation(api.Spec{
+	inv := testOCI().createInvocation(api.Spec{
 		Name:      "demo",
 		Image:     "base:1",
 		Resources: api.Resources{CPUs: 2.5, Memory: 8 << 30},
@@ -115,7 +115,7 @@ func TestCreateInvocationResources(t *testing.T) {
 }
 
 func TestCreateInvocationOmitsUnsetLimits(t *testing.T) {
-	inv := testOCI().CreateInvocation(api.Spec{Name: "demo", Image: "base:1"})
+	inv := testOCI().createInvocation(api.Spec{Name: "demo", Image: "base:1"})
 	for _, flag := range []string{"--cpus", "--memory", "--publish", "--env", "--workdir"} {
 		if _, ok := argsAfter(inv.Args, flag); ok {
 			t.Errorf("%s should be omitted when unset, so the runtime's own default applies", flag)
@@ -133,7 +133,7 @@ func TestCreateInvocationEnvIsSorted(t *testing.T) {
 	}
 	want := []string{"ALPHA=1", "MID=2", "ZED=3"}
 	for range 20 {
-		got := allAfter(testOCI().CreateInvocation(spec).Args, "--env")
+		got := allAfter(testOCI().createInvocation(spec).Args, "--env")
 		if len(got) != len(want) {
 			t.Fatalf("env = %v, want %v", got, want)
 		}
@@ -146,7 +146,7 @@ func TestCreateInvocationEnvIsSorted(t *testing.T) {
 }
 
 func TestExecInvocation(t *testing.T) {
-	inv := testOCI().ExecInvocation("plbx-demo", api.ExecRequest{
+	inv := testOCI().execInvocation("plbx-demo", api.ExecRequest{
 		Cmd:         []string{"bash", "-lc", "echo hi"},
 		Workdir:     "/home/viv/project",
 		User:        "agent",
@@ -169,7 +169,7 @@ func TestExecInvocation(t *testing.T) {
 }
 
 func TestExecInvocationOmitsUnrequestedTTY(t *testing.T) {
-	inv := testOCI().ExecInvocation("plbx-demo", api.ExecRequest{Cmd: []string{"ls"}})
+	inv := testOCI().execInvocation("plbx-demo", api.ExecRequest{Cmd: []string{"ls"}})
 	for _, a := range inv.Args {
 		if a == "--tty" || a == "--interactive" {
 			t.Errorf("%s should not be set for a non-interactive exec", a)
@@ -180,12 +180,12 @@ func TestExecInvocationOmitsUnrequestedTTY(t *testing.T) {
 func TestCopyInvocationRewritesSandboxSide(t *testing.T) {
 	o := testOCI()
 
-	in := o.CopyInvocation("plbx-demo", api.Path{Path: "/tmp/a"}, api.Path{Sandbox: "demo", Path: "/home/agent/a"})
+	in := o.copyInvocation("plbx-demo", api.Path{Path: "/tmp/a"}, api.Path{Sandbox: "demo", Path: "/home/agent/a"})
 	if got := in.Args[1:]; got[0] != "/tmp/a" || got[1] != "plbx-demo:/home/agent/a" {
 		t.Errorf("host→sandbox = %v, want the sandbox side prefixed with the container", got)
 	}
 
-	out := o.CopyInvocation("plbx-demo", api.Path{Sandbox: "demo", Path: "/home/agent/a"}, api.Path{Path: "/tmp/a"})
+	out := o.copyInvocation("plbx-demo", api.Path{Sandbox: "demo", Path: "/home/agent/a"}, api.Path{Path: "/tmp/a"})
 	if got := out.Args[1:]; got[0] != "plbx-demo:/home/agent/a" || got[1] != "/tmp/a" {
 		t.Errorf("sandbox→host = %v, want the sandbox side prefixed with the container", got)
 	}
@@ -397,7 +397,7 @@ func TestParseInspectSurvivesGarbage(t *testing.T) {
 
 func TestInspectUsesAnUnambiguousFormat(t *testing.T) {
 	// tab-separated, so a value containing a space cannot shift the others.
-	inv := testOCI().InspectInvocation("plbx-demo")
+	inv := testOCI().inspectInvocation("plbx-demo")
 	format, ok := argsAfter(inv.Args, "--format")
 	if !ok {
 		t.Fatal("inspect should ask for a format")
@@ -429,7 +429,7 @@ func testEgressOCI(opts ...Option) *OCI {
 }
 
 func TestCreateInvocationPutsTheSandboxOnItsOwnNetwork(t *testing.T) {
-	inv := testEgressOCI().CreateInvocation(api.Spec{Name: "demo", Image: "base:1"})
+	inv := testEgressOCI().createInvocation(api.Spec{Name: "demo", Image: "base:1"})
 
 	net, ok := argsAfter(inv.Args, "--network")
 	if !ok || net != "plbx-demo-net" {
@@ -438,7 +438,7 @@ func TestCreateInvocationPutsTheSandboxOnItsOwnNetwork(t *testing.T) {
 }
 
 func TestCreateInvocationTellsTheSandboxItsWayOut(t *testing.T) {
-	inv := testEgressOCI().CreateInvocation(api.Spec{Name: "demo", Image: "base:1"})
+	inv := testEgressOCI().createInvocation(api.Spec{Name: "demo", Image: "base:1"})
 
 	env := strings.Join(allAfter(inv.Args, "--env"), " ")
 	for _, want := range []string{"HTTP_PROXY=", "HTTPS_PROXY=", "plbx-relay:8080", "NO_PROXY="} {
@@ -455,7 +455,7 @@ func TestCreateInvocationTellsTheSandboxItsWayOut(t *testing.T) {
 func TestEgressEnvOverridesWhateverTheSpecAsksFor(t *testing.T) {
 	// the point of the proxy is that a sandbox cannot choose its own way out,
 	// and a spec that could set HTTP_PROXY could choose one.
-	inv := testEgressOCI().CreateInvocation(api.Spec{
+	inv := testEgressOCI().createInvocation(api.Spec{
 		Name:  "demo",
 		Image: "base:1",
 		Env:   map[string]string{"HTTP_PROXY": "http://somewhere.else:3128"},
@@ -473,12 +473,12 @@ func TestWithoutEgressNothingIsRestricted(t *testing.T) {
 	// forwarder resolves it on, but nothing about it is restricted and there
 	// is no proxy to point the sandbox at.
 	o := testOCI()
-	inv := o.CreateInvocation(api.Spec{Name: "demo", Image: "base:1"})
+	inv := o.createInvocation(api.Spec{Name: "demo", Image: "base:1"})
 
 	if env := strings.Join(allAfter(inv.Args, "--env"), " "); strings.Contains(env, "PROXY") {
 		t.Errorf("no proxy environment should be set: %q", env)
 	}
-	if joined := strings.Join(o.CreateNetworkInvocation("demo").Args, " "); strings.Contains(joined, "--internal") {
+	if joined := strings.Join(o.createNetworkInvocation("demo").Args, " "); strings.Contains(joined, "--internal") {
 		t.Errorf("network create %q must not be internal: there is no proxy to be the way out", joined)
 	}
 }
@@ -486,7 +486,7 @@ func TestWithoutEgressNothingIsRestricted(t *testing.T) {
 func TestSandboxNetworkIsInternal(t *testing.T) {
 	// "internal" is the whole guarantee: without it the sandbox has a route
 	// out that never passes the proxy.
-	inv := testEgressOCI().CreateNetworkInvocation("demo")
+	inv := testEgressOCI().createNetworkInvocation("demo")
 	joined := strings.Join(inv.Args, " ")
 	if !strings.Contains(joined, "--internal") {
 		t.Errorf("network create %q must be internal", joined)
@@ -497,7 +497,7 @@ func TestSandboxNetworkIsInternal(t *testing.T) {
 }
 
 func TestRelayIsGivenOneAddressAndNoMore(t *testing.T) {
-	inv := testEgressOCI().RelayInvocation("plbx-relay:test", "host.docker.internal:47821")
+	inv := testEgressOCI().relayInvocation("plbx-relay:test", "host.docker.internal:47821")
 	joined := strings.Join(inv.Args, " ")
 
 	if !strings.Contains(joined, "-upstream host.docker.internal:47821") {
@@ -582,9 +582,9 @@ func TestStartAttachesTheRelayBySandboxName(t *testing.T) {
 					connect = strings.Join(inv.Args, " ")
 				}
 			}
-			if !strings.Contains(connect, " "+SandboxNetwork("demo")+" ") {
+			if !strings.Contains(connect, " "+sandboxNetwork("demo")+" ") {
 				t.Errorf("relay attached via %q, want the sandbox's own network %s",
-					connect, SandboxNetwork("demo"))
+					connect, sandboxNetwork("demo"))
 			}
 		})
 	}
@@ -616,7 +616,7 @@ func TestCloneModeMountsEveryWorkspaceReadOnly(t *testing.T) {
 			{Host: "/home/viv/other"},
 		},
 	}
-	inv := testOCI().CreateInvocation(spec)
+	inv := testOCI().createInvocation(spec)
 
 	for _, mount := range allAfter(inv.Args, "--volume") {
 		if strings.HasPrefix(mount, "/home/viv/") && !strings.HasSuffix(mount, ":ro") {
@@ -635,7 +635,7 @@ func TestWithoutCloneTheWorkspaceIsWritable(t *testing.T) {
 		Image:      "base:1",
 		Workspaces: []api.Workspace{{Host: "/home/viv/myrepo"}},
 	}
-	inv := testOCI().CreateInvocation(spec)
+	inv := testOCI().createInvocation(spec)
 	if got := allAfter(inv.Args, "--volume"); !slices.Contains(got, "/home/viv/myrepo:/home/viv/myrepo") {
 		t.Errorf("--volume = %v, want the workspace mounted read-write at its own path", got)
 	}

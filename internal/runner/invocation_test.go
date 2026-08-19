@@ -53,7 +53,7 @@ func TestContainerAndVolumeNamesAreNamespaced(t *testing.T) {
 	if got := ContainerName("demo"); got != "plbx-demo" {
 		t.Errorf("ContainerName = %q, want plbx-demo", got)
 	}
-	if got := HomeVolume("demo"); got != "plbx-demo-home" {
-		t.Errorf("HomeVolume = %q, want plbx-demo-home", got)
+	if got := homeVolume("demo"); got != "plbx-demo-home" {
+		t.Errorf("homeVolume = %q, want plbx-demo-home", got)
 	}
 }

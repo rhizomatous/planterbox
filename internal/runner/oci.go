@@ -18,11 +18,6 @@ import (
 // `docker ps` makes it obvious who created what.
 const containerPrefix = "plbx-"
 
-// agentHome is the base image contract's home directory. It gets its own named
-// volume, which is what makes a sandbox persistent: packages, shell history,
-// and agent state all live under it.
-const agentHome = "/home/agent"
-
 // idle keeps a created sandbox alive with no agent attached. Sessions arrive
 // later over exec.
 var idle = []string{"sleep", "infinity"}
@@ -40,11 +35,13 @@ type OCI struct {
 }
 
 // WithEgress routes sandboxes through the proxy at upstream, over a private
-// network and the relay. relayImage may be empty for the published default.
+// network and the relay. If relayImage is empty, the published default is used.
 func WithEgress(upstream, relayImage string) Option {
 	return func(o *OCI) {
 		o.egressUpstream = upstream
-		o.relayImage = relayImage
+		if relayImage != "" {
+			o.relayImage = relayImage
+		}
 	}
 }
 
@@ -65,30 +62,27 @@ func WithDryRun(w io.Writer) Option {
 
 // NewOCI returns a runner driving rt.
 func NewOCI(rt Runtime, opts ...Option) *OCI {
-	o := &OCI{rt: rt, exec: hostExecutor{}}
+	o := &OCI{rt: rt, exec: hostExecutor{}, relayImage: defaultRelayImage}
 	for _, opt := range opts {
 		opt(o)
 	}
 	return o
 }
 
-// Runtime reports which container CLI this runner drives.
-func (o *OCI) Runtime() Runtime { return o.rt }
-
 // ContainerName is the runtime-side name for a sandbox.
 func ContainerName(sandbox string) string { return containerPrefix + sandbox }
 
-// HomeVolume is the named volume backing a sandbox's /home/agent.
-func HomeVolume(sandbox string) string { return containerPrefix + sandbox + "-home" }
+// homeVolume is the named volume backing a sandbox's /home/agent.
+func homeVolume(sandbox string) string { return containerPrefix + sandbox + "-home" }
 
 // Create builds the container without starting it.
 func (o *OCI) Create(ctx context.Context, spec api.Spec) (ID, error) {
 	// the network comes first: the container is created onto it, and a create
 	// naming a network that does not exist fails outright.
-	if err := o.EnsureNetwork(ctx, spec.Name); err != nil {
+	if err := o.ensureNetwork(ctx, spec.Name); err != nil {
 		return "", err
 	}
-	if _, err := o.exec.Output(ctx, o.CreateInvocation(spec)); err != nil {
+	if _, err := o.exec.Output(ctx, o.createInvocation(spec)); err != nil {
 		return "", err
 	}
 	// the runtime echoes the new container's ID, but the name is what every
@@ -108,7 +102,7 @@ func (o *OCI) Create(ctx context.Context, spec api.Spec) (ID, error) {
 // after the sandbox and stays that way.
 func (o *OCI) Start(ctx context.Context, id ID, sandbox string) error {
 	if o.egressUpstream != "" {
-		if err := o.EnsureRelay(ctx, sandbox, o.relayImage, o.egressUpstream); err != nil {
+		if err := o.ensureRelay(ctx, sandbox, o.relayImage, o.egressUpstream); err != nil {
 			return err
 		}
 	}
@@ -144,7 +138,7 @@ func (o *OCI) Remove(ctx context.Context, id ID, sandbox string, force bool) err
 		return err
 	}
 
-	if _, err := o.exec.Output(ctx, o.invoke("volume", "rm", HomeVolume(sandbox))); err != nil && !isNotFound(err) {
+	if _, err := o.exec.Output(ctx, o.invoke("volume", "rm", homeVolume(sandbox))); err != nil && !isNotFound(err) {
 		return err
 	}
 	// the network goes last: it cannot be removed while anything is still
@@ -152,7 +146,7 @@ func (o *OCI) Remove(ctx context.Context, id ID, sandbox string, force bool) err
 	if err := o.Unpublish(ctx, sandbox); err != nil {
 		return err
 	}
-	if err := o.RemoveNetwork(ctx, sandbox); err != nil {
+	if err := o.removeNetwork(ctx, sandbox); err != nil {
 		return err
 	}
 	return nil
@@ -161,7 +155,7 @@ func (o *OCI) Remove(ctx context.Context, id ID, sandbox string, force bool) err
 // Exec runs a command inside a running container, with the terminal wired
 // through so the user can interact with it.
 func (o *OCI) Exec(ctx context.Context, id ID, req api.ExecRequest, streams api.Streams) (api.ExecResult, error) {
-	code, err := o.exec.Session(ctx, o.ExecInvocation(id, req), streams, req.TTY)
+	code, err := o.exec.Session(ctx, o.execInvocation(id, req), streams, req.TTY)
 	if err != nil {
 		return api.ExecResult{}, err
 	}
@@ -170,14 +164,14 @@ func (o *OCI) Exec(ctx context.Context, id ID, req api.ExecRequest, streams api.
 
 // Copy moves files between the host and a container.
 func (o *OCI) Copy(ctx context.Context, id ID, src, dst api.Path) error {
-	_, err := o.exec.Output(ctx, o.CopyInvocation(id, src, dst))
+	_, err := o.exec.Output(ctx, o.copyInvocation(id, src, dst))
 	return err
 }
 
 // Stats streams resource samples for a running container until it exits or ctx
 // is cancelled.
 func (o *OCI) Stats(ctx context.Context, id ID) (<-chan api.Stats, error) {
-	lines, err := o.exec.Stream(ctx, o.StatsInvocation(id))
+	lines, err := o.exec.Stream(ctx, o.statsInvocation(id))
 	if err != nil {
 		return nil, err
 	}
@@ -209,26 +203,26 @@ const statsFormat = "{{.CPUPerc}}\t{{.MemUsage}}"
 // sits silent for however long a multi-gigabyte agent image takes. Pulling as
 // its own step is what gives that wait something to show.
 func (o *OCI) PullImage(ctx context.Context, image string) (<-chan string, error) {
-	if _, err := o.exec.Output(ctx, o.ImageInspectInvocation(image)); err == nil {
+	if _, err := o.exec.Output(ctx, o.imageInspectInvocation(image)); err == nil {
 		done := make(chan string)
 		close(done)
 		return done, nil
 	}
-	return o.exec.Stream(ctx, o.PullInvocation(image))
+	return o.exec.Stream(ctx, o.pullInvocation(image))
 }
 
-// ImageInspectInvocation renders the check for an image already being here.
-func (o *OCI) ImageInspectInvocation(image string) Invocation {
+// imageInspectInvocation renders the check for an image already being here.
+func (o *OCI) imageInspectInvocation(image string) Invocation {
 	return o.invoke("image", "inspect", image)
 }
 
-// PullInvocation renders the `pull` command line.
-func (o *OCI) PullInvocation(image string) Invocation {
+// pullInvocation renders the `pull` command line.
+func (o *OCI) pullInvocation(image string) Invocation {
 	return o.invoke("pull", image)
 }
 
-// StatsInvocation renders the streaming `stats` command line.
-func (o *OCI) StatsInvocation(id ID) Invocation {
+// statsInvocation renders the streaming `stats` command line.
+func (o *OCI) statsInvocation(id ID) Invocation {
 	return o.invoke("stats", "--format", statsFormat, string(id))
 }
 
@@ -280,7 +274,7 @@ func parseMemUsage(s string) (used, limit int64, ok bool) {
 // never heard of is [api.StatusMissing] rather than an error: the record
 // outliving the container is a state plbx displays, not a failure.
 func (o *OCI) Inspect(ctx context.Context, id ID) (api.State, error) {
-	out, err := o.exec.Output(ctx, o.InspectInvocation(id))
+	out, err := o.exec.Output(ctx, o.inspectInvocation(id))
 	if isNotFound(err) {
 		return api.State{Status: api.StatusMissing}, nil
 	}
@@ -290,16 +284,16 @@ func (o *OCI) Inspect(ctx context.Context, id ID) (api.State, error) {
 	return parseInspect(string(out)), nil
 }
 
-// CreateInvocation renders the `create` command line for spec. It is pure, so
+// createInvocation renders the `create` command line for spec. It is pure, so
 // arg-building is testable without a runtime.
-func (o *OCI) CreateInvocation(spec api.Spec) Invocation {
+func (o *OCI) createInvocation(spec api.Spec) Invocation {
 	args := []string{
 		"create",
 		"--name", ContainerName(spec.Name),
 		"--hostname", spec.Name,
 		"--label", "plbx.sandbox=" + spec.Name,
 		// persistence lives here: everything the user installs is under $HOME.
-		"--volume", HomeVolume(spec.Name) + ":" + agentHome,
+		"--volume", homeVolume(spec.Name) + ":" + api.AgentHome,
 	}
 
 	// workspaces bind in at their host paths, so paths resolve on both sides.
@@ -329,7 +323,7 @@ func (o *OCI) CreateInvocation(spec api.Spec) Invocation {
 	// a sandbox is always alone on its own network. With egress control on
 	// that network has no route out, and the proxy environment points at the
 	// relay, which is the only other thing on it.
-	args = append(args, "--network", SandboxNetwork(spec.Name))
+	args = append(args, "--network", sandboxNetwork(spec.Name))
 	env := spec.Env
 	if o.egressUpstream != "" {
 		env = withProxyEnv(env, spec.Name)
@@ -345,8 +339,8 @@ func (o *OCI) CreateInvocation(spec api.Spec) Invocation {
 	return o.invoke(args...)
 }
 
-// ExecInvocation renders the `exec` command line for req.
-func (o *OCI) ExecInvocation(id ID, req api.ExecRequest) Invocation {
+// execInvocation renders the `exec` command line for req.
+func (o *OCI) execInvocation(id ID, req api.ExecRequest) Invocation {
 	args := []string{"exec"}
 	if req.Interactive {
 		args = append(args, "--interactive")
@@ -368,9 +362,9 @@ func (o *OCI) ExecInvocation(id ID, req api.ExecRequest) Invocation {
 	return o.invoke(args...)
 }
 
-// CopyInvocation renders the `cp` command line, rewriting sandbox-side paths to
+// copyInvocation renders the `cp` command line, rewriting sandbox-side paths to
 // the runtime's "<container>:<path>" form.
-func (o *OCI) CopyInvocation(id ID, src, dst api.Path) Invocation {
+func (o *OCI) copyInvocation(id ID, src, dst api.Path) Invocation {
 	return o.invoke("cp", copyEndpoint(id, src), copyEndpoint(id, dst))
 }
 
@@ -378,8 +372,8 @@ func (o *OCI) CopyInvocation(id ID, src, dst api.Path) Invocation {
 // so a value containing a space cannot shift the others.
 const inspectFormat = "{{.State.Status}}\t{{.Id}}\t{{.State.StartedAt}}\t{{.State.ExitCode}}"
 
-// InspectInvocation renders the `inspect` command line.
-func (o *OCI) InspectInvocation(id ID) Invocation {
+// inspectInvocation renders the `inspect` command line.
+func (o *OCI) inspectInvocation(id ID) Invocation {
 	return o.invoke("inspect", "--type", "container", "--format", inspectFormat, string(id))
 }
 
@@ -449,7 +443,7 @@ func withProxyEnv(env map[string]string, sandbox string) map[string]string {
 	for k, v := range env {
 		merged[k] = v
 	}
-	for k, v := range ProxyEnv(sandbox) {
+	for k, v := range proxyEnv(sandbox) {
 		merged[k] = v
 	}
 	return merged

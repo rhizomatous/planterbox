@@ -74,24 +74,44 @@ func (f *specFlags) bind(cmd *cobra.Command) {
 		"work in a private clone, with your repository mounted read-only")
 }
 
-// parsePorts reads the --publish flags.
-//
-// Separate from buildSpec because ports are not part of a spec: they are not
-// baked into the container, and can be changed on a sandbox that already
-// exists. `create` and `run` publish them as a second step.
-func (f *specFlags) parsePorts() ([]api.Port, error) {
-	ports := make([]api.Port, 0, len(f.ports))
-	for _, p := range f.ports {
-		port, err := parsePort(p)
+// parsePorts reads and validates port specifications. The input should be a
+// list of strings in the form "host:sandbox" or just a port number.
+func parsePorts(args []string) ([]api.Port, error) {
+	ports := make([]api.Port, 0, len(args))
+	for _, a := range args {
+		p, err := parsePort(a)
 		if err != nil {
 			return nil, err
 		}
-		ports = append(ports, port)
+		ports = append(ports, p)
 	}
 	if err := api.ValidatePorts(ports); err != nil {
 		return nil, err
 	}
 	return ports, nil
+}
+
+// parseSpecPorts reads the --publish flags from a spec.
+//
+// Separate from buildSpec because ports are not part of a spec: they are not
+// baked into the container, and can be changed on a sandbox that already
+// exists. `create` and `run` publish them as a second step.
+func (f *specFlags) parseSpecPorts() ([]api.Port, error) {
+	return parsePorts(f.ports)
+}
+
+// parseEnv splits NAME=VALUE, rejecting an empty name but accepting an empty
+// value.
+func parseEnv(s string) (name, value string, ok bool) {
+	for i := range len(s) {
+		if s[i] == '=' {
+			if i == 0 {
+				return "", "", false
+			}
+			return s[:i], s[i+1:], true
+		}
+	}
+	return "", "", false
 }
 
 // changed reports whether any create-time flag was set. `run` uses this to warn
@@ -146,7 +166,7 @@ func (f *specFlags) buildSpec(agent string, paths []string, cwd string) (api.Spe
 	}
 
 	for _, e := range f.env {
-		k, v, ok := strings.Cut(e, "=")
+		k, v, ok := parseEnv(e)
 		if !ok {
 			return api.Spec{}, fmt.Errorf("env %q: expected NAME=VALUE", e)
 		}

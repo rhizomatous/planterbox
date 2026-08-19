@@ -90,7 +90,7 @@ func TestParseStatsRejectsWhatItCannotRead(t *testing.T) {
 }
 
 func TestStatsInvocationStreams(t *testing.T) {
-	inv := testOCI().StatsInvocation("plbx-demo")
+	inv := testOCI().statsInvocation("plbx-demo")
 	if inv.Args[0] != "stats" {
 		t.Errorf("args[0] = %q, want stats", inv.Args[0])
 	}

@@ -17,7 +17,7 @@ func portsOCI(exec Executor) *OCI {
 }
 
 func TestPortsInvocationPublishesAndForwardsEachPort(t *testing.T) {
-	inv := portsOCI(&scriptedExecutor{}).PortsInvocation("demo", []api.Port{
+	inv := portsOCI(&scriptedExecutor{}).portsInvocation("demo", []api.Port{
 		{Host: 3000, Sandbox: 3000},
 		{Host: 8080, Sandbox: 80},
 	})
@@ -44,9 +44,9 @@ func TestPortsInvocationPublishesAndForwardsEachPort(t *testing.T) {
 
 // The image is the relay's: one binary serves both directions.
 func TestPortsInvocationRunsTheRelayImage(t *testing.T) {
-	inv := portsOCI(&scriptedExecutor{}).PortsInvocation("demo", []api.Port{{Host: 1, Sandbox: 1}})
-	if !slices.Contains(inv.Args, DefaultRelayImage) {
-		t.Errorf("args = %v, want the relay image %s", inv.Args, DefaultRelayImage)
+	inv := portsOCI(&scriptedExecutor{}).portsInvocation("demo", []api.Port{{Host: 1, Sandbox: 1}})
+	if !slices.Contains(inv.Args, defaultRelayImage) {
+		t.Errorf("args = %v, want the relay image %s", inv.Args, defaultRelayImage)
 	}
 }
 
@@ -65,10 +65,10 @@ func TestEverySandboxGetsItsOwnNetwork(t *testing.T) {
 		{name: "without", o: testOCI(), internal: false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			if net, ok := argsAfter(tc.o.CreateInvocation(spec).Args, "--network"); !ok || net != SandboxNetwork("demo") {
+			if net, ok := argsAfter(tc.o.createInvocation(spec).Args, "--network"); !ok || net != sandboxNetwork("demo") {
 				t.Errorf("--network = %q, want the sandbox's own network", net)
 			}
-			create := tc.o.CreateNetworkInvocation("demo")
+			create := tc.o.createNetworkInvocation("demo")
 			if got := slices.Contains(create.Args, "--internal"); got != tc.internal {
 				t.Errorf("--internal = %v, want %v", got, tc.internal)
 			}
@@ -139,7 +139,7 @@ func TestRemoveDropsTheForwarderBeforeTheNetwork(t *testing.T) {
 		if strings.HasPrefix(line, "rm --force plbx-demo-ports") {
 			forwarder = i
 		}
-		if strings.HasPrefix(line, "network rm "+SandboxNetwork("demo")) {
+		if strings.HasPrefix(line, "network rm "+sandboxNetwork("demo")) {
 			network = i
 		}
 	}

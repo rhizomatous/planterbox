@@ -238,9 +238,9 @@ func TestCutEnv(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.in, func(t *testing.T) {
-			name, value, ok := cutEnv(tc.in)
+			name, value, ok := parseEnv(tc.in)
 			if name != tc.name || value != tc.value || ok != tc.ok {
-				t.Errorf("cutEnv(%q) = %q, %q, %v; want %q, %q, %v",
+				t.Errorf("parseEnv(%q) = %q, %q, %v; want %q, %q, %v",
 					tc.in, name, value, ok, tc.name, tc.value, tc.ok)
 			}
 		})

@@ -81,7 +81,7 @@ func (s *Service) ensureClone(ctx context.Context, sb api.Sandbox) error {
 		// start: the runtime makes an empty directory for it, and git then
 		// finds itself cloning into its own working directory and fails the
 		// checkout.
-		Workdir: agentHome,
+		Workdir: api.AgentHome,
 		User:    "agent",
 	}, api.Streams{Stdin: emptyReader{}, Stdout: &out, Stderr: &out})
 	if err != nil {
@@ -98,10 +98,6 @@ func (s *Service) ensureClone(ctx context.Context, sb api.Sandbox) error {
 type emptyReader struct{}
 
 func (emptyReader) Read([]byte) (int, error) { return 0, io.EOF }
-
-// agentHome is the base image contract's home directory, and somewhere that
-// reliably exists to run from.
-const agentHome = "/home/agent"
 
 // lastLine trims git's answer to the part worth reporting.
 //

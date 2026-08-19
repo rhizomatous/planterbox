@@ -8,13 +8,9 @@ package runner
 
 import (
 	"context"
-	"errors"
 
 	"github.com/rhizomatous/planterbox/internal/api"
 )
-
-// ErrNotImplemented marks runner surface that is declared but not yet built.
-var ErrNotImplemented = errors.New("not implemented")
 
 // ID is a runtime's own handle on a container.
 type ID string

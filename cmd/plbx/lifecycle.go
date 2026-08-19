@@ -334,7 +334,7 @@ func newExecCmd(g *globals) *cobra.Command {
 				TTY:         !noTTY && isTerminal(os.Stdin),
 			}
 			for _, e := range env {
-				k, v, ok := cutEnv(e)
+				k, v, ok := parseEnv(e)
 				if !ok {
 					return fmt.Errorf("env %q: expected NAME=VALUE", e)
 				}
@@ -409,17 +409,4 @@ func newCpCmd(g *globals) *cobra.Command {
 			})
 		},
 	}
-}
-
-// cutEnv splits NAME=VALUE, accepting an empty value but not an empty name.
-func cutEnv(s string) (name, value string, ok bool) {
-	for i := range len(s) {
-		if s[i] == '=' {
-			if i == 0 {
-				return "", "", false
-			}
-			return s[:i], s[i+1:], true
-		}
-	}
-	return "", "", false
 }

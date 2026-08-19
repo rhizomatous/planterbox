@@ -40,7 +40,7 @@ func newCreateCmd(g *globals) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			ports, err := flags.parsePorts()
+			ports, err := flags.parseSpecPorts()
 			if err != nil {
 				return err
 			}

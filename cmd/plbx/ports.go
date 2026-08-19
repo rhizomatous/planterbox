@@ -74,19 +74,6 @@ func newPortsCmd(g *globals) *cobra.Command {
 	return cmd
 }
 
-// parsePorts reads --publish arguments into ports.
-func parsePorts(args []string) ([]api.Port, error) {
-	ports := make([]api.Port, 0, len(args))
-	for _, a := range args {
-		p, err := parsePort(a)
-		if err != nil {
-			return nil, err
-		}
-		ports = append(ports, p)
-	}
-	return ports, nil
-}
-
 // parseHostPorts reads --unpublish arguments, which name a host port only:
 // that is the side the user sees, and the side that has to be unique.
 func parseHostPorts(args []string) ([]int, error) {

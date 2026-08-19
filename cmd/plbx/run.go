@@ -138,7 +138,7 @@ func resolveOrCreate(
 	if err != nil {
 		return api.Sandbox{}, false, err
 	}
-	ports, err := flags.parsePorts()
+	ports, err := flags.parseSpecPorts()
 	if err != nil {
 		return api.Sandbox{}, false, err
 	}

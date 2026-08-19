@@ -26,17 +26,17 @@ const (
 	relayName = "plbx-relay"
 	// relayEgressNet is the ordinary network the relay reaches the host from.
 	relayEgressNet = "plbx-egress"
-	// RelayPort is where the relay accepts a sandbox's connections.
-	RelayPort = 8080
-	// DefaultRelayImage is the published relay. It holds a single static
+	// relayPort is where the relay accepts a sandbox's connections.
+	relayPort = 8080
+	// defaultRelayImage is the published relay. It holds a single static
 	// binary on an empty base.
-	DefaultRelayImage = "ghcr.io/rhizomatous/plbx-relay:latest"
+	defaultRelayImage = "ghcr.io/rhizomatous/plbx-relay:latest"
 )
 
-// SandboxNetwork is the network a sandbox is alone on.
-func SandboxNetwork(sandbox string) string { return containerPrefix + sandbox + "-net" }
+// sandboxNetwork is the network a sandbox is alone on.
+func sandboxNetwork(sandbox string) string { return containerPrefix + sandbox + "-net" }
 
-// ProxyEnv is what a sandbox is told about its way out.
+// proxyEnv is what a sandbox is told about its way out.
 //
 // The address is the relay's name on the sandbox's own network, which the
 // runtime's embedded DNS resolves without any egress of its own. NO_PROXY keeps
@@ -47,8 +47,8 @@ func SandboxNetwork(sandbox string) string { return containerPrefix + sandbox + 
 // connection log can say who asked. It is a label and not a secret: the policy
 // is host-side and identical for every sandbox, so the name grants nothing and
 // proves nothing.
-func ProxyEnv(sandbox string) map[string]string {
-	addr := "http://" + url.UserPassword(sandbox, "x").String() + "@" + relayName + ":" + strconv.Itoa(RelayPort)
+func proxyEnv(sandbox string) map[string]string {
+	addr := "http://" + url.UserPassword(sandbox, "x").String() + "@" + relayName + ":" + strconv.Itoa(relayPort)
 	return map[string]string{
 		"HTTP_PROXY":  addr,
 		"HTTPS_PROXY": addr,
@@ -59,63 +59,56 @@ func ProxyEnv(sandbox string) map[string]string {
 	}
 }
 
-// CreateNetworkInvocation renders the command creating a sandbox's network.
+// createNetworkInvocation renders the command creating a sandbox's network.
 //
 // Every sandbox gets one, whether or not egress control is on. Only the
 // --internal flag turns on the isolation; the network itself is what lets the
 // port forwarder find the sandbox by name, which the runtime's embedded DNS
 // does on a user-defined network and not on the default bridge.
-func (o *OCI) CreateNetworkInvocation(sandbox string) Invocation {
+func (o *OCI) createNetworkInvocation(sandbox string) Invocation {
 	args := []string{"network", "create"}
 	if o.egressUpstream != "" {
 		args = append(args, "--internal")
 	}
-	return o.invoke(append(args, "--label", "plbx.sandbox="+sandbox, SandboxNetwork(sandbox))...)
+	return o.invoke(append(args, "--label", "plbx.sandbox="+sandbox, sandboxNetwork(sandbox))...)
 }
 
-// RemoveNetworkInvocation renders the command removing it.
-func (o *OCI) RemoveNetworkInvocation(sandbox string) Invocation {
-	return o.invoke("network", "rm", SandboxNetwork(sandbox))
+// removeNetworkInvocation renders the command removing it.
+func (o *OCI) removeNetworkInvocation(sandbox string) Invocation {
+	return o.invoke("network", "rm", sandboxNetwork(sandbox))
 }
 
-// EnsureNetwork creates a sandbox's network, tolerating one that already
+// ensureNetwork creates a sandbox's network, tolerating one that already
 // exists: a sandbox being recreated keeps the same name.
-func (o *OCI) EnsureNetwork(ctx context.Context, sandbox string) error {
-	_, err := o.exec.Output(ctx, o.CreateNetworkInvocation(sandbox))
-	if err != nil && !isAlreadyExists(err) {
-		return err
-	}
-	return nil
+func (o *OCI) ensureNetwork(ctx context.Context, sandbox string) error {
+	return o.createNetwork(ctx, sandboxNetwork(sandbox), o.egressUpstream != "")
 }
 
-// RemoveNetwork drops a sandbox's network, tolerating one already gone.
+// removeNetwork drops a sandbox's network, tolerating one already gone.
 //
 // The relay is detached first. It is attached to every sandbox's network, and
 // a runtime refuses to remove a network that still has endpoints on it. Without
 // this, removing any sandbox fails once egress control is on, and fails after
 // the container is already gone.
-func (o *OCI) RemoveNetwork(ctx context.Context, sandbox string) error {
+func (o *OCI) removeNetwork(ctx context.Context, sandbox string) error {
 	_, err := o.exec.Output(ctx, o.invoke("network", "disconnect", "--force",
-		SandboxNetwork(sandbox), relayName))
+		sandboxNetwork(sandbox), relayName))
 	if err != nil && !isNotFound(err) && !isNotConnected(err) {
 		return err
 	}
-	if _, err := o.exec.Output(ctx, o.RemoveNetworkInvocation(sandbox)); err != nil && !isNotFound(err) {
+	if _, err := o.exec.Output(ctx, o.removeNetworkInvocation(sandbox)); err != nil && !isNotFound(err) {
 		return err
 	}
 	return nil
 }
 
-// EnsureRelay brings the relay up if it is not already, and attaches it to a
+// ensureRelay brings the relay up if it is not already, and attaches it to a
 // sandbox's network.
 //
 // Called on every start rather than once: the relay is shared, and a sandbox
 // starting after the relay was removed by hand would otherwise have no way out
 // with nothing to say about why.
-func (o *OCI) EnsureRelay(ctx context.Context, sandbox, image, upstream string) error {
-	if image == "" {
-		image = DefaultRelayImage
-	}
+func (o *OCI) ensureRelay(ctx context.Context, sandbox, image, upstream string) error {
 	if err := o.ensureEgressNetwork(ctx); err != nil {
 		return err
 	}
@@ -130,20 +123,14 @@ func (o *OCI) EnsureRelay(ctx context.Context, sandbox, image, upstream string) 
 		}
 	}
 
-	// attaching an already-attached container is not an error worth raising.
-	_, err = o.exec.Output(ctx, o.invoke("network", "connect", SandboxNetwork(sandbox), relayName))
-	if err != nil && !isAlreadyExists(err) && !isAlreadyConnected(err) {
-		return fmt.Errorf("attaching the relay to %s: %w", SandboxNetwork(sandbox), err)
+	if err := o.connectNetwork(ctx, sandboxNetwork(sandbox), relayName); err != nil {
+		return fmt.Errorf("attaching the relay to %s: %w", sandboxNetwork(sandbox), err)
 	}
 	return nil
 }
 
 func (o *OCI) ensureEgressNetwork(ctx context.Context) error {
-	_, err := o.exec.Output(ctx, o.invoke("network", "create", relayEgressNet))
-	if err != nil && !isAlreadyExists(err) {
-		return err
-	}
-	return nil
+	return o.createNetwork(ctx, relayEgressNet, false)
 }
 
 // relayRunning reports whether the relay container is up.
@@ -168,12 +155,12 @@ func (o *OCI) startRelay(ctx context.Context, image, upstream string) error {
 	if _, err := o.exec.Output(ctx, o.invoke("rm", "--force", relayName)); err != nil && !isNotFound(err) {
 		return err
 	}
-	_, err := o.exec.Output(ctx, o.RelayInvocation(image, upstream))
+	_, err := o.exec.Output(ctx, o.relayInvocation(image, upstream))
 	return err
 }
 
-// RelayInvocation renders the command that runs the relay.
-func (o *OCI) RelayInvocation(image, upstream string) Invocation {
+// relayInvocation renders the command that runs the relay.
+func (o *OCI) relayInvocation(image, upstream string) Invocation {
 	return o.invoke(
 		"run", "--detach",
 		"--name", relayName,
@@ -181,7 +168,7 @@ func (o *OCI) RelayInvocation(image, upstream string) Invocation {
 		"--restart", "unless-stopped",
 		"--network", relayEgressNet,
 		image,
-		"-listen", ":"+strconv.Itoa(RelayPort),
+		"-listen", ":"+strconv.Itoa(relayPort),
 		"-upstream", upstream,
 	)
 }
@@ -202,4 +189,27 @@ func isNotConnected(err error) bool {
 // container to a network it is already on.
 func isAlreadyConnected(err error) bool {
 	return runtimeSays(err, "already exists in network")
+}
+
+// createNetwork creates a network, tolerating one that already exists.
+func (o *OCI) createNetwork(ctx context.Context, name string, internal bool) error {
+	args := []string{"network", "create"}
+	if internal {
+		args = append(args, "--internal")
+	}
+	_, err := o.exec.Output(ctx, o.invoke(append(args, name)...))
+	if err != nil && !isAlreadyExists(err) {
+		return err
+	}
+	return nil
+}
+
+// connectNetwork attaches a container to a network, tolerating one that is
+// already attached.
+func (o *OCI) connectNetwork(ctx context.Context, network, container string) error {
+	_, err := o.exec.Output(ctx, o.invoke("network", "connect", network, container))
+	if err != nil && !isAlreadyExists(err) && !isAlreadyConnected(err) {
+		return err
+	}
+	return nil
 }

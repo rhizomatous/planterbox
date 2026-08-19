@@ -131,23 +131,7 @@ func (c *Client) Stats(ctx context.Context, ref api.Ref) (<-chan api.Stats, erro
 	if err != nil {
 		return nil, localError(err)
 	}
-
-	out := make(chan api.Stats)
-	go func() {
-		defer close(out)
-		for {
-			sample, err := stream.Recv()
-			if err != nil {
-				return // EOF, a cancelled context, or a dead daemon: all end the feed
-			}
-			select {
-			case out <- apiSample(sample):
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
-	return out, nil
+	return relayStream(ctx, stream, apiSample), nil
 }
 
 // PullImage fetches an image, relaying the daemon's progress.
@@ -156,23 +140,31 @@ func (c *Client) PullImage(ctx context.Context, image string) (<-chan string, er
 	if err != nil {
 		return nil, localError(err)
 	}
+	return relayStream(ctx, stream, func(progress *plbxv1.PullProgress) string {
+		return progress.GetLine()
+	}), nil
+}
 
-	out := make(chan string)
+// relayStream wraps the gRPC Recv pattern, forwarding messages onto a channel
+// until the stream closes or ctx is done. T is the protocol message type, U is
+// what the caller wants on the channel, and transform converts one to the other.
+func relayStream[T any, U any](ctx context.Context, stream interface{ Recv() (T, error) }, transform func(T) U) <-chan U {
+	out := make(chan U)
 	go func() {
 		defer close(out)
 		for {
-			progress, err := stream.Recv()
+			msg, err := stream.Recv()
 			if err != nil {
 				return // EOF, a cancelled context, or a dead daemon: all end the feed
 			}
 			select {
-			case out <- progress.GetLine():
+			case out <- transform(msg):
 			case <-ctx.Done():
 				return
 			}
 		}
 	}()
-	return out, nil
+	return out
 }
 
 // Policy returns the host's egress policy.
