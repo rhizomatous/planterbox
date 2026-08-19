@@ -438,3 +438,23 @@ func TestSidefilesFollowAnOverriddenSocket(t *testing.T) {
 		})
 	}
 }
+
+// The daemon and a client each resolve these for themselves. A relative one
+// resolves against whichever working directory each was started in, so they
+// land in different places and the client looks for a daemon it never finds.
+func TestRelativeOverridesAreRefused(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		vars map[string]string
+	}{
+		{name: "PLBX_SOCKET", vars: map[string]string{"PLBX_SOCKET": "mine/plbxd.sock"}},
+		{name: "PLBX_RUNTIME_DIR", vars: map[string]string{"PLBX_RUNTIME_DIR": "mine"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := Socket(env("linux", tc.vars))
+			if err == nil {
+				t.Errorf("Socket = %q, want a relative %s refused", got, tc.name)
+			}
+		})
+	}
+}

@@ -8,6 +8,7 @@ package daemon
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -31,6 +32,18 @@ type Env struct {
 	GOOS   string
 	UID    int
 	Getenv func(string) string
+}
+
+// absolute refuses a path that would resolve against the working directory.
+//
+// The daemon and the client each resolve these for themselves, so a relative
+// one puts them in different places depending on where each was started, and
+// the client looks for a daemon it will never find.
+func absolute(name, path string) (string, error) {
+	if !filepath.IsAbs(path) {
+		return "", fmt.Errorf("%s must be an absolute path, got %q", name, path)
+	}
+	return path, nil
 }
 
 // HostEnv returns the running host's environment.
@@ -58,7 +71,7 @@ const tmpRoot = "/tmp"
 // reaches a filename.
 func RuntimeDir(env Env) (string, error) {
 	if dir := env.Getenv("PLBX_RUNTIME_DIR"); dir != "" {
-		return dir, nil
+		return absolute("PLBX_RUNTIME_DIR", dir)
 	}
 	if dir := env.Getenv("XDG_RUNTIME_DIR"); filepath.IsAbs(dir) {
 		return filepath.Join(dir, appDir), nil
@@ -73,7 +86,7 @@ func RuntimeDir(env Env) (string, error) {
 // running a daemon somewhere of your own choosing.
 func Socket(env Env) (string, error) {
 	if path := env.Getenv("PLBX_SOCKET"); path != "" {
-		return path, nil
+		return absolute("PLBX_SOCKET", path)
 	}
 	dir, err := RuntimeDir(env)
 	if err != nil {

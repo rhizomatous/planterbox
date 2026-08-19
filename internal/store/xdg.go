@@ -2,6 +2,7 @@ package store
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 )
@@ -35,6 +36,9 @@ func HostEnv(goos string) (Env, error) {
 // elsewhere.
 func Root(env Env) (string, error) {
 	if dir := env.Getenv("PLBX_STATE_DIR"); dir != "" {
+		if !filepath.IsAbs(dir) {
+			return "", fmt.Errorf("PLBX_STATE_DIR must be an absolute path, got %q", dir)
+		}
 		return dir, nil
 	}
 	if dir := env.Getenv("XDG_DATA_HOME"); filepath.IsAbs(dir) {

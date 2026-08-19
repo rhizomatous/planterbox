@@ -80,3 +80,11 @@ func TestRootWithoutHomeOrOverrideErrors(t *testing.T) {
 		t.Error("Root with no home and no override should error rather than pick a surprise directory")
 	}
 }
+
+// A relative state directory resolves against the working directory, so what
+// plbx keeps would move with wherever it was run from.
+func TestRelativeStateDirIsRefused(t *testing.T) {
+	if got, err := Root(env("linux", "/home/viv", map[string]string{"PLBX_STATE_DIR": "mine"})); err == nil {
+		t.Errorf("Root = %q, want a relative PLBX_STATE_DIR refused", got)
+	}
+}
