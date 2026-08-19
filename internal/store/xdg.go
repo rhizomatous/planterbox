@@ -26,7 +26,8 @@ func HostEnv(goos string) (Env, error) {
 	return Env{GOOS: goos, Home: home, Getenv: os.Getenv}, nil
 }
 
-// Root resolves where sandbox records live.
+// Root resolves plbx's state directory: everything it keeps on disk lives
+// under this one path, records in a subdirectory of it.
 //
 // PLBX_STATE_DIR wins outright. Otherwise XDG_DATA_HOME is honored on every
 // platform (Linux by convention, macOS because anyone who sets it means it),
@@ -37,7 +38,7 @@ func Root(env Env) (string, error) {
 		return dir, nil
 	}
 	if dir := env.Getenv("XDG_DATA_HOME"); filepath.IsAbs(dir) {
-		return filepath.Join(dir, appDir, "sandboxes"), nil
+		return filepath.Join(dir, appDir), nil
 	}
 	if env.Home == "" {
 		return "", errors.New("cannot resolve a state directory: no home directory")
@@ -46,5 +47,5 @@ func Root(env Env) (string, error) {
 	if env.GOOS == "darwin" {
 		base = filepath.Join(env.Home, "Library", "Application Support")
 	}
-	return filepath.Join(base, appDir, "sandboxes"), nil
+	return filepath.Join(base, appDir), nil
 }

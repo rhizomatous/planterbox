@@ -14,6 +14,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- `--state-dir` and `PLBX_STATE_DIR` now name a directory plbx keeps everything under, rather than the records directory alone. The policy and the ssh host key used to land in that directory's *parent*, so `--state-dir ~/mine` wrote into your home directory, and two daemons under one parent silently shared a policy and an ssh identity. The default layout is unchanged; records under an explicit `--state-dir` move into a `sandboxes/` subdirectory of it.
+- `PLBX_SSH_SOCKET` is gone. The client honoured it and the daemon could not, so setting it pointed `plbx ssh` at a socket nothing was listening on. The pidfile and the daemon log now sit beside the socket too, wherever `PLBX_SOCKET` puts it.
+- The egress relay is told how to reach the host on Linux. `host.docker.internal` is a Docker Desktop convenience that Docker Engine does not publish, so on a stock Linux install the relay could not reach the proxy and sandboxes had no egress at all.
+- Network policy rules naming an IPv6 address matched nothing, so `plbx policy deny` on one reported success and let the traffic through.
+- Creating a clone-mode sandbox whose git remote could not be written reported `sandbox not found` afterwards, having created the sandbox.
 - Text trimmed to fit is measured in terminal cells rather than characters, and cut between characters rather than through them. A workspace path in Japanese or Chinese was twice as wide as it was counted, so it overran its column in `plbx ls` and wrapped the dashboard; an accented letter written as a combining mark could lose its accent, and an emoji could be cut in half.
 
 ## [0.9.0] - 2026-08-18

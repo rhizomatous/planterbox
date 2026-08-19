@@ -35,7 +35,7 @@ func run() int {
 		showVersion bool
 	)
 	flag.StringVar(&socket, "socket", "", "unix socket to listen on (default: the runtime directory)")
-	flag.StringVar(&stateDir, "state-dir", "", "where sandbox records are kept (default: XDG data dir)")
+	flag.StringVar(&stateDir, "state-dir", "", "where plbx keeps its state (default: XDG data dir)")
 	flag.StringVar(&proxyAddr, "proxy", "", "address the egress proxy listens on (default: "+daemon.DefaultProxyAddr+")")
 	flag.StringVar(&relayImage, "relay-image", "", "override the egress relay image")
 	flag.BoolVar(&showVersion, "version", false, "print the version and exit")

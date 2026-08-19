@@ -106,7 +106,7 @@ func newRootCmd(opts ...rootOption) *cobra.Command {
 	}
 
 	root.PersistentFlags().StringVar(&g.stateDir, "state-dir", "",
-		"where sandbox records are kept (default: XDG data dir)")
+		"where plbx keeps its state (default: XDG data dir)")
 	root.PersistentFlags().BoolVar(&g.dryRun, "dry-run", false,
 		"print the container commands instead of running them")
 

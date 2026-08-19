@@ -20,8 +20,8 @@ func TestRootPerPlatformDefaults(t *testing.T) {
 		goos string
 		want string
 	}{
-		{goos: "linux", want: filepath.Join("/home/viv", ".local", "share", "planterbox", "sandboxes")},
-		{goos: "darwin", want: filepath.Join("/home/viv", "Library", "Application Support", "planterbox", "sandboxes")},
+		{goos: "linux", want: filepath.Join("/home/viv", ".local", "share", "planterbox")},
+		{goos: "darwin", want: filepath.Join("/home/viv", "Library", "Application Support", "planterbox")},
 	}
 	for _, tc := range cases {
 		t.Run(tc.goos, func(t *testing.T) {
@@ -43,7 +43,7 @@ func TestRootHonorsXDGDataHomeOnEveryPlatform(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: Root: %v", goos, err)
 		}
-		want := filepath.Join("/data", "planterbox", "sandboxes")
+		want := filepath.Join("/data", "planterbox")
 		if got != want {
 			t.Errorf("%s: Root = %q, want %q", goos, got, want)
 		}
@@ -56,7 +56,7 @@ func TestRootIgnoresRelativeXDGDataHome(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Root: %v", err)
 	}
-	want := filepath.Join("/home/viv", ".local", "share", "planterbox", "sandboxes")
+	want := filepath.Join("/home/viv", ".local", "share", "planterbox")
 	if got != want {
 		t.Errorf("Root = %q, want the default %q", got, want)
 	}

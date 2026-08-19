@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -245,5 +246,51 @@ func TestRecordIsNotWorldReadable(t *testing.T) {
 	}
 	if perm := fi.Mode().Perm(); perm&0o077 != 0 {
 		t.Errorf("record mode = %o, want no group or other access", perm)
+	}
+}
+
+// Everything plbx keeps on disk lives under the one directory it was given.
+// Deriving the rest by walking up from the records directory put the policy
+// and the ssh host key in that directory's parent, so two stores under one
+// parent shared both, and `--state-dir ~/mine` wrote into the home directory.
+func TestEverythingLivesUnderTheStateDirectory(t *testing.T) {
+	state := t.TempDir()
+	s, err := Open(state)
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	for _, tc := range []struct {
+		name string
+		got  string
+	}{
+		{name: "records", got: s.Dir()},
+		{name: "policy", got: s.PolicyPath()},
+		{name: "ssh host key", got: s.SSHHostKeyPath()},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rel, err := filepath.Rel(state, tc.got)
+			if err != nil || strings.HasPrefix(rel, "..") {
+				t.Errorf("%s at %q is outside the state directory %q", tc.name, tc.got, state)
+			}
+		})
+	}
+}
+
+// Two stores given different directories share nothing.
+func TestTwoStateDirectoriesShareNothing(t *testing.T) {
+	base := t.TempDir()
+	a, err := Open(filepath.Join(base, "tenant-a"))
+	if err != nil {
+		t.Fatalf("Open a: %v", err)
+	}
+	b, err := Open(filepath.Join(base, "tenant-b"))
+	if err != nil {
+		t.Fatalf("Open b: %v", err)
+	}
+	if a.PolicyPath() == b.PolicyPath() {
+		t.Errorf("both stores share a policy at %q", a.PolicyPath())
+	}
+	if a.SSHHostKeyPath() == b.SSHHostKeyPath() {
+		t.Errorf("both stores share an ssh host key at %q", a.SSHHostKeyPath())
 	}
 }

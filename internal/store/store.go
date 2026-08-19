@@ -20,6 +20,10 @@ import (
 // ErrNotFound means no record exists under that name.
 var ErrNotFound = errors.New("no such sandbox record")
 
+// recordsDir holds the per-sandbox records, one level inside the state
+// directory so that everything else plbx keeps has somewhere to sit beside it.
+const recordsDir = "sandboxes"
+
 // recordExt is the extension every sandbox record carries.
 const recordExt = ".json"
 
@@ -32,11 +36,12 @@ type Store struct {
 
 // Open returns a store rooted at dir, creating it if absent. The state
 // directory (for policy and host keys) is the parent directory.
-func Open(dir string) (*Store, error) {
+func Open(stateDir string) (*Store, error) {
+	dir := filepath.Join(stateDir, recordsDir)
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return nil, fmt.Errorf("creating store %s: %w", dir, err)
 	}
-	return &Store{dir: dir, stateDir: filepath.Dir(dir)}, nil
+	return &Store{dir: dir, stateDir: stateDir}, nil
 }
 
 // OpenReadOnly returns a store that reads dir and discards every write,
@@ -47,8 +52,8 @@ func Open(dir string) (*Store, error) {
 // sandbox is, and nothing rendered may survive the command. Writes still
 // validate; only the write itself is dropped, so a dry run still reports the
 // arguments it would have refused.
-func OpenReadOnly(dir string) (*Store, error) {
-	return &Store{dir: dir, stateDir: filepath.Dir(dir), readOnly: true}, nil
+func OpenReadOnly(stateDir string) (*Store, error) {
+	return &Store{dir: filepath.Join(stateDir, recordsDir), stateDir: stateDir, readOnly: true}, nil
 }
 
 // Dir reports where the store keeps its records.
