@@ -643,3 +643,35 @@ func TestWithoutCloneTheWorkspaceIsWritable(t *testing.T) {
 		t.Errorf("--workdir = %q, want the workspace itself", dir)
 	}
 }
+
+// host.docker.internal is a Docker Desktop convenience. Docker Engine on Linux
+// does not publish it, so the relay is told the mapping explicitly there and
+// nowhere else: on macOS the gateway is a bridge inside the runtime's own VM,
+// not the host, so the same flag would point the relay at nothing.
+//
+// A live runtime is the only thing that can prove the Linux half end to end.
+// This pins the arguments; the behaviour behind them needs a hand check.
+func TestRelayIsToldHowToReachTheHostOnLinuxOnly(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		goos     string
+		upstream string
+		want     bool
+	}{
+		{name: "linux needs the mapping", goos: "linux", upstream: "host.docker.internal:47821", want: true},
+		{name: "macOS already resolves it", goos: "darwin", upstream: "host.docker.internal:47821", want: false},
+		{name: "an address needs no mapping", goos: "linux", upstream: "192.168.1.5:47821", want: false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			o := testEgressOCI()
+			o.goos = tc.goos
+			joined := strings.Join(o.relayInvocation("plbx-relay:1", tc.upstream).Args, " ")
+			if got := strings.Contains(joined, "--add-host host.docker.internal:host-gateway"); got != tc.want {
+				t.Errorf("relay args = %q, --add-host present = %v, want %v", joined, got, tc.want)
+			}
+			if !strings.Contains(joined, "-upstream "+tc.upstream) {
+				t.Errorf("relay args = %q, want it still dialling %s", joined, tc.upstream)
+			}
+		})
+	}
+}

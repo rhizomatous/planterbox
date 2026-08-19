@@ -3,6 +3,8 @@ package runner
 import (
 	"context"
 	"fmt"
+	"net"
+	"net/netip"
 	"net/url"
 	"strconv"
 	"strings"
@@ -161,16 +163,47 @@ func (o *OCI) startRelay(ctx context.Context, image, upstream string) error {
 
 // relayInvocation renders the command that runs the relay.
 func (o *OCI) relayInvocation(image, upstream string) Invocation {
-	return o.invoke(
+	args := []string{
 		"run", "--detach",
 		"--name", relayName,
 		"--label", "plbx.relay=true",
 		"--restart", "unless-stopped",
 		"--network", relayEgressNet,
+	}
+	args = append(args, hostGatewayArgs(o.goos, upstream)...)
+	return o.invoke(append(args,
 		image,
 		"-listen", ":"+strconv.Itoa(relayPort),
 		"-upstream", upstream,
-	)
+	)...)
+}
+
+// hostGatewayArgs maps the upstream's hostname onto the machine the runtime
+// runs on, which only Linux needs.
+//
+// host.docker.internal is a Docker Desktop convenience. Docker Engine on Linux
+// does not publish it, so without this the relay cannot resolve the proxy and
+// every sandbox loses egress. host-gateway is the machine itself there, because
+// nothing sits between a container and the host.
+//
+// Deliberately not done elsewhere: on macOS the container is inside the
+// runtime's own VM, where docs/concessions.md measured the gateway to be a
+// bridge inside that VM rather than the host. Writing this into /etc/hosts
+// would take precedence over the address the runtime already publishes and
+// point the relay at something measured not to answer.
+func hostGatewayArgs(goos, upstream string) []string {
+	if goos != "linux" {
+		return nil
+	}
+	host, _, err := net.SplitHostPort(upstream)
+	if err != nil {
+		return nil
+	}
+	// an address needs no mapping, and mapping one would be nonsense
+	if _, err := netip.ParseAddr(host); err == nil {
+		return nil
+	}
+	return []string{"--add-host", host + ":host-gateway"}
 }
 
 // isAlreadyExists reports whether err is a runtime refusing to create

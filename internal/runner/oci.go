@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"maps"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -32,6 +33,9 @@ type OCI struct {
 	// no daemon holding a proxy to point at.
 	egressUpstream string
 	relayImage     string
+	// goos is the platform the runtime's host is, which decides how the relay
+	// is told to reach it. Injected so the arg-building stays testable.
+	goos string
 }
 
 // WithEgress routes sandboxes through the proxy at upstream, over a private
@@ -62,7 +66,7 @@ func WithDryRun(w io.Writer) Option {
 
 // NewOCI returns a runner driving rt.
 func NewOCI(rt Runtime, opts ...Option) *OCI {
-	o := &OCI{rt: rt, exec: hostExecutor{}, relayImage: defaultRelayImage}
+	o := &OCI{rt: rt, exec: hostExecutor{}, relayImage: defaultRelayImage, goos: runtime.GOOS}
 	for _, opt := range opts {
 		opt(o)
 	}
