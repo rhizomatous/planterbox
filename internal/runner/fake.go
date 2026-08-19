@@ -40,7 +40,7 @@ func (f *Fake) Create(_ context.Context, spec api.Spec) (ID, error) {
 	if err := f.record("Create"); err != nil {
 		return "", err
 	}
-	id := ID(ContainerName(spec.Name))
+	id := ID(containerName(spec.Name))
 	f.States[id] = api.State{Status: api.StatusCreated, ContainerID: string(id)}
 	return id, nil
 }
@@ -158,5 +158,5 @@ func (f *Fake) setStatus(call string, id ID, status api.Status) error {
 
 // Handle returns the runtime identifier for a sandbox.
 func (f *Fake) Handle(sandbox string) ID {
-	return ID(ContainerName(sandbox))
+	return ID(containerName(sandbox))
 }

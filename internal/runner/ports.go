@@ -61,7 +61,7 @@ func (o *OCI) portsInvocation(sandbox string, ports []api.Port) Invocation {
 	// port on the sandbox.
 	for _, p := range ports {
 		port := strconv.Itoa(p.Sandbox)
-		args = append(args, "-forward", ":"+port+"="+ContainerName(sandbox)+":"+port)
+		args = append(args, "-forward", ":"+port+"="+containerName(sandbox)+":"+port)
 	}
 	return o.invoke(args...)
 }

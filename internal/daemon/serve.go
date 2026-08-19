@@ -219,12 +219,6 @@ func removePid(p paths) {
 	_ = os.Remove(p.pid)
 }
 
-// replaceBase swaps a path's filename, keeping its directory.
-// Used by tests to verify path layout.
-func replaceBase(path, name string) string {
-	return filepath.Join(filepath.Dir(path), name)
-}
-
 // serveProxy starts the egress proxy and returns a function that stops it.
 //
 // The policy is read from the service per request rather than captured, so

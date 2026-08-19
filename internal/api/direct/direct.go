@@ -25,13 +25,10 @@ type Service struct {
 
 var _ api.Service = (*Service)(nil)
 
-// New returns a service backed by st and rn. Pass clock and log when
-// overriding defaults; the zero values are time.Now and nil.
-func New(st *store.Store, rn runner.Runner, clock func() time.Time, log *proxy.Log) *Service {
-	if clock == nil {
-		clock = time.Now
-	}
-	return &Service{store: st, runner: rn, now: clock, log: log}
+// New returns a service backed by st and rn. log may be nil, which is the
+// --dry-run and --state-dir case: neither has a proxy keeping one.
+func New(st *store.Store, rn runner.Runner, log *proxy.Log) *Service {
+	return &Service{store: st, runner: rn, now: time.Now, log: log}
 }
 
 // Create registers a sandbox and builds its container, without starting it.

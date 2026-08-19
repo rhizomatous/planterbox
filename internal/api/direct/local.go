@@ -81,7 +81,7 @@ func Open(ctx context.Context, opts Options) (*Service, error) {
 		// one thing that must work on a machine with no runtime at all.
 		rt = runner.Runtime{Name: "docker", Path: "docker"}
 	default:
-		return New(st, runner.Unavailable(err), nil, opts.ConnectionLog), nil
+		return New(st, runner.Unavailable(err), opts.ConnectionLog), nil
 	}
-	return New(st, runner.NewOCI(rt, runnerOpts...), nil, opts.ConnectionLog), nil
+	return New(st, runner.NewOCI(rt, runnerOpts...), opts.ConnectionLog), nil
 }

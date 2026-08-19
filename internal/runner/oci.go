@@ -69,12 +69,12 @@ func NewOCI(rt Runtime, opts ...Option) *OCI {
 	return o
 }
 
-// ContainerName is the runtime-side name for a sandbox.
-func ContainerName(sandbox string) string { return containerPrefix + sandbox }
+// containerName is the runtime-side name for a sandbox.
+func containerName(sandbox string) string { return containerPrefix + sandbox }
 
 // Handle returns the runtime identifier for a sandbox.
 func (o *OCI) Handle(sandbox string) ID {
-	return ID(ContainerName(sandbox))
+	return ID(containerName(sandbox))
 }
 
 // homeVolume is the named volume backing a sandbox's /home/agent.
@@ -92,7 +92,7 @@ func (o *OCI) Create(ctx context.Context, spec api.Spec) (ID, error) {
 	}
 	// the runtime echoes the new container's ID, but the name is what every
 	// later invocation uses and what a human reads in `docker ps`.
-	return ID(ContainerName(spec.Name)), nil
+	return ID(containerName(spec.Name)), nil
 }
 
 // Start boots a created or stopped container.
@@ -294,7 +294,7 @@ func (o *OCI) Inspect(ctx context.Context, id ID) (api.State, error) {
 func (o *OCI) createInvocation(spec api.Spec) Invocation {
 	args := []string{
 		"create",
-		"--name", ContainerName(spec.Name),
+		"--name", containerName(spec.Name),
 		"--hostname", spec.Name,
 		"--label", "plbx.sandbox=" + spec.Name,
 		// persistence lives here: everything the user installs is under $HOME.
