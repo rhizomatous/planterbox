@@ -56,9 +56,8 @@ func (g *globals) open(cmd *cobra.Command) (api.Service, error) {
 // build.
 //
 // This is the failure that hides: every command works, and answers the way the
-// older build did. It cost an afternoon of chasing a bug that had already been
-// fixed, because the daemon serving the old message had been running since
-// before the fix.
+// older build did, so a bug that was fixed in this binary goes on reproducing
+// against the daemon still serving the old one.
 func warnOnVersionSkew(cmd *cobra.Command, svc api.Service) {
 	asker, ok := svc.(interface {
 		Info(context.Context) (api.DaemonInfo, error)

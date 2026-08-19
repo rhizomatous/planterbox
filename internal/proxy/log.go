@@ -26,7 +26,7 @@ type Entry struct {
 // Log is a bounded record of recent decisions, safe for concurrent use.
 //
 // It is deliberately not a stream. The dashboard already re-reads on a tick,
-// and a ring buffer read by sequence gives it what changed without the daemon
+// and a bounded log read by sequence gives it what changed without the daemon
 // holding a subscription per viewer.
 type Log struct {
 	mu      sync.Mutex

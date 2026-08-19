@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
 
@@ -43,7 +42,7 @@ func (s *Store) PolicyPath() string {
 func (s *Store) Policy() (proxy.Policy, error) {
 	data, err := os.ReadFile(s.PolicyPath())
 	if err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
+		if errors.Is(err, os.ErrNotExist) {
 			return proxy.Policy{}, ErrNoPolicy
 		}
 		return proxy.Policy{}, fmt.Errorf("reading the network policy: %w", err)

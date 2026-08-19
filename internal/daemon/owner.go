@@ -14,11 +14,9 @@ import (
 // would let them read the socket; one that is group- or world-accessible would
 // let them connect to it.
 func ownedPrivately(dir string, info fs.FileInfo) error {
-	stat, ok := info.Sys().(*syscall.Stat_t)
-	if !ok {
-		return nil // an unfamiliar platform; the mode check below still applies
-	}
-	if int(stat.Uid) != os.Getuid() {
+	// ownership needs a platform that reports it; the mode check below does
+	// not, so an unfamiliar one still gets that much.
+	if stat, ok := info.Sys().(*syscall.Stat_t); ok && int(stat.Uid) != os.Getuid() {
 		return fmt.Errorf("%s belongs to uid %d, not to you: refusing to put plbx's socket in it", dir, stat.Uid)
 	}
 	if perm := info.Mode().Perm(); perm&0o077 != 0 {

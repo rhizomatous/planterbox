@@ -29,11 +29,10 @@ const defaultPreset = proxy.PresetBalanced
 // Without a terminal it takes the default rather than failing. A script
 // running `plbx run` should not stop on a question nobody is there to answer.
 func ensurePolicy(ctx context.Context, cmd *cobra.Command, svc api.Service) error {
-	if _, err := svc.Policy(ctx); err == nil {
-		return nil
-	} else if !errors.Is(err, api.ErrNoPolicy) {
-		// a store we cannot read is the caller's problem to report, not
-		// something to paper over with a prompt.
+	// either a policy is already set, or the store cannot be read. Neither is
+	// something to interrupt with a prompt; a store we cannot read is the
+	// caller's problem to report.
+	if _, err := svc.Policy(ctx); !errors.Is(err, api.ErrNoPolicy) {
 		return nil
 	}
 	_, err := choosePolicy(ctx, cmd, svc)

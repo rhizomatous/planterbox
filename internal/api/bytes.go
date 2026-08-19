@@ -13,16 +13,16 @@ var byteUnits = []struct {
 	suffix string
 	mult   int64
 }{
-	{"gib", 1 << 30},
-	{"mib", 1 << 20},
-	{"kib", 1 << 10},
-	{"gb", 1 << 30},
-	{"mb", 1 << 20},
-	{"kb", 1 << 10},
-	{"g", 1 << 30},
-	{"m", 1 << 20},
-	{"k", 1 << 10},
-	{"b", 1},
+	{suffix: "gib", mult: 1 << 30},
+	{suffix: "mib", mult: 1 << 20},
+	{suffix: "kib", mult: 1 << 10},
+	{suffix: "gb", mult: 1 << 30},
+	{suffix: "mb", mult: 1 << 20},
+	{suffix: "kb", mult: 1 << 10},
+	{suffix: "g", mult: 1 << 30},
+	{suffix: "m", mult: 1 << 20},
+	{suffix: "k", mult: 1 << 10},
+	{suffix: "b", mult: 1},
 }
 
 // ParseBytes reads a memory size like "8GiB", "512m", or a bare byte count into
@@ -61,7 +61,7 @@ func FormatBytes(n int64) string {
 	for _, u := range []struct {
 		suffix string
 		mult   int64
-	}{{"GiB", 1 << 30}, {"MiB", 1 << 20}, {"KiB", 1 << 10}} {
+	}{{suffix: "GiB", mult: 1 << 30}, {suffix: "MiB", mult: 1 << 20}, {suffix: "KiB", mult: 1 << 10}} {
 		if n >= u.mult {
 			return strconv.FormatFloat(float64(n)/float64(u.mult), 'g', 4, 64) + u.suffix
 		}

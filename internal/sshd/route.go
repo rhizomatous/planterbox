@@ -31,9 +31,10 @@ const (
 	shutdownGrace = 5 * time.Second
 )
 
-// sandboxKey is the context key the route is stored under.
+// contextKey is the private type this package's context values are keyed by.
 type contextKey struct{}
 
+// sandboxKey is the key the routed sandbox name is stored under.
 var sandboxKey = contextKey{}
 
 // route reads the sandbox name a proxy wrote, and records it on the connection.

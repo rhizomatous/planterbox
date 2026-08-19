@@ -10,14 +10,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
 
 	"github.com/rhizomatous/planterbox/internal/api"
 	"github.com/rhizomatous/planterbox/internal/daemon"
-	runnerpkg "github.com/rhizomatous/planterbox/internal/runner"
+	"github.com/rhizomatous/planterbox/internal/runner"
 	"github.com/rhizomatous/planterbox/internal/store"
 )
 
@@ -50,9 +49,9 @@ func Run(ctx context.Context, cliVersion string) []Check {
 // answering. plbx ships no runtime of its own, so this is the one dependency
 // it cannot do anything about itself.
 func checkRuntime(ctx context.Context) Check {
-	rt, err := runnerpkg.Detect(ctx)
+	rt, err := runner.Detect(ctx)
 	if err != nil {
-		if installed, iErr := runnerpkg.DetectInstalled(ctx); iErr == nil {
+		if installed, iErr := runner.DetectInstalled(ctx); iErr == nil {
 			return Check{
 				Name:   "container runtime",
 				Detail: installed.Name + " is installed but not answering",
@@ -120,7 +119,7 @@ func checkStateDir() Check {
 		return Check{Name: "state directory", Detail: err.Error()}
 	}
 
-	if _, err := os.Stat(dir); errors.Is(err, fs.ErrNotExist) {
+	if _, err := os.Stat(dir); errors.Is(err, os.ErrNotExist) {
 		return Check{
 			Name: "state directory", OK: true,
 			Detail: dir + "  (not yet created; the first sandbox makes it)",

@@ -25,16 +25,16 @@ var sentinels = []struct {
 	err  error
 	code codes.Code
 }{
-	{api.ErrNotFound, codes.NotFound},
-	{api.ErrExists, codes.AlreadyExists},
-	{api.ErrRunning, codes.FailedPrecondition},
-	{api.ErrNotImplemented, codes.Unimplemented},
-	{api.ErrNoPolicy, codes.Unavailable},
-	{api.ErrPortsUnavailable, codes.ResourceExhausted},
-	{api.ErrCloneFailed, codes.Aborted},
-	{api.ErrRemoteNotAdded, codes.DataLoss},
-	{context.Canceled, codes.Canceled},
-	{context.DeadlineExceeded, codes.DeadlineExceeded},
+	{err: api.ErrNotFound, code: codes.NotFound},
+	{err: api.ErrExists, code: codes.AlreadyExists},
+	{err: api.ErrRunning, code: codes.FailedPrecondition},
+	{err: api.ErrNotImplemented, code: codes.Unimplemented},
+	{err: api.ErrNoPolicy, code: codes.Unavailable},
+	{err: api.ErrPortsUnavailable, code: codes.ResourceExhausted},
+	{err: api.ErrCloneFailed, code: codes.Aborted},
+	{err: api.ErrRemoteNotAdded, code: codes.DataLoss},
+	{err: context.Canceled, code: codes.Canceled},
+	{err: context.DeadlineExceeded, code: codes.DeadlineExceeded},
 }
 
 // remoteError is a failure that happened in the daemon. It reports the message

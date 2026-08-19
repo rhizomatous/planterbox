@@ -26,8 +26,6 @@ func newDoctorCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			// a failing check is a failing exit status, so this is usable in
-			// a setup script rather than only by eye.
 			for _, c := range checks {
 				if !c.OK {
 					return failedChecks{}

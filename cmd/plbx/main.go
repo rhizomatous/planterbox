@@ -18,7 +18,7 @@ import (
 	"github.com/rhizomatous/planterbox/internal/ui"
 )
 
-// version is exactly what it says on the tin.
+// version is set at build time via -ldflags, and falls back to build info.
 var version = "dev"
 
 func main() {

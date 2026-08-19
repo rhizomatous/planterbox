@@ -8,6 +8,7 @@ package proxy
 
 import (
 	"net/netip"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -31,14 +32,7 @@ const (
 var Presets = []Preset{PresetBalanced, PresetOpen, PresetLockedDown}
 
 // Valid reports whether p names a preset plbx knows.
-func (p Preset) Valid() bool {
-	for _, known := range Presets {
-		if p == known {
-			return true
-		}
-	}
-	return false
-}
+func (p Preset) Valid() bool { return slices.Contains(Presets, p) }
 
 // Description is the one-line explanation the first-run wizard shows.
 func (p Preset) Description() string {

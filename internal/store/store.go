@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"slices"
@@ -72,7 +71,7 @@ func (s *Store) Put(sb api.Sandbox) error {
 func (s *Store) Get(name string) (api.Sandbox, error) {
 	data, err := os.ReadFile(s.path(name))
 	if err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
+		if errors.Is(err, os.ErrNotExist) {
 			return api.Sandbox{}, fmt.Errorf("%w: %q", ErrNotFound, name)
 		}
 		return api.Sandbox{}, err
@@ -89,7 +88,7 @@ func (s *Store) Get(name string) (api.Sandbox, error) {
 func (s *Store) List() ([]api.Sandbox, error) {
 	entries, err := os.ReadDir(s.dir)
 	if err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
+		if errors.Is(err, os.ErrNotExist) {
 			return nil, nil
 		}
 		return nil, err
@@ -120,13 +119,13 @@ func (s *Store) Delete(name string) error {
 	if s.readOnly {
 		// still report a name that was never there, so a dry run and a real
 		// one disagree about the disk and nothing else.
-		if _, err := os.Stat(s.path(name)); errors.Is(err, fs.ErrNotExist) {
+		if _, err := os.Stat(s.path(name)); errors.Is(err, os.ErrNotExist) {
 			return fmt.Errorf("%w: %q", ErrNotFound, name)
 		}
 		return nil
 	}
 	err := os.Remove(s.path(name))
-	if errors.Is(err, fs.ErrNotExist) {
+	if errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("%w: %q", ErrNotFound, name)
 	}
 	return err

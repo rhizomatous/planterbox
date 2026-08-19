@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/charmbracelet/x/term"
@@ -190,7 +191,7 @@ func warnIgnoredFlags(cmd *cobra.Command, flags *specFlags, sb api.Sandbox) {
 
 	set := flags.changed(cmd)
 	// --name selects the sandbox rather than configuring it.
-	set = slicesDelete(set, "--name")
+	set = slices.DeleteFunc(set, func(f string) bool { return f == "--name" })
 	if len(set) == 0 {
 		return
 	}
@@ -208,17 +209,6 @@ func plural(n int, one, many string) string {
 		return one
 	}
 	return many
-}
-
-// slicesDelete returns s without the given value.
-func slicesDelete(s []string, drop string) []string {
-	out := s[:0]
-	for _, v := range s {
-		if v != drop {
-			out = append(out, v)
-		}
-	}
-	return out
 }
 
 // isTerminal reports whether f is a real terminal. Asking a runtime for a TTY
