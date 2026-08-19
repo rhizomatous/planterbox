@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"context"
 	"errors"
 	"strings"
 	"testing"
@@ -89,7 +90,7 @@ func keyCode(key string) rune {
 // loaded returns a model already holding a listing.
 func loaded(t *testing.T, svc api.Service, sandboxes ...api.Sandbox) *Model {
 	t.Helper()
-	m := New(svc)
+	m := New(context.Background(), svc)
 	next, _ := m.Update(sandboxesMsg(sandboxes))
 	return next.(*Model)
 }
@@ -403,7 +404,7 @@ func TestActionFailureIsShownRatherThanSwallowed(t *testing.T) {
 }
 
 func TestListingErrorIsShown(t *testing.T) {
-	m := New(api.NewFake())
+	m := New(context.Background(), api.NewFake())
 	next, _ := m.Update(errMsg{errors.New("no runtime")})
 	if !strings.Contains(view(next.(*Model)), "no runtime") {
 		t.Errorf("a listing failure should be visible:\n%s", view(next.(*Model)))

@@ -1,7 +1,6 @@
 package tui
 
 import (
-	"context"
 	"errors"
 	"slices"
 
@@ -139,15 +138,16 @@ func (m *Model) toggleSelected() tea.Cmd {
 	}
 	name := sb.Spec.Name
 	m.pending = name
+	ctx := m.ctx
 
 	if sb.State.Status == api.StatusRunning {
 		return func() tea.Msg {
-			err := m.svc.Stop(context.Background(), api.ByName(name))
+			err := m.svc.Stop(ctx, api.ByName(name))
 			return actionMsg{verb: "stopped", name: name, err: err}
 		}
 	}
 	return func() tea.Msg {
-		err := m.svc.Start(context.Background(), api.ByName(name))
+		err := m.svc.Start(ctx, api.ByName(name))
 		// the sandbox is up either way; only its ports are not, and the
 		// dashboard should not show a start as having failed.
 		if errors.Is(err, api.ErrPortsUnavailable) {
@@ -169,9 +169,10 @@ func (m *Model) removeSelected() tea.Cmd {
 	}
 	name := sb.Spec.Name
 	m.pending = name
+	ctx := m.ctx
 
 	return func() tea.Msg {
-		err := m.svc.Remove(context.Background(), api.ByName(name), false)
+		err := m.svc.Remove(ctx, api.ByName(name), false)
 		if errors.Is(err, api.ErrRunning) {
 			return actionMsg{verb: "not removed", name: name, err: errors.New("stop it first")}
 		}
@@ -223,9 +224,9 @@ func (m *Model) ruleForSelected(allow bool) tea.Cmd {
 	}
 	pattern := entry.Target.Host
 	m.pending = pattern
+	ctx := m.ctx
 
 	return func() tea.Msg {
-		ctx := context.Background()
 		policy, err := m.svc.Policy(ctx)
 		if err != nil {
 			return ruleMsg{pattern: pattern, allow: allow, err: err}

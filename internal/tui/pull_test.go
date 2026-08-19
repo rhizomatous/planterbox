@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"context"
 	"errors"
 	"strings"
 	"testing"
@@ -51,7 +52,7 @@ func TestPullLinesReachTheScreen(t *testing.T) {
 func TestAFailedPullStillBuilds(t *testing.T) {
 	fake := api.NewFake()
 	fake.Err = errors.New("no runtime here")
-	m := New(fake)
+	m := New(context.Background(), fake)
 
 	spec := api.Spec{Name: "myrepo", Agent: "shell", Image: "base:1"}
 	msg, ok := m.submitCreate(spec)().(pullMsg)

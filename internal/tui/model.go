@@ -25,6 +25,7 @@ const refreshEvery = 2 * time.Second
 // Model is the dashboard's state.
 type Model struct {
 	svc api.Service
+	ctx context.Context // bubbletea gives Model no other way to reach the caller's context
 
 	sandboxes []api.Sandbox
 	stats     map[string]api.Stats
@@ -84,8 +85,8 @@ type AttachRequest struct {
 }
 
 // New returns a dashboard over svc.
-func New(svc api.Service) *Model {
-	return &Model{svc: svc, stats: map[string]api.Stats{}, now: time.Now}
+func New(ctx context.Context, svc api.Service) *Model {
+	return &Model{svc: svc, ctx: ctx, stats: map[string]api.Stats{}, now: time.Now}
 }
 
 // Attach reports the session the dashboard exited to run, if any.
@@ -166,7 +167,7 @@ func connTick() tea.Cmd {
 func (m *Model) readConnections() tea.Cmd {
 	since := m.connSeq
 	return func() tea.Msg {
-		entries, err := m.svc.Connections(context.Background(), since)
+		entries, err := m.svc.Connections(m.ctx, since)
 		if err != nil {
 			return nil // a daemon without a proxy simply has nothing to say
 		}
@@ -177,7 +178,7 @@ func (m *Model) readConnections() tea.Cmd {
 // list re-reads the sandboxes.
 func (m *Model) list() tea.Cmd {
 	return func() tea.Msg {
-		sandboxes, err := m.svc.List(context.Background())
+		sandboxes, err := m.svc.List(m.ctx)
 		if err != nil {
 			return errMsg{err}
 		}

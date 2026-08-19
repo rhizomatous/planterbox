@@ -22,7 +22,7 @@ type Options struct {
 // reason about than suspending and restoring the renderer around it. The
 // returned request, when non-nil, is the session the caller should run.
 func Run(ctx context.Context, svc api.Service, opts Options) (*AttachRequest, error) {
-	m := New(svc)
+	m := New(ctx, svc)
 
 	programOpts := []tea.ProgramOption{tea.WithContext(ctx)}
 	if opts.Input != nil {

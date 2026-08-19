@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -225,7 +226,7 @@ func TestOptionalNameValidation(t *testing.T) {
 func TestSubmitCreateGoesThroughTheService(t *testing.T) {
 	dir := tempDir(t, "myrepo")
 	fake := api.NewFake()
-	m := New(fake)
+	m := New(context.Background(), fake)
 
 	c := newCreateForm(dir)
 	spec, err := c.spec()
@@ -244,7 +245,7 @@ func TestSubmitCreateGoesThroughTheService(t *testing.T) {
 func TestSubmitCreateReportsAFailure(t *testing.T) {
 	dir := tempDir(t, "myrepo")
 	fake := api.NewFake(api.Sandbox{Spec: api.Spec{Name: "myrepo"}})
-	m := New(fake)
+	m := New(context.Background(), fake)
 
 	spec, err := newCreateForm(dir).spec()
 	if err != nil {
