@@ -1,7 +1,9 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -73,7 +75,7 @@ const sandboxUser = "agent"
 // already there. It reports whether anything changed.
 func writeManagedBlock(path, block string) (changed bool, err error) {
 	existing, err := os.ReadFile(path)
-	if err != nil && !os.IsNotExist(err) {
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return false, fmt.Errorf("reading %s: %w", path, err)
 	}
 

@@ -21,8 +21,8 @@ var unsafeName = regexp.MustCompile(`[^a-zA-Z0-9_.-]+`)
 
 // SandboxName derives a default name from a workspace path, so a sandbox is
 // named after the repo it was made for. The result always satisfies ValidName.
-func SandboxName(path string) string {
-	name := unsafeName.ReplaceAllString(filepath.Base(path), "-")
+func SandboxName(workspace string) string {
+	name := unsafeName.ReplaceAllString(filepath.Base(workspace), "-")
 	// a name must start with a letter or digit, and stay within the length a
 	// container name allows.
 	name = strings.TrimLeft(name, "-_.")
@@ -69,7 +69,7 @@ func validateWorkspaces(workspaces []Workspace) error {
 	for _, ws := range workspaces {
 		switch {
 		case ws.Host == "":
-			return fmt.Errorf("workspace has no path")
+			return errors.New("workspace has no path")
 		// a mount spec is colon-delimited, so a colon in the path silently
 		// shifts where the bind lands.
 		case strings.Contains(ws.Host, ":"):
@@ -88,7 +88,7 @@ func validateEnv(env map[string]string) error {
 	for k := range env {
 		switch {
 		case k == "":
-			return fmt.Errorf("environment variable has no name")
+			return errors.New("environment variable has no name")
 		// "K=V=x" would bind K to "V=x" rather than erroring.
 		case strings.ContainsAny(k, "=\x00"):
 			return fmt.Errorf("environment variable name %q contains an equals sign or null byte", k)

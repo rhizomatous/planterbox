@@ -187,31 +187,19 @@ func (o *OCI) RelayInvocation(image, upstream string) Invocation {
 }
 
 // isAlreadyExists reports whether err is a runtime refusing to create
-// something twice. Matched on the message, as the runtimes offer no
-// distinguishable status: docker says "already exists", podman "already used".
+// something twice. docker says "already exists", podman "already used".
 func isAlreadyExists(err error) bool {
-	if err == nil {
-		return false
-	}
-	msg := strings.ToLower(err.Error())
-	return strings.Contains(msg, "already exists") || strings.Contains(msg, "already used")
+	return runtimeSays(err, "already exists", "already used")
 }
 
 // isNotConnected reports whether err is a runtime declining to detach a
 // container from a network it was never on.
 func isNotConnected(err error) bool {
-	if err == nil {
-		return false
-	}
-	msg := strings.ToLower(err.Error())
-	return strings.Contains(msg, "is not connected") || strings.Contains(msg, "not connected to network")
+	return runtimeSays(err, "is not connected", "not connected to network")
 }
 
 // isAlreadyConnected reports whether err is a runtime refusing to attach a
 // container to a network it is already on.
 func isAlreadyConnected(err error) bool {
-	if err == nil {
-		return false
-	}
-	return strings.Contains(strings.ToLower(err.Error()), "already exists in network")
+	return runtimeSays(err, "already exists in network")
 }

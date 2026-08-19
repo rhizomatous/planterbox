@@ -8,7 +8,9 @@ package doctor
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -118,7 +120,7 @@ func checkStateDir() Check {
 		return Check{Name: "state directory", Detail: err.Error()}
 	}
 
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
+	if _, err := os.Stat(dir); errors.Is(err, fs.ErrNotExist) {
 		return Check{
 			Name: "state directory", OK: true,
 			Detail: dir + "  (not yet created; the first sandbox makes it)",

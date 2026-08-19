@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strconv"
@@ -101,7 +102,7 @@ func parsePortNumber(s, arg string) (int, error) {
 // host path that does look like a sandbox reference can be written "./x".
 func parseCopyPath(arg string) (api.Path, error) {
 	if arg == "" {
-		return api.Path{}, fmt.Errorf("empty path")
+		return api.Path{}, errors.New("empty path")
 	}
 	name, rest, hasColon := strings.Cut(arg, ":")
 	if !hasColon || rest == "" || !api.ValidName(name) {

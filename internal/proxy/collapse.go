@@ -1,7 +1,7 @@
 package proxy
 
 import (
-	"sort"
+	"slices"
 	"time"
 )
 
@@ -58,6 +58,6 @@ func Collapse(entries []Entry) []Group {
 		}
 	}
 
-	sort.SliceStable(groups, func(i, j int) bool { return groups[i].Last.Before(groups[j].Last) })
+	slices.SortStableFunc(groups, func(a, b Group) int { return a.Last.Compare(b.Last) })
 	return groups
 }

@@ -245,13 +245,25 @@ func invocationError(inv Invocation, stderr []byte, err error) error {
 	return fmt.Errorf("%s: %w", label, err)
 }
 
-// isNotFound reports whether err is a runtime complaining that a container or
-// volume does not exist. Matched on the message because the runtimes offer no
-// distinguishable exit status: docker says "no such", podman "not found".
-func isNotFound(err error) bool {
+// runtimeSays reports whether err carries any of the given phrases, compared
+// lowercased. The runtimes give these conditions no distinguishable exit
+// status, so the message is all there is to match on, and each of them words
+// it differently.
+func runtimeSays(err error, phrases ...string) bool {
 	if err == nil {
 		return false
 	}
 	msg := strings.ToLower(err.Error())
-	return strings.Contains(msg, "no such") || strings.Contains(msg, "not found")
+	for _, p := range phrases {
+		if strings.Contains(msg, p) {
+			return true
+		}
+	}
+	return false
+}
+
+// isNotFound reports whether err is a runtime complaining that a container or
+// volume does not exist. docker says "no such", podman "not found".
+func isNotFound(err error) bool {
+	return runtimeSays(err, "no such", "not found")
 }

@@ -2,6 +2,7 @@ package store
 
 import (
 	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"testing"
@@ -81,7 +82,7 @@ func TestReadOnlyOpenCreatesNothing(t *testing.T) {
 	if list, err := ro.List(); err != nil || len(list) != 0 {
 		t.Errorf("List() = %v, %v, want empty", list, err)
 	}
-	if _, err := os.Stat(dir); !os.IsNotExist(err) {
+	if _, err := os.Stat(dir); !errors.Is(err, fs.ErrNotExist) {
 		t.Errorf("OpenReadOnly created %s", dir)
 	}
 }

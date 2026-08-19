@@ -9,9 +9,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/rhizomatous/planterbox/internal/api"
@@ -71,7 +72,7 @@ func (s *Store) Put(sb api.Sandbox) error {
 func (s *Store) Get(name string) (api.Sandbox, error) {
 	data, err := os.ReadFile(s.path(name))
 	if err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, fs.ErrNotExist) {
 			return api.Sandbox{}, fmt.Errorf("%w: %q", ErrNotFound, name)
 		}
 		return api.Sandbox{}, err
@@ -88,7 +89,7 @@ func (s *Store) Get(name string) (api.Sandbox, error) {
 func (s *Store) List() ([]api.Sandbox, error) {
 	entries, err := os.ReadDir(s.dir)
 	if err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, fs.ErrNotExist) {
 			return nil, nil
 		}
 		return nil, err
@@ -101,7 +102,7 @@ func (s *Store) List() ([]api.Sandbox, error) {
 		}
 		names = append(names, strings.TrimSuffix(e.Name(), recordExt))
 	}
-	sort.Strings(names)
+	slices.Sort(names)
 
 	sandboxes := make([]api.Sandbox, 0, len(names))
 	for _, name := range names {
@@ -119,13 +120,13 @@ func (s *Store) Delete(name string) error {
 	if s.readOnly {
 		// still report a name that was never there, so a dry run and a real
 		// one disagree about the disk and nothing else.
-		if _, err := os.Stat(s.path(name)); os.IsNotExist(err) {
+		if _, err := os.Stat(s.path(name)); errors.Is(err, fs.ErrNotExist) {
 			return fmt.Errorf("%w: %q", ErrNotFound, name)
 		}
 		return nil
 	}
 	err := os.Remove(s.path(name))
-	if os.IsNotExist(err) {
+	if errors.Is(err, fs.ErrNotExist) {
 		return fmt.Errorf("%w: %q", ErrNotFound, name)
 	}
 	return err
