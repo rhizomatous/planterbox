@@ -86,6 +86,13 @@ type Service interface {
 	Close() error
 }
 
+// Informer is a [Service] that can also describe the daemon behind it. It is
+// separate because the in-process implementation has no daemon to describe, so
+// a caller asks for it rather than assuming it.
+type Informer interface {
+	Info(ctx context.Context) (DaemonInfo, error)
+}
+
 // SSHDomain is the suffix plbx's ssh hosts carry. `myrepo.plbx` is the sandbox
 // `myrepo`, and the suffix is what keeps a managed `Host *.plbx` block in an
 // ssh config from matching anything else in it.

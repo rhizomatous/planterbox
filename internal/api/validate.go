@@ -97,6 +97,12 @@ func validateEnv(env map[string]string) error {
 	return nil
 }
 
+// Validate checks a request before anything acts on it. Env reaches a container
+// runtime as a command-line argument, exactly as a [Spec]'s does, and
+// docs/concessions.md names this field as where a resolved credential would
+// land.
+func (r ExecRequest) Validate() error { return validateEnv(r.Env) }
+
 // ValidatePorts checks a set of ports before it is published. It is separate
 // from [Spec.Validate] because ports are not part of a spec: they can be
 // changed on a sandbox that already exists.

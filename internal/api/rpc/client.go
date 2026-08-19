@@ -20,7 +20,10 @@ type Client struct {
 	svc  plbxv1.SandboxesClient
 }
 
-var _ api.Service = (*Client)(nil)
+var (
+	_ api.Service  = (*Client)(nil)
+	_ api.Informer = (*Client)(nil)
+)
 
 // Dial opens a client against the daemon listening on socket.
 //

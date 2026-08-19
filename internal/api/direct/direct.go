@@ -167,6 +167,9 @@ func (s *Service) Remove(ctx context.Context, ref api.Ref, force bool) error {
 
 // Exec runs a command inside a sandbox.
 func (s *Service) Exec(ctx context.Context, ref api.Ref, req api.ExecRequest, streams api.Streams) (api.ExecResult, error) {
+	if err := req.Validate(); err != nil {
+		return api.ExecResult{}, err
+	}
 	sb, err := s.find(ref)
 	if err != nil {
 		return api.ExecResult{}, err

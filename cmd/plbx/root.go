@@ -59,9 +59,7 @@ func (g *globals) open(cmd *cobra.Command) (api.Service, error) {
 // older build did, so a bug that was fixed in this binary goes on reproducing
 // against the daemon still serving the old one.
 func warnOnVersionSkew(cmd *cobra.Command, svc api.Service) {
-	asker, ok := svc.(interface {
-		Info(context.Context) (api.DaemonInfo, error)
-	})
+	asker, ok := svc.(api.Informer)
 	if !ok {
 		return
 	}
