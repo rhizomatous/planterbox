@@ -148,7 +148,12 @@ func resolveOrCreate(
 		return api.Sandbox{}, false, err
 	}
 	sb, err = svc.Create(ctx, spec)
-	if err != nil && !errors.Is(err, api.ErrRemoteNotAdded) {
+	if errors.Is(err, api.ErrRemoteNotAdded) {
+		// the sandbox is made either way; what failed is the remote that
+		// fetches from it, and saying nothing leaves the user to find out
+		// when `git fetch` cannot resolve it.
+		_, _ = fmt.Fprintln(cmd.ErrOrStderr(), ui.Warn.Render(err.Error()))
+	} else if err != nil {
 		return api.Sandbox{}, false, err
 	}
 	if len(ports) > 0 {

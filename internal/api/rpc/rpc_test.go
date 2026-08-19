@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"strings"
@@ -473,5 +474,37 @@ func TestPortsSurviveTheRoundTrip(t *testing.T) {
 	}
 	if len(sb.Ports) != len(want) || sb.Ports[0] != want[0] || sb.Ports[1] != want[1] {
 		t.Errorf("ports = %+v, want %+v", sb.Ports, want)
+	}
+}
+
+// partialCreate returns a sandbox alongside ErrRemoteNotAdded, which is what
+// direct.Create does when a clone-mode sandbox was made but the remote in the
+// user's repository could not be written.
+type partialCreate struct{ *api.Fake }
+
+func (p partialCreate) Create(context.Context, api.Spec) (api.Sandbox, error) {
+	sb := api.Sandbox{
+		Spec:  api.Spec{Name: "demo", Image: "base:1"},
+		State: api.State{Status: api.StatusCreated, ContainerID: "plbx-demo"},
+	}
+	return sb, fmt.Errorf("%w: not a git repository", api.ErrRemoteNotAdded)
+}
+
+// A partial success has to survive the wire whole. gRPC sends a status or a
+// message and never both, so a sentinel alone would strand the caller with a
+// zero sandbox: `plbx run --clone` would create one and then fail against the
+// empty name it got back.
+func TestAPartialCreateKeepsItsSandbox(t *testing.T) {
+	client := dial(t, partialCreate{api.NewFake()})
+
+	sb, err := client.Create(context.Background(), api.Spec{Name: "demo"})
+	if !errors.Is(err, api.ErrRemoteNotAdded) {
+		t.Fatalf("err = %v, want it to match ErrRemoteNotAdded", err)
+	}
+	if !strings.Contains(err.Error(), "not a git repository") {
+		t.Errorf("err = %q, want the reason the remote failed", err)
+	}
+	if sb.Spec.Name != "demo" || sb.State.Status != api.StatusCreated {
+		t.Errorf("sandbox = %+v, want the one that was made", sb)
 	}
 }

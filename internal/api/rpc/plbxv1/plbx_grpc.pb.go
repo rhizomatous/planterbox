@@ -61,7 +61,7 @@ type SandboxesClient interface {
 	PullImage(ctx context.Context, in *PullImageRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[PullProgress], error)
 	// Exec runs a command in a sandbox with its stdio streamed both ways. The
 	// client's first frame must be a Start; the daemon owns the session, which
-	// is what lets it hold a pty and what the SSH gateway will attach to.
+	// is what lets it hold a pty.
 	Exec(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[ExecClientFrame, ExecServerFrame], error)
 	GetPolicy(ctx context.Context, in *GetPolicyRequest, opts ...grpc.CallOption) (*GetPolicyResponse, error)
 	SetPolicy(ctx context.Context, in *SetPolicyRequest, opts ...grpc.CallOption) (*SetPolicyResponse, error)
@@ -283,7 +283,7 @@ type SandboxesServer interface {
 	PullImage(*PullImageRequest, grpc.ServerStreamingServer[PullProgress]) error
 	// Exec runs a command in a sandbox with its stdio streamed both ways. The
 	// client's first frame must be a Start; the daemon owns the session, which
-	// is what lets it hold a pty and what the SSH gateway will attach to.
+	// is what lets it hold a pty.
 	Exec(grpc.BidiStreamingServer[ExecClientFrame, ExecServerFrame]) error
 	GetPolicy(context.Context, *GetPolicyRequest) (*GetPolicyResponse, error)
 	SetPolicy(context.Context, *SetPolicyRequest) (*SetPolicyResponse, error)

@@ -59,11 +59,15 @@ func (c *Client) Info(ctx context.Context) (api.DaemonInfo, error) {
 	}, nil
 }
 
-// Create builds a sandbox and returns it as stored.
+// Create builds a sandbox and returns it as stored, reporting a clone remote
+// that could not be written the same way the in-process service does.
 func (c *Client) Create(ctx context.Context, spec api.Spec) (api.Sandbox, error) {
 	resp, err := c.svc.Create(ctx, &plbxv1.CreateRequest{Spec: protoSpec(spec)})
 	if err != nil {
 		return api.Sandbox{}, localError(err)
+	}
+	if msg := resp.GetRemoteError(); msg != "" {
+		return apiSandbox(resp.GetSandbox()), fmt.Errorf("%w: %s", api.ErrRemoteNotAdded, msg)
 	}
 	return apiSandbox(resp.GetSandbox()), nil
 }

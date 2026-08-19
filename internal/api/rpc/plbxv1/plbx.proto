@@ -188,7 +188,14 @@ message Size {
 }
 
 message CreateRequest { Spec spec = 1; }
-message CreateResponse { Sandbox sandbox = 1; }
+// CreateResponse carries the sandbox and, separately, a clone remote that
+// could not be written. That is a partial success: the sandbox exists and
+// works. gRPC sends a status or a message and never both, so returning it as
+// an error would drop the sandbox on the floor.
+message CreateResponse {
+  Sandbox sandbox = 1;
+  string remote_error = 2;
+}
 
 message ListRequest {}
 message ListResponse { repeated Sandbox sandboxes = 1; }

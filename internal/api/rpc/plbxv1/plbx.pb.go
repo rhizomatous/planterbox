@@ -1501,9 +1501,14 @@ func (x *CreateRequest) GetSpec() *Spec {
 	return nil
 }
 
+// CreateResponse carries the sandbox and, separately, a clone remote that
+// could not be written. That is a partial success: the sandbox exists and
+// works. gRPC sends a status or a message and never both, so returning it as
+// an error would drop the sandbox on the floor.
 type CreateResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Sandbox       *Sandbox               `protobuf:"bytes,1,opt,name=sandbox,proto3" json:"sandbox,omitempty"`
+	RemoteError   string                 `protobuf:"bytes,2,opt,name=remote_error,json=remoteError,proto3" json:"remote_error,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1543,6 +1548,13 @@ func (x *CreateResponse) GetSandbox() *Sandbox {
 		return x.Sandbox
 	}
 	return nil
+}
+
+func (x *CreateResponse) GetRemoteError() string {
+	if x != nil {
+		return x.RemoteError
+	}
+	return ""
 }
 
 type ListRequest struct {
@@ -2512,9 +2524,10 @@ const file_plbx_proto_rawDesc = "" +
 	"\x04rows\x18\x01 \x01(\rR\x04rows\x12\x12\n" +
 	"\x04cols\x18\x02 \x01(\rR\x04cols\"2\n" +
 	"\rCreateRequest\x12!\n" +
-	"\x04spec\x18\x01 \x01(\v2\r.plbx.v1.SpecR\x04spec\"<\n" +
+	"\x04spec\x18\x01 \x01(\v2\r.plbx.v1.SpecR\x04spec\"_\n" +
 	"\x0eCreateResponse\x12*\n" +
-	"\asandbox\x18\x01 \x01(\v2\x10.plbx.v1.SandboxR\asandbox\"\r\n" +
+	"\asandbox\x18\x01 \x01(\v2\x10.plbx.v1.SandboxR\asandbox\x12!\n" +
+	"\fremote_error\x18\x02 \x01(\tR\vremoteError\"\r\n" +
 	"\vListRequest\">\n" +
 	"\fListResponse\x12.\n" +
 	"\tsandboxes\x18\x01 \x03(\v2\x10.plbx.v1.SandboxR\tsandboxes\"0\n" +

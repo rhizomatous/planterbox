@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"context"
+	"errors"
 	"os"
 	"time"
 
@@ -56,8 +57,15 @@ func (s *Server) Info(_ context.Context, _ *plbxv1.InfoRequest) (*plbxv1.InfoRes
 func (s *Server) Register(g *grpc.Server) { plbxv1.RegisterSandboxesServer(g, s) }
 
 // Create builds a sandbox and returns it as stored.
+//
+// A clone remote that could not be written comes back beside the sandbox
+// rather than instead of it: the sandbox exists either way, and a status would
+// be the only thing the wire carried.
 func (s *Server) Create(ctx context.Context, req *plbxv1.CreateRequest) (*plbxv1.CreateResponse, error) {
 	sb, err := s.svc.Create(ctx, apiSpec(req.GetSpec()))
+	if errors.Is(err, api.ErrRemoteNotAdded) {
+		return &plbxv1.CreateResponse{Sandbox: protoSandbox(sb), RemoteError: err.Error()}, nil
+	}
 	if err != nil {
 		return nil, wireError(err)
 	}
