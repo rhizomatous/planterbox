@@ -72,6 +72,11 @@ func NewOCI(rt Runtime, opts ...Option) *OCI {
 // ContainerName is the runtime-side name for a sandbox.
 func ContainerName(sandbox string) string { return containerPrefix + sandbox }
 
+// Handle returns the runtime identifier for a sandbox.
+func (o *OCI) Handle(sandbox string) ID {
+	return ID(ContainerName(sandbox))
+}
+
 // homeVolume is the named volume backing a sandbox's /home/agent.
 func homeVolume(sandbox string) string { return containerPrefix + sandbox + "-home" }
 

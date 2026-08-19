@@ -35,4 +35,7 @@ type Runner interface {
 	// Unpublish takes them back off, tolerating a sandbox that published none.
 	Unpublish(ctx context.Context, sandbox string) error
 	Inspect(ctx context.Context, id ID) (api.State, error)
+	// Handle returns the runtime's identifier for a sandbox, reconstructing it
+	// from the sandbox name when necessary (for sandboxes predating stored IDs).
+	Handle(sandbox string) ID
 }

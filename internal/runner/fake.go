@@ -155,3 +155,8 @@ func (f *Fake) setStatus(call string, id ID, status api.Status) error {
 	f.States[id] = st
 	return nil
 }
+
+// Handle returns the runtime identifier for a sandbox.
+func (f *Fake) Handle(sandbox string) ID {
+	return ID(ContainerName(sandbox))
+}

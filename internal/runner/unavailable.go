@@ -35,3 +35,7 @@ func (u unavailable) Inspect(context.Context, ID) (api.State, error) { return ap
 func (u unavailable) Exec(context.Context, ID, api.ExecRequest, api.Streams) (api.ExecResult, error) {
 	return api.ExecResult{}, u.err
 }
+
+func (u unavailable) Handle(string) ID {
+	return ""
+}

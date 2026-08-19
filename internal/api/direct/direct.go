@@ -156,7 +156,7 @@ func (s *Service) Remove(ctx context.Context, ref api.Ref, force bool) error {
 	if !force && s.observe(ctx, sb).Status == api.StatusRunning {
 		return fmt.Errorf("%w: %q (use --force)", api.ErrRunning, sb.Spec.Name)
 	}
-	if err := s.runner.Remove(ctx, containerID(sb), sb.Spec.Name, force); err != nil {
+	if err := s.runner.Remove(ctx, s.containerID(sb), sb.Spec.Name, force); err != nil {
 		return err
 	}
 	// the remote goes with the sandbox it pointed at; left behind it names a
@@ -174,7 +174,7 @@ func (s *Service) Exec(ctx context.Context, ref api.Ref, req api.ExecRequest, st
 	if err != nil {
 		return api.ExecResult{}, err
 	}
-	return s.runner.Exec(ctx, containerID(sb), req, streams)
+	return s.runner.Exec(ctx, s.containerID(sb), req, streams)
 }
 
 // Publish replaces the ports a sandbox publishes on the host.
@@ -220,7 +220,7 @@ func (s *Service) Copy(ctx context.Context, src, dst api.Path) error {
 	if err != nil {
 		return err
 	}
-	return s.runner.Copy(ctx, containerID(sb), src, dst)
+	return s.runner.Copy(ctx, s.containerID(sb), src, dst)
 }
 
 // Stats streams resource samples for a running sandbox.
@@ -229,7 +229,7 @@ func (s *Service) Stats(ctx context.Context, ref api.Ref) (<-chan api.Stats, err
 	if err != nil {
 		return nil, err
 	}
-	return s.runner.Stats(ctx, containerID(sb))
+	return s.runner.Stats(ctx, s.containerID(sb))
 }
 
 // PullImage fetches an image if the runtime does not already have it.
@@ -249,7 +249,7 @@ func (s *Service) act(ctx context.Context, ref api.Ref, fn func(api.Sandbox, run
 	if err != nil {
 		return err
 	}
-	if err := fn(sb, containerID(sb)); err != nil {
+	if err := fn(sb, s.containerID(sb)); err != nil {
 		return err
 	}
 	sb.State = s.observe(ctx, sb)
@@ -270,7 +270,7 @@ func (s *Service) find(ref api.Ref) (api.Sandbox, error) {
 // state we recorded when the runtime can't answer. A stale status is better
 // than an error on a command that only wanted to list.
 func (s *Service) observe(ctx context.Context, sb api.Sandbox) api.State {
-	state, err := s.runner.Inspect(ctx, containerID(sb))
+	state, err := s.runner.Inspect(ctx, s.containerID(sb))
 	if err != nil {
 		return sb.State
 	}
@@ -280,13 +280,14 @@ func (s *Service) observe(ctx context.Context, sb api.Sandbox) api.State {
 	return state
 }
 
-// containerID is the runtime handle for a sandbox, recovered from its name when
-// the record predates one.
-func containerID(sb api.Sandbox) runner.ID {
+// containerID returns the runtime handle for a sandbox, using the stored ID
+// when available or reconstructing it from the sandbox name for sandboxes
+// predating stored IDs.
+func (s *Service) containerID(sb api.Sandbox) runner.ID {
 	if sb.State.ContainerID != "" {
 		return runner.ID(sb.State.ContainerID)
 	}
-	return runner.ID(runner.ContainerName(sb.Spec.Name))
+	return s.runner.Handle(sb.Spec.Name)
 }
 
 // Policy returns the host's egress policy.
