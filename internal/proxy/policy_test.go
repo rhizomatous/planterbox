@@ -356,10 +356,9 @@ func TestPresetAllowancesAreOnlyBalanced(t *testing.T) {
 	}
 }
 
-// An IPv6 rule has to reach the target it names. The pattern and the request
-// are parsed by different callers, so a parser that disagreed with itself let
-// an allow match nothing and, worse, let a deny report success and permit the
-// traffic.
+// An IPv6 rule has to reach the target it names, however either is written.
+// A pattern and the request it covers are parsed by different callers, and a
+// rule that parses differently from its request matches nothing.
 func TestIPv6PatternsMatchTheAddressTheyName(t *testing.T) {
 	const addr = "2606:4700:4700::1111"
 	for _, tc := range []struct {
@@ -382,8 +381,9 @@ func TestIPv6PatternsMatchTheAddressTheyName(t *testing.T) {
 	}
 }
 
-// A deny that matches nothing is a control reporting success and doing nothing,
-// which is the one direction of this bug that fails open.
+// A deny that matches nothing is a control reporting success and permitting the
+// traffic. An allow that matches nothing merely puzzles; this direction fails
+// open.
 func TestAnIPv6DenyActuallyDenies(t *testing.T) {
 	p := Policy{Preset: PresetOpen, Rules: []Rule{{Pattern: "2606:4700:4700::1111"}}}
 	if v := p.Check(Target{Host: "2606:4700:4700::1111", Port: 443}); v.Allowed {

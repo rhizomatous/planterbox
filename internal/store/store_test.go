@@ -250,9 +250,8 @@ func TestRecordIsNotWorldReadable(t *testing.T) {
 }
 
 // Everything plbx keeps on disk lives under the one directory it was given.
-// Deriving the rest by walking up from the records directory put the policy
-// and the ssh host key in that directory's parent, so two stores under one
-// parent shared both, and `--state-dir ~/mine` wrote into the home directory.
+// Anything that escapes it lands somewhere the caller did not name, and two
+// stores that escape into the same place share what they find there.
 func TestEverythingLivesUnderTheStateDirectory(t *testing.T) {
 	state := t.TempDir()
 	s, err := Open(state)

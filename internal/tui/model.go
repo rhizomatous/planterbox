@@ -22,13 +22,12 @@ import (
 // the stats feed.
 const refreshEvery = 2 * time.Second
 
-// cursor is a generic position tracker for a list of items.
+// cursor is a position in a list, shared by the panels that have one.
 type cursor[T any] struct {
 	items []T
 	at    int
 }
 
-// clamp keeps the cursor position within valid bounds.
 func (c *cursor[T]) clamp() {
 	if c.at >= len(c.items) {
 		c.at = len(c.items) - 1
@@ -38,7 +37,6 @@ func (c *cursor[T]) clamp() {
 	}
 }
 
-// selected returns the item under the cursor, and whether one exists.
 func (c *cursor[T]) selected() (T, bool) {
 	if c.at < 0 || c.at >= len(c.items) {
 		var zero T

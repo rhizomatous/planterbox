@@ -34,8 +34,9 @@ type Store struct {
 	readOnly bool
 }
 
-// Open returns a store rooted at dir, creating it if absent. The state
-// directory (for policy and host keys) is the parent directory.
+// Open returns a store under stateDir, creating the records directory if it is
+// absent. Everything plbx keeps lives under stateDir: records in a
+// subdirectory, the policy and the ssh host key beside it.
 func Open(stateDir string) (*Store, error) {
 	dir := filepath.Join(stateDir, recordsDir)
 	if err := os.MkdirAll(dir, 0o700); err != nil {

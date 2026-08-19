@@ -150,9 +150,8 @@ func (c *Client) PullImage(ctx context.Context, image string) (<-chan string, er
 	}), nil
 }
 
-// relayStream wraps the gRPC Recv pattern, forwarding messages onto a channel
-// until the stream closes or ctx is done. T is the protocol message type, U is
-// what the caller wants on the channel, and transform converts one to the other.
+// relayStream carries a server stream onto a channel, closing it when the feed
+// ends or ctx is cancelled, which is the contract the in-process service has.
 func relayStream[T any, U any](ctx context.Context, stream interface{ Recv() (T, error) }, transform func(T) U) <-chan U {
 	out := make(chan U)
 	go func() {

@@ -491,9 +491,8 @@ func (p partialCreate) Create(context.Context, api.Spec) (api.Sandbox, error) {
 }
 
 // A partial success has to survive the wire whole. gRPC sends a status or a
-// message and never both, so a sentinel alone would strand the caller with a
-// zero sandbox: `plbx run --clone` would create one and then fail against the
-// empty name it got back.
+// message and never both, so a sentinel carried alone leaves the caller a zero
+// sandbox and a name it cannot act on.
 func TestAPartialCreateKeepsItsSandbox(t *testing.T) {
 	client := dial(t, partialCreate{api.NewFake()})
 

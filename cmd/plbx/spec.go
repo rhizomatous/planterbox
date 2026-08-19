@@ -74,8 +74,8 @@ func (f *specFlags) bind(cmd *cobra.Command) {
 		"work in a private clone, with your repository mounted read-only")
 }
 
-// parsePorts reads and validates port specifications. The input should be a
-// list of strings in the form "host:sandbox" or just a port number.
+// parsePorts reads the ports a command was given, refusing a set the service
+// would refuse, so the command naming the port is the one that fails.
 func parsePorts(args []string) ([]api.Port, error) {
 	ports := make([]api.Port, 0, len(args))
 	for _, a := range args {

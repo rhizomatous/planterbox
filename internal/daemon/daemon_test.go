@@ -406,7 +406,6 @@ func tempDir(t *testing.T) string {
 }
 
 // replaceBase swaps a path's filename, keeping its directory.
-// Used by tests to verify path layout.
 func replaceBase(path, name string) string {
 	return filepath.Join(filepath.Dir(path), name)
 }
