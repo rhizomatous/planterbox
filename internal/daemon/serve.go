@@ -60,21 +60,18 @@ const DefaultProxyAddr = "127.0.0.1:47821"
 // by one that died: a stale file is indistinguishable from a live one until you
 // try to connect, so connecting is how it decides.
 func Serve(ctx context.Context, opts Options) error {
-	socket := opts.Socket
-	if socket == "" {
-		var err error
-		if socket, err = Socket(HostEnv(runtime.GOOS)); err != nil {
-			return err
-		}
+	paths, err := resolvePaths(opts)
+	if err != nil {
+		return err
 	}
-	if err := ensureRuntimeDir(socket); err != nil {
+	if err := ensureRuntimeDir(paths.socket); err != nil {
 		return fmt.Errorf("preparing the runtime directory: %w", err)
 	}
-	if alive(ctx, socket) {
-		return fmt.Errorf("%w at %s", ErrAlreadyRunning, socket)
+	if alive(ctx, paths.socket) {
+		return fmt.Errorf("%w at %s", ErrAlreadyRunning, paths.socket)
 	}
 	// nothing answered, so whatever is at that path is a corpse.
-	if err := os.Remove(socket); err != nil && !errors.Is(err, os.ErrNotExist) {
+	if err := os.Remove(paths.socket); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("clearing a stale socket: %w", err)
 	}
 
@@ -101,7 +98,7 @@ func Serve(ctx context.Context, opts Options) error {
 	}
 	defer stopProxy()
 
-	gateway, err := serveSSH(opts, svc)
+	gateway, err := serveSSH(paths, svc)
 	if err != nil {
 		return err
 	}
@@ -109,22 +106,22 @@ func Serve(ctx context.Context, opts Options) error {
 
 	// the pidfile still goes down before the listener, so anything that finds
 	// the socket answering can rely on the record being there.
-	if err := writePid(opts); err != nil {
+	if err := writePid(paths); err != nil {
 		return err
 	}
-	defer removePid(opts)
+	defer removePid(paths)
 
-	lis, err := net.Listen("unix", socket)
+	lis, err := net.Listen("unix", paths.socket)
 	if err != nil {
-		return fmt.Errorf("listening on %s: %w", socket, err)
+		return fmt.Errorf("listening on %s: %w", paths.socket, err)
 	}
-	defer func() { _ = os.Remove(socket) }()
+	defer func() { _ = os.Remove(paths.socket) }()
 
 	// the socket is an unauthenticated door onto every sandbox. Only its owner
 	// gets to open it.
-	if err := os.Chmod(socket, 0o600); err != nil {
+	if err := os.Chmod(paths.socket, 0o600); err != nil {
 		_ = lis.Close()
-		return fmt.Errorf("securing %s: %w", socket, err)
+		return fmt.Errorf("securing %s: %w", paths.socket, err)
 	}
 
 	server := grpc.NewServer()
@@ -182,45 +179,48 @@ func Running(ctx context.Context, env Env) (pid int, ok bool) {
 	return pid, true
 }
 
-func writePid(opts Options) error {
-	path, err := pidPathFor(opts)
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(path, []byte(strconv.Itoa(os.Getpid())), 0o600)
+// paths holds the resolved locations where the daemon stores everything.
+//
+// Resolving once at startup ensures the pidfile and ssh socket sit beside
+// whichever socket this daemon is using, so a daemon on a custom socket does
+// not interfere with the default daemon's records.
+type paths struct {
+	socket string
+	pid    string
+	ssh    string
 }
 
-func removePid(opts Options) {
-	if path, err := pidPathFor(opts); err == nil {
-		_ = os.Remove(path)
+// resolvePaths resolves the socket, pidfile, and ssh gateway paths.
+func resolvePaths(opts Options) (paths, error) {
+	socket := opts.Socket
+	if socket == "" {
+		var err error
+		if socket, err = Socket(HostEnv(runtime.GOOS)); err != nil {
+			return paths{}, err
+		}
 	}
+	socketDir := filepath.Dir(socket)
+
+	pid := filepath.Join(socketDir, pidFile)
+
+	ssh := opts.SSHSocket
+	if ssh == "" {
+		ssh = filepath.Join(socketDir, sshFile)
+	}
+
+	return paths{socket: socket, pid: pid, ssh: ssh}, nil
 }
 
-// pidPathFor puts the pidfile beside whichever socket this daemon is using, so
-// a daemon on a custom socket does not overwrite the default one's record.
-func pidPathFor(opts Options) (string, error) {
-	if opts.Socket != "" {
-		return replaceBase(opts.Socket, pidFile), nil
-	}
-	return PidPath(HostEnv(runtime.GOOS))
+func writePid(p paths) error {
+	return os.WriteFile(p.pid, []byte(strconv.Itoa(os.Getpid())), 0o600)
 }
 
-// sshPathFor puts the gateway's socket beside whichever socket this daemon is
-// using, for the same reason the pidfile goes there: a daemon on a socket of
-// its own must not reach into the default runtime directory and take the
-// gateway out from under the daemon that lives there.
-func sshPathFor(opts Options) (string, error) {
-	switch {
-	case opts.SSHSocket != "":
-		return opts.SSHSocket, nil
-	case opts.Socket != "":
-		return replaceBase(opts.Socket, sshFile), nil
-	default:
-		return SSHSocket(HostEnv(runtime.GOOS))
-	}
+func removePid(p paths) {
+	_ = os.Remove(p.pid)
 }
 
 // replaceBase swaps a path's filename, keeping its directory.
+// Used by tests to verify path layout.
 func replaceBase(path, name string) string {
 	return filepath.Join(filepath.Dir(path), name)
 }
@@ -268,13 +268,9 @@ func serveProxy(ctx context.Context, addr string, svc *direct.Service, log *prox
 // It listens on a unix socket rather than a port, so nothing about it is
 // reachable from off this machine, and its sessions are execs rather than
 // connections, which is what lets it reach a sandbox that has no route in.
-func serveSSH(opts Options, svc *direct.Service) (*sshd.Server, error) {
-	socket, err := sshPathFor(opts)
-	if err != nil {
-		return nil, err
-	}
+func serveSSH(p paths, svc *direct.Service) (*sshd.Server, error) {
 	return sshd.Serve(sshd.Options{
-		Socket:      socket,
+		Socket:      p.ssh,
 		HostKeyPath: svc.SSHHostKeyPath(),
 		Service:     svc,
 	})
