@@ -204,7 +204,7 @@ func splitPattern(pattern string) (host string, port int) {
 		return pattern, 0
 	}
 	n, err := strconv.Atoi(p)
-	if err != nil || n <= 0 {
+	if err != nil || n <= 0 || n > 65535 {
 		return pattern, 0
 	}
 	return strings.Trim(h, "[]"), n

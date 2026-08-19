@@ -36,6 +36,4 @@ func (u unavailable) Exec(context.Context, ID, api.ExecRequest, api.Streams) (ap
 	return api.ExecResult{}, u.err
 }
 
-func (u unavailable) Handle(string) ID {
-	return ""
-}
+func (u unavailable) Handle(sandbox string) ID { return ID(containerName(sandbox)) }

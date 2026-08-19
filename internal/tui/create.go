@@ -1,7 +1,6 @@
 package tui
 
 import (
-	"context"
 	"errors"
 	"os"
 	"path/filepath"
@@ -198,7 +197,7 @@ func (m *Model) submitCreate(spec api.Spec) tea.Cmd {
 		// report it. On a first run for an agent it is a multi-gigabyte
 		// download and the container that follows is instant, so a single
 		// "creating…" would sit through minutes of the wrong explanation.
-		lines, err := m.svc.PullImage(context.Background(), spec.Image)
+		lines, err := m.svc.PullImage(m.ctx, spec.Image)
 		if err != nil {
 			// Create pulls on its own if it must; let it fail properly
 			// rather than reporting this instead.
@@ -225,7 +224,7 @@ func (m *Model) nextPullLine(p pullMsg) tea.Cmd {
 // buildSandbox makes the container, once its image is here.
 func (m *Model) buildSandbox(spec api.Spec) tea.Cmd {
 	return func() tea.Msg {
-		_, err := m.svc.Create(context.Background(), spec)
+		_, err := m.svc.Create(m.ctx, spec)
 		// the sandbox is made either way; what failed is writing a remote into
 		// a repository that is the user's, not ours.
 		if errors.Is(err, api.ErrRemoteNotAdded) {

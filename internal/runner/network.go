@@ -81,7 +81,7 @@ func (o *OCI) removeNetworkInvocation(sandbox string) Invocation {
 // ensureNetwork creates a sandbox's network, tolerating one that already
 // exists: a sandbox being recreated keeps the same name.
 func (o *OCI) ensureNetwork(ctx context.Context, sandbox string) error {
-	return o.createNetwork(ctx, sandboxNetwork(sandbox), o.egressUpstream != "")
+	return o.createNetwork(ctx, o.createNetworkInvocation(sandbox))
 }
 
 // removeNetwork drops a sandbox's network, tolerating one already gone.
@@ -130,7 +130,7 @@ func (o *OCI) ensureRelay(ctx context.Context, sandbox, image, upstream string) 
 }
 
 func (o *OCI) ensureEgressNetwork(ctx context.Context) error {
-	return o.createNetwork(ctx, relayEgressNet, false)
+	return o.createNetwork(ctx, o.sharedNetworkInvocation(relayEgressNet))
 }
 
 // relayRunning reports whether the relay container is up.
@@ -192,16 +192,18 @@ func isAlreadyConnected(err error) bool {
 }
 
 // createNetwork creates a network, tolerating one that already exists.
-func (o *OCI) createNetwork(ctx context.Context, name string, internal bool) error {
-	args := []string{"network", "create"}
-	if internal {
-		args = append(args, "--internal")
-	}
-	_, err := o.exec.Output(ctx, o.invoke(append(args, name)...))
-	if err != nil && !isAlreadyExists(err) {
+func (o *OCI) createNetwork(ctx context.Context, inv Invocation) error {
+	if _, err := o.exec.Output(ctx, inv); err != nil && !isAlreadyExists(err) {
 		return err
 	}
 	return nil
+}
+
+// sharedNetworkInvocation renders the command creating one of the two networks
+// that are not a sandbox's own. Neither is internal: the relay and the port
+// forwarder reach the host across them.
+func (o *OCI) sharedNetworkInvocation(name string) Invocation {
+	return o.invoke("network", "create", name)
 }
 
 // connectNetwork attaches a container to a network, tolerating one that is

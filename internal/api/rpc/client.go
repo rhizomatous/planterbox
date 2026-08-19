@@ -70,7 +70,9 @@ func (c *Client) Create(ctx context.Context, spec api.Spec) (api.Sandbox, error)
 		return api.Sandbox{}, localError(err)
 	}
 	if msg := resp.GetRemoteError(); msg != "" {
-		return apiSandbox(resp.GetSandbox()), fmt.Errorf("%w: %s", api.ErrRemoteNotAdded, msg)
+		// the daemon's message already opens with the sentinel's own text, so
+		// carry it whole rather than wrapping it into itself
+		return apiSandbox(resp.GetSandbox()), remoteError{msg: msg, sentinel: api.ErrRemoteNotAdded}
 	}
 	return apiSandbox(resp.GetSandbox()), nil
 }

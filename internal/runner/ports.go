@@ -117,7 +117,7 @@ func (o *OCI) Unpublish(ctx context.Context, sandbox string) error {
 }
 
 func (o *OCI) ensurePortsNetwork(ctx context.Context) error {
-	return o.createNetwork(ctx, portsNet, false)
+	return o.createNetwork(ctx, o.sharedNetworkInvocation(portsNet))
 }
 
 // bindConflict matches a runtime reporting a host port it could not take.

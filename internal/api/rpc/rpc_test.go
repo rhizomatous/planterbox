@@ -501,8 +501,11 @@ func TestAPartialCreateKeepsItsSandbox(t *testing.T) {
 	if !errors.Is(err, api.ErrRemoteNotAdded) {
 		t.Fatalf("err = %v, want it to match ErrRemoteNotAdded", err)
 	}
-	if !strings.Contains(err.Error(), "not a git repository") {
-		t.Errorf("err = %q, want the reason the remote failed", err)
+	// the same sentence on both transports: the daemon's message already opens
+	// with the sentinel's own text, so re-wrapping it would say it twice
+	const want = "could not add the sandbox as a git remote: not a git repository"
+	if err.Error() != want {
+		t.Errorf("err = %q, want %q", err, want)
 	}
 	if sb.Spec.Name != "demo" || sb.State.Status != api.StatusCreated {
 		t.Errorf("sandbox = %+v, want the one that was made", sb)
