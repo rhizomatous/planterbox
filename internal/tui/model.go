@@ -22,6 +22,31 @@ import (
 // the stats feed.
 const refreshEvery = 2 * time.Second
 
+// cursor is a generic position tracker for a list of items.
+type cursor[T any] struct {
+	items []T
+	at    int
+}
+
+// clamp keeps the cursor position within valid bounds.
+func (c *cursor[T]) clamp() {
+	if c.at >= len(c.items) {
+		c.at = len(c.items) - 1
+	}
+	if c.at < 0 {
+		c.at = 0
+	}
+}
+
+// selected returns the item under the cursor, and whether one exists.
+func (c *cursor[T]) selected() (T, bool) {
+	if c.at < 0 || c.at >= len(c.items) {
+		var zero T
+		return zero, false
+	}
+	return c.items[c.at], true
+}
+
 // Model is the dashboard's state.
 type Model struct {
 	svc api.Service
@@ -352,20 +377,15 @@ func (m *Model) restoreCursor(name string) {
 }
 
 func (m *Model) clampCursor() {
-	if m.cursor >= len(m.sandboxes) {
-		m.cursor = len(m.sandboxes) - 1
-	}
-	if m.cursor < 0 {
-		m.cursor = 0
-	}
+	c := cursor[api.Sandbox]{items: m.sandboxes, at: m.cursor}
+	c.clamp()
+	m.cursor = c.at
 }
 
 // selected returns the sandbox under the cursor, and whether there is one.
 func (m *Model) selected() (api.Sandbox, bool) {
-	if m.cursor < 0 || m.cursor >= len(m.sandboxes) {
-		return api.Sandbox{}, false
-	}
-	return m.sandboxes[m.cursor], true
+	c := cursor[api.Sandbox]{items: m.sandboxes, at: m.cursor}
+	return c.selected()
 }
 
 func (m *Model) selectedName() string {
@@ -420,8 +440,9 @@ func (m *Model) visibleConnections() []proxy.Entry {
 // restoreConnCursor keeps the cursor on the same decision as entries arrive
 // beneath it, so a denial does not slide away while being read.
 func (m *Model) restoreConnCursor(seq uint64) {
+	visible := m.visibleConnections()
 	if seq != 0 {
-		for i, e := range m.visibleConnections() {
+		for i, e := range visible {
 			if e.Seq == seq {
 				m.connCursor = i
 				return
@@ -429,33 +450,26 @@ func (m *Model) restoreConnCursor(seq uint64) {
 		}
 	}
 	// nothing was selected, or it aged out: follow the newest.
-	m.connCursor = len(m.visibleConnections()) - 1
+	m.connCursor = len(visible) - 1
 	m.clampConnCursor()
 }
 
 func (m *Model) clampConnCursor() {
-	if visible := m.visibleConnections(); m.connCursor >= len(visible) {
-		m.connCursor = len(visible) - 1
-	}
-	if m.connCursor < 0 {
-		m.connCursor = 0
-	}
+	c := cursor[proxy.Entry]{items: m.visibleConnections(), at: m.connCursor}
+	c.clamp()
+	m.connCursor = c.at
 }
 
 // selectedConnection returns the sequence under the cursor, or zero.
 func (m *Model) selectedConnection() uint64 {
-	visible := m.visibleConnections()
-	if m.connCursor < 0 || m.connCursor >= len(visible) {
-		return 0
+	if entry, ok := m.selectedEntry(); ok {
+		return entry.Seq
 	}
-	return visible[m.connCursor].Seq
+	return 0
 }
 
 // selectedEntry returns the decision under the cursor, and whether there is one.
 func (m *Model) selectedEntry() (proxy.Entry, bool) {
-	visible := m.visibleConnections()
-	if m.connCursor < 0 || m.connCursor >= len(visible) {
-		return proxy.Entry{}, false
-	}
-	return visible[m.connCursor], true
+	c := cursor[proxy.Entry]{items: m.visibleConnections(), at: m.connCursor}
+	return c.selected()
 }
