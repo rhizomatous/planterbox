@@ -12,6 +12,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `plbx policy ls`, `plbx policy rm`, `plbx daemon start` and `plbx daemon status` now have real help text. They previously fell back to their one-line summary.
 - Shorter, plainer help throughout, and `-f/--force` on `plbx rm` now says it skips the confirmation as well as the running check.
 
+### Fixed
+
+- Text trimmed to fit is measured in terminal cells rather than characters, and cut between characters rather than through them. A workspace path in Japanese or Chinese was twice as wide as it was counted, so it overran its column in `plbx ls` and wrapped the dashboard; an accented letter written as a combining mark could lose its accent, and an emoji could be cut in half.
+
 ## [0.9.0] - 2026-08-18
 
 ### Added
