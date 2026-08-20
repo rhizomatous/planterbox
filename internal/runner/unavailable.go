@@ -17,23 +17,21 @@ var _ Runner = unavailable{}
 // Unavailable returns a Runner that fails every operation with err.
 func Unavailable(err error) Runner { return unavailable{err: err} }
 
-func (u unavailable) Create(context.Context, api.Spec) (ID, error)      { return "", u.err }
-func (u unavailable) Start(context.Context, ID, string) error           { return u.err }
-func (u unavailable) Stop(context.Context, ID, string) error            { return u.err }
-func (u unavailable) Remove(context.Context, ID, string, bool) error    { return u.err }
+func (u unavailable) Create(context.Context, api.Spec) error            { return u.err }
+func (u unavailable) Start(context.Context, string) error               { return u.err }
+func (u unavailable) Stop(context.Context, string) error                { return u.err }
+func (u unavailable) Remove(context.Context, string, bool) error        { return u.err }
 func (u unavailable) Publish(context.Context, string, []api.Port) error { return u.err }
 func (u unavailable) Unpublish(context.Context, string) error           { return u.err }
-func (u unavailable) Copy(context.Context, ID, api.Path, api.Path) error {
+func (u unavailable) Copy(context.Context, string, api.Path, api.Path) error {
 	return u.err
 }
-func (u unavailable) Stats(context.Context, ID) (<-chan api.Stats, error) { return nil, u.err }
+func (u unavailable) Stats(context.Context, string) (<-chan api.Stats, error) { return nil, u.err }
 func (u unavailable) PullImage(context.Context, string) (<-chan string, error) {
 	return nil, u.err
 }
-func (u unavailable) Inspect(context.Context, ID) (api.State, error) { return api.State{}, u.err }
+func (u unavailable) Inspect(context.Context, string) (api.State, error) { return api.State{}, u.err }
 
-func (u unavailable) Exec(context.Context, ID, api.ExecRequest, api.Streams) (api.ExecResult, error) {
+func (u unavailable) Exec(context.Context, string, api.ExecRequest, api.Streams) (api.ExecResult, error) {
 	return api.ExecResult{}, u.err
 }
-
-func (u unavailable) Handle(sandbox string) ID { return ID(containerName(sandbox)) }

@@ -129,7 +129,7 @@ func TestPublishNoPortsOnlyClears(t *testing.T) {
 // that network can be removed, the same ordering the relay needs.
 func TestRemoveDropsTheForwarderBeforeTheNetwork(t *testing.T) {
 	exec := &scriptedExecutor{}
-	if err := portsOCI(exec).Remove(context.Background(), "plbx-demo", "demo", false); err != nil {
+	if err := portsOCI(exec).Remove(context.Background(), "demo", false); err != nil {
 		t.Fatalf("Remove: %v", err)
 	}
 

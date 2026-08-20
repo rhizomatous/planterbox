@@ -52,15 +52,11 @@ func (s *Service) Create(ctx context.Context, spec api.Spec) (api.Sandbox, error
 	if spec.CreatedAt.IsZero() {
 		spec.CreatedAt = s.now().UTC()
 	}
-	id, err := s.runner.Create(ctx, spec)
-	if err != nil {
+	if err := s.runner.Create(ctx, spec); err != nil {
 		return api.Sandbox{}, err
 	}
 
-	sb := api.Sandbox{
-		Spec:  spec,
-		State: api.State{Status: api.StatusCreated, ContainerID: string(id)},
-	}
+	sb := api.Sandbox{Spec: spec, State: api.State{Status: api.StatusCreated}}
 	if err := s.store.Put(sb); err != nil {
 		return api.Sandbox{}, err
 	}
@@ -103,9 +99,9 @@ func (s *Service) Inspect(ctx context.Context, ref api.Ref) (api.Sandbox, error)
 // in the sandbox's own container.
 func (s *Service) Start(ctx context.Context, ref api.Ref) error {
 	var started api.Sandbox
-	err := s.act(ctx, ref, func(sb api.Sandbox, id runner.ID) error {
+	err := s.act(ctx, ref, func(sb api.Sandbox) error {
 		started = sb
-		return s.runner.Start(ctx, id, sb.Spec.Name)
+		return s.runner.Start(ctx, sb.Spec.Name)
 	})
 	if err != nil {
 		return err
@@ -127,8 +123,8 @@ func (s *Service) Start(ctx context.Context, ref api.Ref) error {
 // hold those ports bound and answer on them, against something no longer
 // listening.
 func (s *Service) Stop(ctx context.Context, ref api.Ref) error {
-	return s.act(ctx, ref, func(sb api.Sandbox, id runner.ID) error {
-		return s.runner.Stop(ctx, id, sb.Spec.Name)
+	return s.act(ctx, ref, func(sb api.Sandbox) error {
+		return s.runner.Stop(ctx, sb.Spec.Name)
 	})
 }
 
@@ -143,7 +139,7 @@ func (s *Service) Remove(ctx context.Context, ref api.Ref, force bool) error {
 	if !force && s.observe(ctx, sb).Status == api.StatusRunning {
 		return fmt.Errorf("%w: %q (use --force)", api.ErrRunning, sb.Spec.Name)
 	}
-	if err := s.runner.Remove(ctx, s.containerID(sb), sb.Spec.Name, force); err != nil {
+	if err := s.runner.Remove(ctx, sb.Spec.Name, force); err != nil {
 		return err
 	}
 	// the remote goes with the sandbox it pointed at; left behind it names a
@@ -161,7 +157,7 @@ func (s *Service) Exec(ctx context.Context, ref api.Ref, req api.ExecRequest, st
 	if err != nil {
 		return api.ExecResult{}, err
 	}
-	return s.runner.Exec(ctx, s.containerID(sb), req, streams)
+	return s.runner.Exec(ctx, sb.Spec.Name, req, streams)
 }
 
 // Publish replaces the ports a sandbox publishes on the host.
@@ -207,7 +203,7 @@ func (s *Service) Copy(ctx context.Context, src, dst api.Path) error {
 	if err != nil {
 		return err
 	}
-	return s.runner.Copy(ctx, s.containerID(sb), src, dst)
+	return s.runner.Copy(ctx, sb.Spec.Name, src, dst)
 }
 
 // Stats streams resource samples for a running sandbox.
@@ -216,7 +212,7 @@ func (s *Service) Stats(ctx context.Context, ref api.Ref) (<-chan api.Stats, err
 	if err != nil {
 		return nil, err
 	}
-	return s.runner.Stats(ctx, s.containerID(sb))
+	return s.runner.Stats(ctx, sb.Spec.Name)
 }
 
 // PullImage fetches an image if the runtime does not already have it.
@@ -231,12 +227,12 @@ func (s *Service) Close() error { return nil }
 // sandbox as well as its runtime handle, because the two name different things:
 // the handle is whatever the runtime last called the container, while anything
 // plbx created alongside it is named after the sandbox.
-func (s *Service) act(ctx context.Context, ref api.Ref, fn func(api.Sandbox, runner.ID) error) error {
+func (s *Service) act(ctx context.Context, ref api.Ref, fn func(api.Sandbox) error) error {
 	sb, err := s.find(ref)
 	if err != nil {
 		return err
 	}
-	if err := fn(sb, s.containerID(sb)); err != nil {
+	if err := fn(sb); err != nil {
 		return err
 	}
 	sb.State = s.observe(ctx, sb)
@@ -257,7 +253,7 @@ func (s *Service) find(ref api.Ref) (api.Sandbox, error) {
 // state we recorded when the runtime can't answer. A stale status is better
 // than an error on a command that only wanted to list.
 func (s *Service) observe(ctx context.Context, sb api.Sandbox) api.State {
-	state, err := s.runner.Inspect(ctx, s.containerID(sb))
+	state, err := s.runner.Inspect(ctx, sb.Spec.Name)
 	if err != nil {
 		return sb.State
 	}
@@ -265,16 +261,6 @@ func (s *Service) observe(ctx context.Context, sb api.Sandbox) api.State {
 		state.ContainerID = sb.State.ContainerID
 	}
 	return state
-}
-
-// containerID returns the runtime handle for a sandbox, using the stored ID
-// when available or reconstructing it from the sandbox name for sandboxes
-// predating stored IDs.
-func (s *Service) containerID(sb api.Sandbox) runner.ID {
-	if sb.State.ContainerID != "" {
-		return runner.ID(sb.State.ContainerID)
-	}
-	return s.runner.Handle(sb.Spec.Name)
 }
 
 // Policy returns the host's egress policy.

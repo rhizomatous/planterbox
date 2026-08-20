@@ -73,7 +73,7 @@ func (s *Service) ensureClone(ctx context.Context, sb api.Sandbox) error {
 	}
 
 	var out bytes.Buffer
-	res, err := s.runner.Exec(ctx, s.containerID(sb), api.ExecRequest{
+	res, err := s.runner.Exec(ctx, sb.Spec.Name, api.ExecRequest{
 		Cmd: []string{"/bin/bash", "-c", cloneScript},
 		Env: map[string]string{"PLBX_SRC": src, "PLBX_CLONE": dst},
 		// explicitly the home directory, not the container's own default. That

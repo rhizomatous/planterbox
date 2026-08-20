@@ -76,27 +76,18 @@ func NewOCI(rt Runtime, opts ...Option) *OCI {
 // containerName is the runtime-side name for a sandbox.
 func containerName(sandbox string) string { return containerPrefix + sandbox }
 
-// Handle returns the runtime identifier for a sandbox.
-func (o *OCI) Handle(sandbox string) ID {
-	return ID(containerName(sandbox))
-}
-
 // homeVolume is the named volume backing a sandbox's /home/agent.
 func homeVolume(sandbox string) string { return containerPrefix + sandbox + "-home" }
 
 // Create builds the container without starting it.
-func (o *OCI) Create(ctx context.Context, spec api.Spec) (ID, error) {
+func (o *OCI) Create(ctx context.Context, spec api.Spec) error {
 	// the network comes first: the container is created onto it, and a create
 	// naming a network that does not exist fails outright.
 	if err := o.ensureNetwork(ctx, spec.Name); err != nil {
-		return "", err
+		return err
 	}
-	if _, err := o.exec.Output(ctx, o.createInvocation(spec)); err != nil {
-		return "", err
-	}
-	// the runtime echoes the new container's ID, but the name is what every
-	// later invocation uses and what a human reads in `docker ps`.
-	return ID(containerName(spec.Name)), nil
+	_, err := o.exec.Output(ctx, o.createInvocation(spec))
+	return err
 }
 
 // Start boots a created or stopped container.
@@ -109,19 +100,19 @@ func (o *OCI) Create(ctx context.Context, spec api.Spec) (ID, error) {
 // id is whatever the runtime last called the container: the name before its
 // first start, a hash after it. The network, like the home volume, is named
 // after the sandbox and stays that way.
-func (o *OCI) Start(ctx context.Context, id ID, sandbox string) error {
+func (o *OCI) Start(ctx context.Context, sandbox string) error {
 	if o.egressUpstream != "" {
 		if err := o.ensureRelay(ctx, sandbox, o.relayImage, o.egressUpstream); err != nil {
 			return err
 		}
 	}
-	_, err := o.exec.Output(ctx, o.invoke("start", string(id)))
+	_, err := o.exec.Output(ctx, o.invoke("start", containerName(sandbox)))
 	return err
 }
 
 // Stop halts a running container.
-func (o *OCI) Stop(ctx context.Context, id ID, sandbox string) error {
-	_, err := o.exec.Output(ctx, o.invoke("stop", string(id)))
+func (o *OCI) Stop(ctx context.Context, sandbox string) error {
+	_, err := o.exec.Output(ctx, o.invoke("stop", containerName(sandbox)))
 	if err != nil && !isNotFound(err) {
 		return err
 	}
@@ -138,17 +129,12 @@ func (o *OCI) Stop(ctx context.Context, id ID, sandbox string) error {
 // The two are separate calls on purpose: `rm --volumes` reclaims only the
 // anonymous volumes a container was given, never a named one, so the home
 // volume would otherwise outlive every sandbox that ever used it.
-//
-// The volume's name comes from the sandbox's, never from id. Once a sandbox
-// has been started, the id on record is the runtime's own hash, and a volume
-// name derived from that names nothing. The removal then succeeds against
-// something that does not exist, and the real volume is left behind.
-func (o *OCI) Remove(ctx context.Context, id ID, sandbox string, force bool) error {
+func (o *OCI) Remove(ctx context.Context, sandbox string, force bool) error {
 	args := []string{"rm", "--volumes"}
 	if force {
 		args = append(args, "--force")
 	}
-	if _, err := o.exec.Output(ctx, o.invoke(append(args, string(id))...)); err != nil && !isNotFound(err) {
+	if _, err := o.exec.Output(ctx, o.invoke(append(args, containerName(sandbox))...)); err != nil && !isNotFound(err) {
 		return err
 	}
 
@@ -171,8 +157,8 @@ func (o *OCI) Remove(ctx context.Context, id ID, sandbox string, force bool) err
 
 // Exec runs a command inside a running container, with the terminal wired
 // through so the user can interact with it.
-func (o *OCI) Exec(ctx context.Context, id ID, req api.ExecRequest, streams api.Streams) (api.ExecResult, error) {
-	code, err := o.exec.Session(ctx, o.execInvocation(id, req), streams, req.TTY)
+func (o *OCI) Exec(ctx context.Context, sandbox string, req api.ExecRequest, streams api.Streams) (api.ExecResult, error) {
+	code, err := o.exec.Session(ctx, o.execInvocation(sandbox, req), streams, req.TTY)
 	if err != nil {
 		return api.ExecResult{}, err
 	}
@@ -180,15 +166,15 @@ func (o *OCI) Exec(ctx context.Context, id ID, req api.ExecRequest, streams api.
 }
 
 // Copy moves files between the host and a container.
-func (o *OCI) Copy(ctx context.Context, id ID, src, dst api.Path) error {
-	_, err := o.exec.Output(ctx, o.copyInvocation(id, src, dst))
+func (o *OCI) Copy(ctx context.Context, sandbox string, src, dst api.Path) error {
+	_, err := o.exec.Output(ctx, o.copyInvocation(sandbox, src, dst))
 	return err
 }
 
 // Stats streams resource samples for a running container until it exits or ctx
 // is cancelled.
-func (o *OCI) Stats(ctx context.Context, id ID) (<-chan api.Stats, error) {
-	lines, err := o.exec.Stream(ctx, o.statsInvocation(id))
+func (o *OCI) Stats(ctx context.Context, sandbox string) (<-chan api.Stats, error) {
+	lines, err := o.exec.Stream(ctx, o.statsInvocation(sandbox))
 	if err != nil {
 		return nil, err
 	}
@@ -239,8 +225,8 @@ func (o *OCI) pullInvocation(image string) Invocation {
 }
 
 // statsInvocation renders the streaming `stats` command line.
-func (o *OCI) statsInvocation(id ID) Invocation {
-	return o.invoke("stats", "--format", statsFormat, string(id))
+func (o *OCI) statsInvocation(sandbox string) Invocation {
+	return o.invoke("stats", "--format", statsFormat, containerName(sandbox))
 }
 
 // parseStats reads one sample line, "12.34%\t1.5GiB / 8GiB".
@@ -290,8 +276,8 @@ func parseMemUsage(s string) (used, limit int64, ok bool) {
 // Inspect reports a container's observed state. A container the runtime has
 // never heard of is [api.StatusMissing] rather than an error: the record
 // outliving the container is a state plbx displays, not a failure.
-func (o *OCI) Inspect(ctx context.Context, id ID) (api.State, error) {
-	out, err := o.exec.Output(ctx, o.inspectInvocation(id))
+func (o *OCI) Inspect(ctx context.Context, sandbox string) (api.State, error) {
+	out, err := o.exec.Output(ctx, o.inspectInvocation(sandbox))
 	if isNotFound(err) {
 		return api.State{Status: api.StatusMissing}, nil
 	}
@@ -356,7 +342,7 @@ func (o *OCI) createInvocation(spec api.Spec) Invocation {
 }
 
 // execInvocation renders the `exec` command line for req.
-func (o *OCI) execInvocation(id ID, req api.ExecRequest) Invocation {
+func (o *OCI) execInvocation(sandbox string, req api.ExecRequest) Invocation {
 	args := []string{"exec"}
 	if req.Interactive {
 		args = append(args, "--interactive")
@@ -373,15 +359,15 @@ func (o *OCI) execInvocation(id ID, req api.ExecRequest) Invocation {
 	for _, k := range sortedKeys(req.Env) {
 		args = append(args, "--env", k+"="+req.Env[k])
 	}
-	args = append(args, string(id))
+	args = append(args, containerName(sandbox))
 	args = append(args, req.Cmd...)
 	return o.invoke(args...)
 }
 
 // copyInvocation renders the `cp` command line, rewriting sandbox-side paths to
 // the runtime's "<container>:<path>" form.
-func (o *OCI) copyInvocation(id ID, src, dst api.Path) Invocation {
-	return o.invoke("cp", copyEndpoint(id, src), copyEndpoint(id, dst))
+func (o *OCI) copyInvocation(sandbox string, src, dst api.Path) Invocation {
+	return o.invoke("cp", copyEndpoint(sandbox, src), copyEndpoint(sandbox, dst))
 }
 
 // inspectFormat asks for just the state fields plbx reads back, tab-separated
@@ -389,8 +375,8 @@ func (o *OCI) copyInvocation(id ID, src, dst api.Path) Invocation {
 const inspectFormat = "{{.State.Status}}\t{{.Id}}\t{{.State.StartedAt}}\t{{.State.ExitCode}}"
 
 // inspectInvocation renders the `inspect` command line.
-func (o *OCI) inspectInvocation(id ID) Invocation {
-	return o.invoke("inspect", "--type", "container", "--format", inspectFormat, string(id))
+func (o *OCI) inspectInvocation(sandbox string) Invocation {
+	return o.invoke("inspect", "--type", "container", "--format", inspectFormat, containerName(sandbox))
 }
 
 // parseInspect reads back what inspectFormat asked for. Anything it cannot make
@@ -438,9 +424,9 @@ func (o *OCI) invoke(args ...string) Invocation {
 }
 
 // copyEndpoint renders one side of a copy for the runtime's cp.
-func copyEndpoint(id ID, p api.Path) string {
+func copyEndpoint(sandbox string, p api.Path) string {
 	if p.InSandbox() {
-		return string(id) + ":" + p.Path
+		return containerName(sandbox) + ":" + p.Path
 	}
 	return p.Path
 }

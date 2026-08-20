@@ -90,7 +90,7 @@ func TestParseStatsRejectsWhatItCannotRead(t *testing.T) {
 }
 
 func TestStatsInvocationStreams(t *testing.T) {
-	inv := testOCI().statsInvocation("plbx-demo")
+	inv := testOCI().statsInvocation("demo")
 	if inv.Args[0] != "stats" {
 		t.Errorf("args[0] = %q, want stats", inv.Args[0])
 	}
@@ -169,7 +169,7 @@ func TestStatsStopsOnContextCancel(t *testing.T) {
 	}}
 	ctx, cancel := context.WithCancel(context.Background())
 
-	ch, err := testOCI(WithExecutor(e)).Stats(ctx, "plbx-demo")
+	ch, err := testOCI(WithExecutor(e)).Stats(ctx, "demo")
 	if err != nil {
 		t.Fatalf("Stats: %v", err)
 	}

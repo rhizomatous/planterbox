@@ -10,8 +10,8 @@ import (
 // Fake is an in-memory [Runner]. Store and service logic test against it with
 // no container runtime present.
 type Fake struct {
-	// States is the fake's whole world, keyed by container ID.
-	States map[ID]api.State
+	// States is the fake's whole world, keyed by sandbox name.
+	States map[string]api.State
 	// Err, when set, is returned by every method.
 	Err error
 	// Calls records method names in the order they were called.
@@ -27,7 +27,7 @@ var _ Runner = (*Fake)(nil)
 
 // NewFake returns an empty fake runner.
 func NewFake() *Fake {
-	return &Fake{States: map[ID]api.State{}, Published: map[string][]api.Port{}}
+	return &Fake{States: map[string]api.State{}, Published: map[string][]api.Port{}}
 }
 
 func (f *Fake) record(name string) error {
@@ -36,34 +36,33 @@ func (f *Fake) record(name string) error {
 }
 
 // Create registers a container in the created state.
-func (f *Fake) Create(_ context.Context, spec api.Spec) (ID, error) {
+func (f *Fake) Create(_ context.Context, spec api.Spec) error {
 	if err := f.record("Create"); err != nil {
-		return "", err
+		return err
 	}
-	id := ID(containerName(spec.Name))
-	f.States[id] = api.State{Status: api.StatusCreated, ContainerID: string(id)}
-	return id, nil
+	f.States[spec.Name] = api.State{Status: api.StatusCreated, ContainerID: containerName(spec.Name)}
+	return nil
 }
 
 // Start marks a container running.
-func (f *Fake) Start(_ context.Context, id ID, _ string) error {
-	return f.setStatus("Start", id, api.StatusRunning)
+func (f *Fake) Start(_ context.Context, sandbox string) error {
+	return f.setStatus("Start", sandbox, api.StatusRunning)
 }
 
 // Stop marks a container stopped.
-func (f *Fake) Stop(ctx context.Context, id ID, sandbox string) error {
-	if err := f.setStatus("Stop", id, api.StatusStopped); err != nil {
+func (f *Fake) Stop(ctx context.Context, sandbox string) error {
+	if err := f.setStatus("Stop", sandbox, api.StatusStopped); err != nil {
 		return err
 	}
 	return f.Unpublish(ctx, sandbox)
 }
 
 // Remove drops a container.
-func (f *Fake) Remove(_ context.Context, id ID, _ string, _ bool) error {
+func (f *Fake) Remove(_ context.Context, sandbox string, _ bool) error {
 	if err := f.record("Remove"); err != nil {
 		return err
 	}
-	delete(f.States, id)
+	delete(f.States, sandbox)
 	return nil
 }
 
@@ -93,23 +92,23 @@ func (f *Fake) Unpublish(_ context.Context, sandbox string) error {
 }
 
 // Exec reports a clean exit.
-func (f *Fake) Exec(_ context.Context, id ID, _ api.ExecRequest, _ api.Streams) (api.ExecResult, error) {
+func (f *Fake) Exec(_ context.Context, sandbox string, _ api.ExecRequest, _ api.Streams) (api.ExecResult, error) {
 	if err := f.record("Exec"); err != nil {
 		return api.ExecResult{}, err
 	}
-	if _, ok := f.States[id]; !ok {
-		return api.ExecResult{}, fmt.Errorf("no such container %q", id)
+	if _, ok := f.States[sandbox]; !ok {
+		return api.ExecResult{}, fmt.Errorf("no such container %q", sandbox)
 	}
 	return api.ExecResult{}, nil
 }
 
 // Copy succeeds for any known container.
-func (f *Fake) Copy(_ context.Context, id ID, _, _ api.Path) error {
+func (f *Fake) Copy(_ context.Context, sandbox string, _, _ api.Path) error {
 	if err := f.record("Copy"); err != nil {
 		return err
 	}
-	if _, ok := f.States[id]; !ok {
-		return fmt.Errorf("no such container %q", id)
+	if _, ok := f.States[sandbox]; !ok {
+		return fmt.Errorf("no such container %q", sandbox)
 	}
 	return nil
 }
@@ -125,7 +124,7 @@ func (f *Fake) PullImage(context.Context, string) (<-chan string, error) {
 }
 
 // Stats returns a closed channel; the fake streams nothing.
-func (f *Fake) Stats(context.Context, ID) (<-chan api.Stats, error) {
+func (f *Fake) Stats(context.Context, string) (<-chan api.Stats, error) {
 	if err := f.record("Stats"); err != nil {
 		return nil, err
 	}
@@ -135,31 +134,26 @@ func (f *Fake) Stats(context.Context, ID) (<-chan api.Stats, error) {
 }
 
 // Inspect reports a container's state, or StatusMissing when it has none.
-func (f *Fake) Inspect(_ context.Context, id ID) (api.State, error) {
+func (f *Fake) Inspect(_ context.Context, sandbox string) (api.State, error) {
 	if err := f.record("Inspect"); err != nil {
 		return api.State{}, err
 	}
-	st, ok := f.States[id]
+	st, ok := f.States[sandbox]
 	if !ok {
 		return api.State{Status: api.StatusMissing}, nil
 	}
 	return st, nil
 }
 
-func (f *Fake) setStatus(call string, id ID, status api.Status) error {
+func (f *Fake) setStatus(call, sandbox string, status api.Status) error {
 	if err := f.record(call); err != nil {
 		return err
 	}
-	st, ok := f.States[id]
+	st, ok := f.States[sandbox]
 	if !ok {
-		return fmt.Errorf("no such container %q", id)
+		return fmt.Errorf("no such container %q", sandbox)
 	}
 	st.Status = status
-	f.States[id] = st
+	f.States[sandbox] = st
 	return nil
-}
-
-// Handle returns the runtime identifier for a sandbox.
-func (f *Fake) Handle(sandbox string) ID {
-	return ID(containerName(sandbox))
 }

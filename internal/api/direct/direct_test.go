@@ -60,7 +60,7 @@ func TestCreateStampsAndPersists(t *testing.T) {
 	if sb.State.Status != api.StatusCreated {
 		t.Errorf("status = %q, want created", sb.State.Status)
 	}
-	if _, ok := rn.States["plbx-demo"]; !ok {
+	if _, ok := rn.States["demo"]; !ok {
 		t.Error("Create should have built the container through the runner")
 	}
 
@@ -102,7 +102,7 @@ func TestListReportsLiveStatusNotStoredStatus(t *testing.T) {
 	}
 
 	// something outside plbx started the container.
-	rn.States["plbx-demo"] = api.State{Status: api.StatusRunning, ContainerID: "plbx-demo"}
+	rn.States["demo"] = api.State{Status: api.StatusRunning, ContainerID: "plbx-demo"}
 
 	all, err := svc.List(ctx)
 	if err != nil {
@@ -137,7 +137,7 @@ func TestListReportsMissingContainer(t *testing.T) {
 	if _, err := svc.Create(ctx, spec("demo")); err != nil {
 		t.Fatalf("Create: %v", err)
 	}
-	delete(rn.States, "plbx-demo")
+	delete(rn.States, "demo")
 
 	all, err := svc.List(ctx)
 	if err != nil {
@@ -200,7 +200,7 @@ func TestCopyRoutesToTheSandboxNamedInThePath(t *testing.T) {
 	}
 	// drop beta's container so the two sandboxes are distinguishable: a copy
 	// that reaches beta fails, one that reaches alpha succeeds.
-	delete(rn.States, "plbx-beta")
+	delete(rn.States, "beta")
 	host := api.Path{Path: "/tmp/a"}
 
 	if err := svc.Copy(ctx, api.Path{Sandbox: "alpha", Path: "/home/agent/a"}, host); err != nil {
@@ -308,7 +308,7 @@ func TestRemoveDropsRecordAndContainerTogether(t *testing.T) {
 		t.Fatalf("Remove: %v", err)
 	}
 
-	if _, ok := rn.States["plbx-demo"]; ok {
+	if _, ok := rn.States["demo"]; ok {
 		t.Error("Remove left the container behind")
 	}
 	all, err := svc.List(ctx)

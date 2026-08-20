@@ -146,7 +146,7 @@ func TestCreateInvocationEnvIsSorted(t *testing.T) {
 }
 
 func TestExecInvocation(t *testing.T) {
-	inv := testOCI().execInvocation("plbx-demo", api.ExecRequest{
+	inv := testOCI().execInvocation("demo", api.ExecRequest{
 		Cmd:         []string{"bash", "-lc", "echo hi"},
 		Workdir:     "/home/viv/project",
 		User:        "agent",
@@ -169,7 +169,7 @@ func TestExecInvocation(t *testing.T) {
 }
 
 func TestExecInvocationOmitsUnrequestedTTY(t *testing.T) {
-	inv := testOCI().execInvocation("plbx-demo", api.ExecRequest{Cmd: []string{"ls"}})
+	inv := testOCI().execInvocation("demo", api.ExecRequest{Cmd: []string{"ls"}})
 	for _, a := range inv.Args {
 		if a == "--tty" || a == "--interactive" {
 			t.Errorf("%s should not be set for a non-interactive exec", a)
@@ -180,12 +180,12 @@ func TestExecInvocationOmitsUnrequestedTTY(t *testing.T) {
 func TestCopyInvocationRewritesSandboxSide(t *testing.T) {
 	o := testOCI()
 
-	in := o.copyInvocation("plbx-demo", api.Path{Path: "/tmp/a"}, api.Path{Sandbox: "demo", Path: "/home/agent/a"})
+	in := o.copyInvocation("demo", api.Path{Path: "/tmp/a"}, api.Path{Sandbox: "demo", Path: "/home/agent/a"})
 	if got := in.Args[1:]; got[0] != "/tmp/a" || got[1] != "plbx-demo:/home/agent/a" {
 		t.Errorf("host→sandbox = %v, want the sandbox side prefixed with the container", got)
 	}
 
-	out := o.copyInvocation("plbx-demo", api.Path{Sandbox: "demo", Path: "/home/agent/a"}, api.Path{Path: "/tmp/a"})
+	out := o.copyInvocation("demo", api.Path{Sandbox: "demo", Path: "/home/agent/a"}, api.Path{Path: "/tmp/a"})
 	if got := out.Args[1:]; got[0] != "plbx-demo:/home/agent/a" || got[1] != "/tmp/a" {
 		t.Errorf("sandbox→host = %v, want the sandbox side prefixed with the container", got)
 	}
@@ -225,12 +225,8 @@ func TestDryRunRendersWithoutExecuting(t *testing.T) {
 	var out strings.Builder
 	o := testOCI(WithDryRun(&out))
 
-	id, err := o.Create(context.Background(), api.Spec{Name: "demo", Image: "base:1"})
-	if err != nil {
+	if err := o.Create(context.Background(), api.Spec{Name: "demo", Image: "base:1"}); err != nil {
 		t.Fatalf("Create: %v", err)
-	}
-	if id != "plbx-demo" {
-		t.Errorf("id = %q, want plbx-demo", id)
 	}
 	// the network comes first: a create naming one that does not exist fails.
 	lines := strings.Split(strings.TrimSpace(out.String()), "\n")
@@ -250,13 +246,13 @@ func TestDryRunCoversEveryMutation(t *testing.T) {
 	o := testOCI(WithDryRun(&out))
 	ctx := context.Background()
 
-	if err := o.Start(ctx, "plbx-demo", "demo"); err != nil {
+	if err := o.Start(ctx, "demo"); err != nil {
 		t.Fatalf("Start: %v", err)
 	}
-	if err := o.Stop(ctx, "plbx-demo", "demo"); err != nil {
+	if err := o.Stop(ctx, "demo"); err != nil {
 		t.Fatalf("Stop: %v", err)
 	}
-	if err := o.Remove(ctx, "plbx-demo", "demo", true); err != nil {
+	if err := o.Remove(ctx, "demo", true); err != nil {
 		t.Fatalf("Remove: %v", err)
 	}
 
@@ -289,7 +285,7 @@ func TestRemoveDeletesTheHomeVolumeSeparately(t *testing.T) {
 	// `rm --volumes` reclaims only anonymous volumes. The home volume is named,
 	// so without its own call it outlives every sandbox that ever used it.
 	e := &scriptedExecutor{}
-	if err := testOCI(WithExecutor(e)).Remove(context.Background(), "plbx-demo", "demo", false); err != nil {
+	if err := testOCI(WithExecutor(e)).Remove(context.Background(), "demo", false); err != nil {
 		t.Fatalf("Remove: %v", err)
 	}
 	if got := strings.Join(e.ran[1].Args, " "); got != "volume rm plbx-demo-home" {
@@ -297,32 +293,16 @@ func TestRemoveDeletesTheHomeVolumeSeparately(t *testing.T) {
 	}
 }
 
-func TestRemoveNamesTheVolumeAfterTheSandboxNotTheContainer(t *testing.T) {
-	// once a sandbox has been started, the id on record is the runtime's own
-	// hash rather than the container's name. A volume name derived from that
-	// names nothing at all: the removal then succeeds against a volume that
-	// does not exist, and the real one is left behind holding the disk.
-	const hash = "5a758d7ed81935e052128081013eef5e14f9f80a5b91bedc3884bf8763602eee"
-
-	e := &scriptedExecutor{}
-	if err := testOCI(WithExecutor(e)).Remove(context.Background(), hash, "demo", false); err != nil {
-		t.Fatalf("Remove: %v", err)
-	}
-	if got := strings.Join(e.ran[1].Args, " "); got != "volume rm plbx-demo-home" {
-		t.Errorf("second invocation = %q, want the volume named after the sandbox", got)
-	}
-}
-
 func TestRemoveTolerantOfAnAlreadyGoneContainer(t *testing.T) {
 	e := &scriptedExecutor{err: errors.New("Error: No such container: plbx-demo")}
-	if err := testOCI(WithExecutor(e)).Remove(context.Background(), "plbx-demo", "demo", false); err != nil {
+	if err := testOCI(WithExecutor(e)).Remove(context.Background(), "demo", false); err != nil {
 		t.Errorf("removing an already-gone sandbox should succeed: %v", err)
 	}
 }
 
 func TestRemoveReportsRealFailures(t *testing.T) {
 	e := &scriptedExecutor{err: errors.New("permission denied")}
-	if err := testOCI(WithExecutor(e)).Remove(context.Background(), "plbx-demo", "demo", false); err == nil {
+	if err := testOCI(WithExecutor(e)).Remove(context.Background(), "demo", false); err == nil {
 		t.Error("a genuine removal failure must not be swallowed")
 	}
 }
@@ -400,7 +380,7 @@ func TestParseInspectSurvivesGarbage(t *testing.T) {
 
 func TestInspectUsesAnUnambiguousFormat(t *testing.T) {
 	// tab-separated, so a value containing a space cannot shift the others.
-	inv := testOCI().inspectInvocation("plbx-demo")
+	inv := testOCI().inspectInvocation("demo")
 	format, ok := argsAfter(inv.Args, "--format")
 	if !ok {
 		t.Fatal("inspect should ask for a format")
@@ -415,13 +395,13 @@ func TestUnavailableFailsEveryOperation(t *testing.T) {
 	r := Unavailable(sentinel)
 	ctx := context.Background()
 
-	if _, err := r.Create(ctx, api.Spec{Name: "demo"}); !errors.Is(err, sentinel) {
+	if err := r.Create(ctx, api.Spec{Name: "demo"}); !errors.Is(err, sentinel) {
 		t.Errorf("Create err = %v, want the detection error", err)
 	}
-	if err := r.Start(ctx, "plbx-demo", "demo"); !errors.Is(err, sentinel) {
+	if err := r.Start(ctx, "demo"); !errors.Is(err, sentinel) {
 		t.Errorf("Start err = %v, want the detection error", err)
 	}
-	if _, err := r.Inspect(ctx, "plbx-demo"); !errors.Is(err, sentinel) {
+	if _, err := r.Inspect(ctx, "demo"); !errors.Is(err, sentinel) {
 		t.Errorf("Inspect err = %v, want the detection error", err)
 	}
 }
@@ -517,7 +497,7 @@ func TestRelayIsGivenOneAddressAndNoMore(t *testing.T) {
 func TestRemoveDropsTheNetworkToo(t *testing.T) {
 	// a network per sandbox leaks one per sandbox otherwise.
 	e := &scriptedExecutor{}
-	if err := testEgressOCI(WithExecutor(e)).Remove(context.Background(), "plbx-demo", "demo", false); err != nil {
+	if err := testEgressOCI(WithExecutor(e)).Remove(context.Background(), "demo", false); err != nil {
 		t.Fatalf("Remove: %v", err)
 	}
 	var sawNetworkRm bool
@@ -535,7 +515,7 @@ func TestRemoveDropsTheRelayBeforeTheNetwork(t *testing.T) {
 	// a runtime refuses to remove a network anything is still attached to, and
 	// the sandbox's relay is attached to it.
 	e := &scriptedExecutor{}
-	if err := testEgressOCI(WithExecutor(e)).Remove(context.Background(), "plbx-demo", "demo", false); err != nil {
+	if err := testEgressOCI(WithExecutor(e)).Remove(context.Background(), "demo", false); err != nil {
 		t.Fatalf("Remove: %v", err)
 	}
 
@@ -556,51 +536,6 @@ func TestRemoveDropsTheRelayBeforeTheNetwork(t *testing.T) {
 	}
 	if relay > network {
 		t.Error("the relay must go before the network, or the removal fails")
-	}
-}
-
-// A sandbox's network is named after the sandbox, but its container id is a
-// name only until the first start and a hash forever after. Deriving one from
-// the other attaches the relay to a network that does not exist, and every
-// start after the first fails.
-func TestStartAttachesTheRelayBySandboxName(t *testing.T) {
-	for _, tc := range []struct{ name, id string }{
-		{name: "before the first start, when the id is the container's name", id: "plbx-demo"},
-		{name: "after it, when the runtime has replaced that with a hash", id: "9f8c1b2a3d4e5f60718293a4b5c6d7e8f9012345678990abcdef0123456789ab"},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			exec := &scriptedExecutor{out: []byte("true\n")}
-			o := testOCI(WithExecutor(exec), WithEgress("host.docker.internal:47821", ""))
-
-			if err := o.Start(context.Background(), ID(tc.id), "demo"); err != nil {
-				t.Fatalf("Start: %v", err)
-			}
-
-			var connect string
-			for _, inv := range exec.ran {
-				if len(inv.Args) >= 2 && inv.Args[0] == "network" && inv.Args[1] == "connect" {
-					connect = strings.Join(inv.Args, " ")
-				}
-			}
-			if !strings.Contains(connect, " "+sandboxNetwork("demo")+" ") {
-				t.Errorf("relay attached via %q, want the sandbox's own network %s",
-					connect, sandboxNetwork("demo"))
-			}
-		})
-	}
-}
-
-// The container itself is still addressed by whatever handle it was given.
-func TestStartAddressesTheContainerByItsRuntimeHandle(t *testing.T) {
-	exec := &scriptedExecutor{out: []byte("true\n")}
-	o := testOCI(WithExecutor(exec))
-
-	if err := o.Start(context.Background(), ID("deadbeef"), "demo"); err != nil {
-		t.Fatalf("Start: %v", err)
-	}
-	last := exec.ran[len(exec.ran)-1]
-	if last.Args[0] != "start" || last.Args[len(last.Args)-1] != "deadbeef" {
-		t.Errorf("ran %v, want start against the container handle", last.Args)
 	}
 }
 
@@ -685,7 +620,7 @@ func TestEachSandboxGetsItsOwnRelay(t *testing.T) {
 	ctx := context.Background()
 
 	for _, name := range []string{"alpha", "beta"} {
-		if err := o.Start(ctx, ID("plbx-"+name), name); err != nil {
+		if err := o.Start(ctx, name); err != nil {
 			t.Fatalf("Start %s: %v", name, err)
 		}
 	}
@@ -697,7 +632,7 @@ func TestEachSandboxGetsItsOwnRelay(t *testing.T) {
 
 	// stopping one must not reach for the other's
 	e.ran = nil
-	if err := o.Stop(ctx, "plbx-alpha", "alpha"); err != nil {
+	if err := o.Stop(ctx, "alpha"); err != nil {
 		t.Fatalf("Stop: %v", err)
 	}
 	joined := strings.Join(flatten(e.ran), "\n")
@@ -715,4 +650,38 @@ func flatten(invs []Invocation) []string {
 		out = append(out, strings.Join(inv.Args, " "))
 	}
 	return out
+}
+
+// Everything a sandbox owns is named after it: the container, its home volume,
+// its network, its relay. One name identifies all of them, so no two can be
+// derived from each other and disagree.
+func TestEverythingIsNamedAfterTheSandbox(t *testing.T) {
+	e := &scriptedExecutor{out: []byte("true\n")}
+	o := testEgressOCI(WithExecutor(e))
+	ctx := context.Background()
+
+	if err := o.Create(ctx, api.Spec{Name: "demo", Image: "base:1"}); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	if err := o.Start(ctx, "demo"); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	if err := o.Remove(ctx, "demo", true); err != nil {
+		t.Fatalf("Remove: %v", err)
+	}
+
+	ran := strings.Join(flatten(e.ran), "\n")
+	for _, want := range []string{
+		"network create --internal --label plbx.sandbox=demo plbx-demo-net",
+		"start plbx-demo",
+		"network connect plbx-demo-net plbx-demo-relay",
+		"rm --volumes --force plbx-demo",
+		"volume rm plbx-demo-home",
+		"rm --force plbx-demo-relay",
+		"network rm plbx-demo-net",
+	} {
+		if !strings.Contains(ran, want) {
+			t.Errorf("never ran %q:\n%s", want, ran)
+		}
+	}
 }
