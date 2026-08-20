@@ -6,19 +6,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-08-20
+
 ### Changed
 
+- Each sandbox gets its own egress relay rather than sharing one with every other sandbox. A shared relay had to be attached to every sandbox's network, which put its lifetime outside any one of them: rebuilding it cut off every other running sandbox, a relay pointed at a moved daemon was never replaced, and nothing removed it when the last sandbox went. Nothing about network policy changes; the relay decides nothing and all egress still meets at the one proxy. **Upgrading leaves the old shared relay behind: remove it with `docker rm --force plbx-relay`.**
+- `--state-dir` and `PLBX_STATE_DIR` name a directory plbx keeps everything under, rather than the records directory alone. **If you pass either, move your existing records into a `sandboxes/` subdirectory of it.** The default layout is unchanged. Previously the policy and the ssh host key landed in that directory's *parent*, so `--state-dir ~/mine` wrote into your home directory, and two daemons under one parent silently shared a policy and an ssh identity.
+- `PLBX_SOCKET`, `PLBX_RUNTIME_DIR` and `PLBX_STATE_DIR` must be absolute paths. A relative one resolved against the working directory, so a daemon and a client started from different places looked for each other in different sockets.
 - `plbx policy preset --help` lists what each preset allows, instead of just naming the three.
 - `plbx policy ls`, `plbx policy rm`, `plbx daemon start` and `plbx daemon status` now have real help text. They previously fell back to their one-line summary.
 - Shorter, plainer help throughout, and `-f/--force` on `plbx rm` now says it skips the confirmation as well as the running check.
 
+### Removed
+
+- `PLBX_SSH_SOCKET`. The client honoured it and the daemon could not, so setting it pointed `plbx ssh` at a socket nothing was listening on. The pidfile and the daemon log now sit beside the socket too, wherever `PLBX_SOCKET` puts it.
+
+### Security
+
+- `plbx policy deny` on an IPv6 address reported success and let the traffic through. A rule and the request it covered were read by different parsers, and only one understood an IPv6 literal, so no spelling of one matched anything. An allow failing to match merely puzzles; a deny failing to match is a control that does nothing.
+
 ### Fixed
 
-- `--state-dir` and `PLBX_STATE_DIR` now name a directory plbx keeps everything under, rather than the records directory alone. The policy and the ssh host key used to land in that directory's *parent*, so `--state-dir ~/mine` wrote into your home directory, and two daemons under one parent silently shared a policy and an ssh identity. The default layout is unchanged; records under an explicit `--state-dir` move into a `sandboxes/` subdirectory of it.
-- `PLBX_SSH_SOCKET` is gone. The client honoured it and the daemon could not, so setting it pointed `plbx ssh` at a socket nothing was listening on. The pidfile and the daemon log now sit beside the socket too, wherever `PLBX_SOCKET` puts it.
-- The egress relay is told how to reach the host on Linux. `host.docker.internal` is a Docker Desktop convenience that Docker Engine does not publish, so on a stock Linux install the relay could not reach the proxy and sandboxes had no egress at all.
-- Network policy rules naming an IPv6 address matched nothing, so `plbx policy deny` on one reported success and let the traffic through.
-- Creating a clone-mode sandbox whose git remote could not be written reported `sandbox not found` afterwards, having created the sandbox.
+- Sandboxes had no egress at all on stock Docker Engine for Linux. The relay reaches the proxy at `host.docker.internal`, which is a Docker Desktop convenience that Engine does not publish, and it was never given the mapping it needs.
+- Creating a clone-mode sandbox whose git remote could not be written reported `sandbox not found` afterwards, having created the sandbox. Only over the daemon, which is the default.
+- Creating the first sandbox from the dashboard skipped the network policy question, so it ran under a posture nobody chose. Creating a sandbox now settles the policy whichever way it was made.
+- Attaching from the dashboard to a sandbox whose ports could not be bound dropped you out of the dashboard, where `plbx run` warned and carried on. Both tolerate it now.
+- `plbx policy allow example.com:notaport` was accepted, stored, and matched nothing. Validation reads a pattern the same way matching does, so a rule it accepts is one the engine can act on.
 - Text trimmed to fit is measured in terminal cells rather than characters, and cut between characters rather than through them. A workspace path in Japanese or Chinese was twice as wide as it was counted, so it overran its column in `plbx ls` and wrapped the dashboard; an accented letter written as a combining mark could lose its accent, and an emoji could be cut in half.
 
 ## [0.9.0] - 2026-08-18
@@ -200,7 +213,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `jardiniere.toml` config file, supporting a custom `startup` command, `image` override, and network policy.
 - Kong-based CLI with `--version` and `--dry-run` flags.
 
-[Unreleased]: https://github.com/rhizomatous/planterbox/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/rhizomatous/planterbox/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/rhizomatous/planterbox/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/rhizomatous/planterbox/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/rhizomatous/planterbox/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/rhizomatous/planterbox/compare/v0.6.2...v0.7.0
