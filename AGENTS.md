@@ -71,7 +71,7 @@ Unit tests are **pure**, with no container runtime required. They cover arg-buil
 
 There are two fakes, at opposite ends of the stack. `runner.Fake` replaces only the container runtime, so `direct` and `store` run for real against a temp dir. `api.NewFake` replaces the whole sandbox layer, for driving the CLI; it's required, not merely convenient, because `depguard` forbids `cmd/plbx` from importing `internal/store`.
 
-To verify real container behavior, use `plbx --dry-run` (which needs no runtime) or a live run against docker/OrbStack.
+To verify real container behavior, use `plbx --dry-run` (which needs no runtime), or `make e2e-test`, which stands an isolated daemon up against docker/OrbStack and checks egress end to end. That is the half the pure tests structurally cannot reach: whether the relay resolves the host, and whether one sandbox's lifecycle leaves another's alone. Run it on Linux as well as macOS, since the two resolve the host differently.
 
 ## Committing, versioning, releasing
 

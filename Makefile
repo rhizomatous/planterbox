@@ -1,4 +1,4 @@
-.PHONY: fmt fmt-check lint test build proto check release-check
+.PHONY: fmt fmt-check lint test build proto check e2e-test release-check
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 
@@ -26,6 +26,9 @@ proto:     ## regenerate the daemon's wire contract from plbx.proto
 	  --go_out=internal/api/rpc/plbxv1 --go_opt=paths=source_relative \
 	  --go-grpc_out=internal/api/rpc/plbxv1 --go-grpc_opt=paths=source_relative \
 	  internal/api/rpc/plbxv1/plbx.proto
+
+e2e-test:  ## end to end against a real runtime (needs docker/OrbStack)
+	./scripts/e2e.sh
 
 check: fmt-check lint test ## run every check
 
