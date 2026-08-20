@@ -152,7 +152,6 @@ func TestRunReattachesByThePrimaryWorkspaceNotALaterOne(t *testing.T) {
 	}
 
 	// running from the primary reattaches.
-	fake.Calls = nil
 	if _, err := runCLI(t, fake, "run", first); err != nil {
 		t.Fatalf("run from primary: %v", err)
 	}
@@ -213,7 +212,6 @@ func TestRunReattachesByName(t *testing.T) {
 	}
 
 	// from an unrelated directory, --name is what finds it.
-	fake.Calls = nil
 	if _, err := runCLI(t, fake, "run", "--name", "named"); err != nil {
 		t.Fatalf("run --name: %v", err)
 	}
@@ -266,17 +264,19 @@ func TestSandboxName(t *testing.T) {
 		in   string
 		want string
 	}{
-		{"/home/viv/myrepo", "myrepo"},
-		{"/home/viv/my repo", "my-repo"},
-		{"/home/viv/my.repo", "my.repo"},
-		{"/home/viv/.dotfiles", "dotfiles"},
-		{"/home/viv/repo!!", "repo-"},
-		{"/", "sandbox"},
+		{in: "/home/viv/myrepo", want: "myrepo"},
+		{in: "/home/viv/my repo", want: "my-repo"},
+		{in: "/home/viv/my.repo", want: "my.repo"},
+		{in: "/home/viv/.dotfiles", want: "dotfiles"},
+		{in: "/home/viv/repo!!", want: "repo-"},
+		{in: "/", want: "sandbox"},
 	}
 	for _, tc := range cases {
-		if got := api.SandboxName(tc.in); got != tc.want {
-			t.Errorf("api.SandboxName(%q) = %q, want %q", tc.in, got, tc.want)
-		}
+		t.Run(tc.in, func(t *testing.T) {
+			if got := api.SandboxName(tc.in); got != tc.want {
+				t.Errorf("api.SandboxName(%q) = %q, want %q", tc.in, got, tc.want)
+			}
+		})
 	}
 }
 

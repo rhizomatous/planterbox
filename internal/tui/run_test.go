@@ -10,8 +10,8 @@ import (
 	"github.com/rhizomatous/planterbox/internal/api"
 )
 
-// TestRunStartsAndStopsWithTheContext drives the whole program loop — Init,
-// Update, View — the way bubbletea does, rather than calling the model's
+// TestRunStartsAndStopsWithTheContext drives the whole program loop (Init,
+// Update, View) the way bubbletea does, rather than calling the model's
 // methods directly. It is what catches a panic in Init or View that the model
 // tests, which never construct a tea.View, would miss.
 //

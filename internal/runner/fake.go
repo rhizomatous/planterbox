@@ -18,8 +18,8 @@ type Fake struct {
 	Calls []string
 	// Published is what each sandbox currently has on the host.
 	Published map[string][]api.Port
-	// PublishErr, when set, fails only Publish — which is the case worth
-	// telling apart, since a sandbox whose ports were refused has still started.
+	// PublishErr, when set, fails only Publish, which is the case worth telling
+	// apart: a sandbox whose ports were refused has still started.
 	PublishErr error
 }
 

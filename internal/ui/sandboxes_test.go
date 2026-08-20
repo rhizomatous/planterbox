@@ -189,19 +189,21 @@ func TestAge(t *testing.T) {
 		in   time.Duration
 		want string
 	}{
-		{0, "just now"},
-		{30 * time.Second, "just now"},
-		{time.Minute, "1 minute ago"},
-		{5 * time.Minute, "5 minutes ago"},
-		{time.Hour, "1 hour ago"},
-		{3 * time.Hour, "3 hours ago"},
-		{24 * time.Hour, "1 day ago"},
-		{50 * time.Hour, "2 days ago"},
+		{in: 0, want: "just now"},
+		{in: 30 * time.Second, want: "just now"},
+		{in: time.Minute, want: "1 minute ago"},
+		{in: 5 * time.Minute, want: "5 minutes ago"},
+		{in: time.Hour, want: "1 hour ago"},
+		{in: 3 * time.Hour, want: "3 hours ago"},
+		{in: 24 * time.Hour, want: "1 day ago"},
+		{in: 50 * time.Hour, want: "2 days ago"},
 	}
 	for _, tc := range cases {
-		if got := Age(now.Add(-tc.in), now); got != tc.want {
-			t.Errorf("Age(-%v) = %q, want %q", tc.in, got, tc.want)
-		}
+		t.Run(tc.in.String(), func(t *testing.T) {
+			if got := Age(now.Add(-tc.in), now); got != tc.want {
+				t.Errorf("Age(-%v) = %q, want %q", tc.in, got, tc.want)
+			}
+		})
 	}
 }
 

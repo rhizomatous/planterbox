@@ -15,11 +15,11 @@ import (
 // Which sandbox a connection is for arrives ahead of the ssh bytes.
 //
 // It has to come from somewhere, and ssh itself offers nowhere to put it. The
-// protocol never sends the hostname the client typed — it is used for the
-// known-hosts lookup and then dropped — and the username cannot carry it
-// either, because a single `Host *.plbx` block has no token to interpolate one
-// from. So `plbx ssh-proxy` writes the name and a newline before it starts
-// relaying, and this reads exactly that much before the handshake begins.
+// protocol never sends the hostname the client typed, which it uses for the
+// known-hosts lookup and then drops, and the username cannot carry it either,
+// because a single `Host *.plbx` block has no token to interpolate one from.
+// So `plbx ssh-proxy` writes the name and a newline before it starts relaying,
+// and this reads exactly that much before the handshake begins.
 const (
 	// routeDeadline caps how long a connection may sit having said nothing. A
 	// client that never writes a header would otherwise hold a goroutine open.

@@ -22,8 +22,8 @@ type Group struct {
 }
 
 // Collapse folds entries that agree on target, sandbox and verdict, keeping
-// the reason from the most recent of them — a decision that changed because
-// the policy changed should report what the policy says now.
+// the reason from the most recent of them: a decision that changed because the
+// policy changed should report what the policy says now.
 //
 // The result is ordered by when each group was last seen, oldest first, so it
 // reads the way the log it came from does.

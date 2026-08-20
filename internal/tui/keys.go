@@ -230,8 +230,8 @@ func (m *Model) ruleForSelected(allow bool) tea.Cmd {
 		if err != nil {
 			return ruleMsg{pattern: pattern, allow: allow, err: err}
 		}
-		// replace any rule already holding this host, so allowing something
-		// previously denied is not undone by the deny that is still there.
+		// replace any rule already holding this host, or an allow lands beside
+		// the deny it was meant to overturn and the deny still wins.
 		policy.Rules = slices.DeleteFunc(policy.Rules, func(r proxy.Rule) bool {
 			return r.Pattern == pattern
 		})

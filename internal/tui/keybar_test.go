@@ -7,9 +7,9 @@ import (
 	"github.com/rhizomatous/planterbox/internal/api"
 )
 
-// TestSandboxKeysFollowTheCursor guards a reminder line that used to promise
-// the same things whatever was highlighted — `s start/stop` against a sandbox
-// that could only be one of them, and attach, shell and remove on a fresh
+// TestSandboxKeysFollowTheCursor holds the reminder line to what the
+// highlighted sandbox can actually do: not `s start/stop` against a sandbox
+// that can only be one of them, and not attach, shell and remove on a fresh
 // install with nothing to apply them to.
 func TestSandboxKeysFollowTheCursor(t *testing.T) {
 	m := loaded(t, api.NewFake(), sandbox("up", api.StatusRunning), sandbox("down", api.StatusStopped))

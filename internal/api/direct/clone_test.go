@@ -17,7 +17,7 @@ func gitRepo(t *testing.T) string {
 	for _, args := range [][]string{{"init", "-q", "-b", "main"}, {"config", "user.email", "a@b"}} {
 		cmd := exec.Command("git", append([]string{"-C", dir}, args...)...)
 		if out, err := cmd.CombinedOutput(); err != nil {
-			t.Skipf("git unavailable: %v: %s", err, out)
+			t.Fatalf("git %v: %v: %s", args, err, out)
 		}
 	}
 	return dir

@@ -13,10 +13,10 @@ import (
 
 // A sandbox cannot publish its own ports.
 //
-// It is alone on an internal network, which is what leaves it with no route
-// out — and, in the other direction, unreachable from the host. A runtime does
-// not report that as a conflict: `--publish` on a container attached to an
-// internal network exits zero, starts the container, and creates no mapping.
+// It is alone on an internal network, which leaves it with no route out and,
+// in the other direction, unreachable from the host. A runtime does not report
+// that as a conflict: `--publish` on a container attached to an internal
+// network exits zero, starts the container, and creates no mapping.
 // Measured against OrbStack, the port simply does not appear.
 //
 // So ingress takes the shape egress already has. A forwarder container sits on
@@ -27,9 +27,9 @@ const (
 	//
 	// Separate from the relay's own: the two carry traffic in opposite
 	// directions and nothing belongs on both. Any non-internal network grants
-	// its members a route out, which a forwarder has no use for — it dials
-	// only the addresses on its command line, and holds no policy that could
-	// be talked out of it.
+	// its members a route out, which a forwarder has no use for: it dials only
+	// the addresses on its command line, and holds no policy that could be
+	// talked out of it.
 	portsNet = "plbx-ports"
 )
 
@@ -74,9 +74,9 @@ func (o *OCI) PortsInvocation(sandbox string, ports []api.Port) Invocation {
 // was published for it before.
 //
 // The forwarder is replaced rather than adjusted. Its mappings are fixed when
-// it starts, which is the same constraint that stops a sandbox publishing for
-// itself — but a forwarder holds nothing, so replacing one costs only the
-// connections it was carrying.
+// it starts, the same constraint that stops a sandbox publishing for itself.
+// A forwarder holds nothing, so replacing one costs only the connections it
+// was carrying.
 func (o *OCI) Publish(ctx context.Context, sandbox string, ports []api.Port) error {
 	for _, p := range ports {
 		if strings.EqualFold(p.Proto, "udp") {

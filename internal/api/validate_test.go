@@ -83,9 +83,9 @@ func TestValidateRejectsBadWorkspaces(t *testing.T) {
 		name string
 		in   []Workspace
 	}{
-		{"empty path", []Workspace{{Host: ""}}},
-		{"relative path", []Workspace{{Host: "relative/dir"}}},
-		{"duplicate", []Workspace{{Host: "/a"}, {Host: "/a"}}},
+		{name: "empty path", in: []Workspace{{Host: ""}}},
+		{name: "relative path", in: []Workspace{{Host: "relative/dir"}}},
+		{name: "duplicate", in: []Workspace{{Host: "/a"}, {Host: "/a"}}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -114,11 +114,11 @@ func TestValidateRejectsBadPorts(t *testing.T) {
 		name string
 		in   Port
 	}{
-		{"zero host", Port{Host: 0, Sandbox: 80}},
-		{"zero sandbox", Port{Host: 80, Sandbox: 0}},
-		{"negative", Port{Host: -1, Sandbox: 80}},
-		{"above range", Port{Host: 70000, Sandbox: 80}},
-		{"bad proto", Port{Host: 80, Sandbox: 80, Proto: "sctp"}},
+		{name: "zero host", in: Port{Host: 0, Sandbox: 80}},
+		{name: "zero sandbox", in: Port{Host: 80, Sandbox: 0}},
+		{name: "negative", in: Port{Host: -1, Sandbox: 80}},
+		{name: "above range", in: Port{Host: 70000, Sandbox: 80}},
+		{name: "bad proto", in: Port{Host: 80, Sandbox: 80, Proto: "sctp"}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

@@ -19,8 +19,8 @@ import (
 const defaultPreset = proxy.PresetBalanced
 
 // ensurePolicy asks which posture to start from, once, before the first
-// sandbox exists — which is the moment the answer starts mattering, and the
-// only moment the user is plainly thinking about giving an agent a network.
+// sandbox exists. That is the moment the answer starts mattering, and the only
+// moment the user is plainly thinking about giving an agent a network.
 //
 // Asking anywhere else gets it wrong in both directions: a question in front
 // of `plbx policy ls` answers something nobody asked, and a sandbox created

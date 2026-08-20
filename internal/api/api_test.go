@@ -181,13 +181,13 @@ func TestPortAddress(t *testing.T) {
 		port Port
 		want string
 	}{
-		{"the ordinary case", Port{Host: 8080, Sandbox: 80}, "8080:80"},
+		{name: "the ordinary case", port: Port{Host: 8080, Sandbox: 80}, want: "8080:80"},
 		// anything unauthenticated has to stay on this machine. Without the
 		// bind address a runtime publishes on every interface, which offers it
 		// to the whole network the host is on.
-		{"bound to loopback", Port{Host: 9418, Sandbox: 9418, Bind: "127.0.0.1"}, "127.0.0.1:9418:9418"},
-		{"a protocol that is not the default", Port{Host: 53, Sandbox: 53, Proto: "udp"}, "53:53/udp"},
-		{"tcp is left implicit", Port{Host: 80, Sandbox: 80, Proto: "tcp"}, "80:80"},
+		{name: "bound to loopback", port: Port{Host: 9418, Sandbox: 9418, Bind: "127.0.0.1"}, want: "127.0.0.1:9418:9418"},
+		{name: "a protocol that is not the default", port: Port{Host: 53, Sandbox: 53, Proto: "udp"}, want: "53:53/udp"},
+		{name: "tcp is left implicit", port: Port{Host: 80, Sandbox: 80, Proto: "tcp"}, want: "80:80"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			if got := tc.port.Address(); got != tc.want {

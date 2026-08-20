@@ -1,9 +1,9 @@
 // Command plbx-relay carries traffic across a sandbox's network boundary.
 //
 // It exists because of what an internal network does. A sandbox is alone on
-// one, which is what leaves it with no route out — and also with no route in,
-// and no way to reach the host. Anything that has to cross that line runs here,
-// in a container attached to both sides.
+// one, which leaves it with no route out, no route in, and no way to reach the
+// host. Anything that has to cross that line runs here, in a container
+// attached to both sides.
 //
 // It serves both directions. Egress: one forward from the sandbox network to
 // the proxy on the host, which is where policy and the connection log live.

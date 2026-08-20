@@ -95,7 +95,7 @@ type Verdict struct {
 //
 // Order is deliberate. Private space is refused before any rule is consulted,
 // so no policy can hand a sandbox the host's own network. Then deny rules,
-// which beat allow rules however they were written — a denial anyone bothered
+// which beat allow rules however they were written: a denial anyone bothered
 // to express should not be undone by a broader allow sitting next to it. Then
 // allow rules, then whatever the preset permits on its own.
 //
@@ -159,7 +159,7 @@ func Matches(pattern string, t Target) bool {
 
 // splitPattern separates a pattern's host from its port, tolerating a pattern
 // with no port at all. A malformed port is treated as part of the host, which
-// then matches nothing — better than silently covering every port.
+// then matches nothing, rather than silently covering every port.
 func splitPattern(pattern string) (host string, port int) {
 	i := strings.LastIndex(pattern, ":")
 	if i < 0 {
@@ -176,8 +176,8 @@ func splitPattern(pattern string) (host string, port int) {
 //
 // This is not policy and cannot be overridden by a rule. A sandbox that could
 // reach loopback or private space would be on the host's network rather than
-// its own, and every service the host runs — including the daemon's own socket
-// and any other sandbox — would be a request away.
+// its own, and every service the host runs, the daemon's own socket and any
+// other sandbox included, would be a request away.
 func AllowsAddress(addr netip.Addr) bool {
 	if !addr.IsValid() {
 		return false

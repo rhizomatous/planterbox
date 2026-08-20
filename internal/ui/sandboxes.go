@@ -15,10 +15,10 @@ import (
 
 // SandboxColumns are the headers of the `plbx ls` table, in order.
 //
-// The image is not among them. It is long, it is the same for every sandbox of
-// a given agent, and it is one `plbx inspect` away — while its width was
-// enough to wrap the header itself on an ordinary terminal. Ports take its
-// place: they are the one part of a sandbox that changes after it is built.
+// The image is not among them. It is long enough to wrap the header on an
+// ordinary terminal, it is the same for every sandbox of a given agent, and it
+// is one `plbx inspect` away. Ports take its place: they are the one part of a
+// sandbox that changes after it is built.
 //
 // The workspace goes last because it is the only unbounded field, so it is the
 // only one whose overflow costs nothing behind it.
@@ -113,8 +113,9 @@ func RenderSandbox(sb api.Sandbox, now time.Time) string {
 }
 
 // RenderSandboxFields is a sandbox's definition as label/value lines, with no
-// heading, for a caller that has already named the sandbox — the dashboard's
-// detail pane sits under a row that says which one is selected.
+// heading, for a caller that has already named the sandbox: the dashboard's
+// detail pane sits under a row saying which one is selected.
+//
 // width is the room the whole line has, or 0 for no limit. Only the workspace
 // paths can outgrow it, and they are elided from the front so the component
 // that names the workspace survives.
@@ -138,7 +139,7 @@ func RenderSandboxFields(sb api.Sandbox, now time.Time, width int) string {
 // RenderSpecFields is the part of a sandbox that a create fixes for good, for
 // echoing back before the container is built. Everything here costs a rebuild
 // to change, and a rebuild costs whatever the old sandbox held outside its
-// home volume — so this is the last cheap moment to notice a wrong value.
+// home volume, so this is the last cheap moment to notice a wrong value.
 func RenderSpecFields(spec api.Spec, width int) string {
 	return strings.Join(specLines(spec, width), "\n")
 }
@@ -179,9 +180,8 @@ func specLines(spec api.Spec, width int) []string {
 		if i > 0 {
 			key = ""
 		}
-		// names only. A sandbox holds live credentials — `docs/concessions.md`
-		// says so plainly — and printing their values puts them in every
-		// screenshot and paste of an inspect.
+		// names only. A sandbox holds live credentials, and printing their
+		// values puts them in every screenshot and paste of an inspect.
 		lines = append(lines, fieldRow(key, k+Faint.Render("  set")))
 	}
 	return lines

@@ -24,18 +24,18 @@ const (
 // sshConfigBlock renders the managed block.
 //
 // It offers no key and consults no agent. The gateway accepts any key and
-// requires none — the socket's permissions are what decide — so a client that
-// presents its whole keyring is handing credentials to something that will not
+// requires none, since the socket's permissions are what decide, so a client
+// presenting its whole keyring hands credentials to something that will not
 // look at them. Left to itself ssh does exactly that.
 //
 // `IdentityFile none` rather than /dev/null, which is the other way to say it:
 // ssh reads /dev/null, fails to parse it, and says so on every connection.
 //
 // StrictHostKeyChecking is left on, against its own known-hosts file. The
-// gateway's key is stable — it lives in the state directory precisely so it
-// survives a reboot — so trust-on-first-use behaves the way it should, and
-// turning the check off in a user's config to save one prompt would weaken
-// something real to solve nothing.
+// gateway's key is stable, living in the state directory precisely so it
+// survives a reboot, so trust-on-first-use behaves the way it should. Turning
+// the check off in a user's config to save one prompt would weaken something
+// real to solve nothing.
 func sshConfigBlock(exe, knownHosts string) string {
 	return strings.Join([]string{
 		blockStart,

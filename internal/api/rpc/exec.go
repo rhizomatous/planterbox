@@ -19,10 +19,10 @@ import (
 // Exec runs a command in a sandbox owned by the daemon, relaying this process's
 // stdio to it.
 //
-// A terminal session is put into raw mode for its duration. In-process there is
-// nothing to do — the runtime inherits the real terminal and handles it — but
-// here the terminal and the pty are in different processes, and without raw mode
-// the local line discipline would eat the keystrokes before they were sent.
+// A terminal session is put into raw mode for its duration. In-process there
+// is nothing to do, since the runtime inherits the real terminal; here the
+// terminal and the pty are in different processes, and without raw mode the
+// local line discipline would eat the keystrokes before they were sent.
 func (c *Client) Exec(
 	ctx context.Context, ref api.Ref, req api.ExecRequest, streams api.Streams,
 ) (api.ExecResult, error) {
@@ -149,7 +149,7 @@ func (s *frameSender) frame(f *plbxv1.ExecClientFrame) error {
 
 // Exec runs a session on behalf of a client, wiring the stream to the service's
 // stdio. The daemon owns the session for its whole life, which is what lets it
-// hold the pty and what the SSH gateway will later attach to.
+// hold the pty.
 func (s *Server) Exec(stream grpc.BidiStreamingServer[plbxv1.ExecClientFrame, plbxv1.ExecServerFrame]) error {
 	first, err := stream.Recv()
 	if err != nil {

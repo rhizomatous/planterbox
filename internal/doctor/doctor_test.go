@@ -8,9 +8,9 @@ import (
 	"github.com/rhizomatous/planterbox/internal/daemon"
 )
 
-// TestCheckVersionsIsTheOneThatWouldHaveCaughtIt covers the failure that hides:
-// every command works and answers the way the older build did.
-func TestCheckVersionsIsTheOneThatWouldHaveCaughtIt(t *testing.T) {
+// TestCheckVersionsNamesBothBuilds covers the failure that hides: every
+// command works, and answers the way the older build did.
+func TestCheckVersionsNamesBothBuilds(t *testing.T) {
 	if c := checkVersions("1.2.3", "1.2.3"); !c.OK {
 		t.Errorf("matching builds should pass: %+v", c)
 	}

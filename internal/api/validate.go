@@ -37,9 +37,9 @@ func SandboxName(path string) string {
 
 // Validate checks a spec before anything acts on it. Every field here reaches a
 // container runtime as a command-line argument, where a malformed value is
-// silently misread rather than rejected — a workspace path containing a colon
-// is the worst of them, since it mounts a different directory than the one
-// asked for.
+// silently misread rather than rejected. The worst is a workspace path
+// containing a colon, which mounts a different directory than the one asked
+// for.
 func (s Spec) Validate() error {
 	if !ValidName(s.Name) {
 		return fmt.Errorf("invalid sandbox name %q: use letters, digits, dot, dash, or underscore, starting with a letter or digit", s.Name)
@@ -110,11 +110,10 @@ func ValidatePorts(ports []Port) error {
 			return fmt.Errorf("host port %d is published twice", p.Host)
 		}
 		seen[p.Host] = true
-		// tcp only, for now. A sandbox is alone on an internal network and
-		// cannot publish for itself, so its ports are carried by a forwarder
-		// beside it — and that forwarder speaks tcp. Refused when the ports are
-		// asked for rather than when they are started, so the command naming
-		// the port is the one that fails.
+		// tcp only, for now: a sandbox cannot publish for itself, so its ports
+		// are carried by a forwarder beside it, and that forwarder speaks tcp.
+		// Refused when the ports are asked for rather than when they start, so
+		// the command naming the port is the one that fails.
 		switch p.Proto {
 		case "", "tcp":
 		case "udp":

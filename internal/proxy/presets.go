@@ -3,7 +3,7 @@ package proxy
 // New returns the starting policy for a preset.
 //
 // A preset's own allowances are not copied into Rules. They stay behind the
-// preset, so Rules holds only what a person added — which is what makes
+// preset, so Rules holds only what a person added, which is what makes
 // switching preset mean something. Materialised, a switch would carry the old
 // preset's whole list forward and change nothing at all.
 func New(preset Preset) Policy { return Policy{Preset: preset} }
@@ -39,14 +39,14 @@ func (p Preset) Allowances() []string {
 // because "*.example.com" deliberately does not cover "example.com".
 //
 // Ports are left off throughout. Pinning :443 would be tighter, but every one
-// of these is also fetched over :80 somewhere — apt and alpine repositories
-// plainly, redirects to https elsewhere — and a policy that breaks `apt update`
+// of these is also fetched over :80 somewhere (apt and alpine repositories
+// plainly, redirects to https elsewhere), and a policy that breaks `apt update`
 // is one people turn off rather than narrow.
 var balanced = []string{
 	// model providers, and the vendors' own endpoints beside them. An agent
-	// talks to more than the model API — it signs in, checks what it is
-	// entitled to, and looks for its own updates — and a preset that allows
-	// only the API is one the agent will not start under.
+	// talks to more than the model API: it signs in, checks what it is
+	// entitled to, and looks for its own updates. A preset that allows only
+	// the API is one the agent will not start under.
 	//
 	// locked-down is the preset that refuses these.
 	"api.anthropic.com",

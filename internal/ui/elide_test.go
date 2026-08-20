@@ -2,26 +2,48 @@ package ui
 
 import "testing"
 
-func TestElideKeepsTheHeadAndElidePathKeepsTheTail(t *testing.T) {
-	const path = "/private/tmp/very/long/scratchpad/demo"
+// longPath is wider than any width these tests ask for, so every case that
+// elides has something to drop.
+const longPath = "/private/tmp/very/long/scratchpad/demo"
+
+func TestElideKeepsTheHead(t *testing.T) {
 	for _, tc := range []struct {
-		name string
-		got  string
-		want string
+		name  string
+		in    string
+		width int
+		want  string
 	}{
-		{"prose fits", Elide("short", 20), "short"},
-		{"prose cut", Elide("not allowed by any rule", 12), "not allowed…"},
-		{"prose exact", Elide("exactly ten", 11), "exactly ten"},
-		{"prose one column", Elide("anything", 1), "…"},
-		{"prose unlimited", Elide("anything at all", 0), "anything at all"},
-		{"path fits", ElidePath("/a/b", 20), "/a/b"},
-		{"path cut", ElidePath(path, 16), "…scratchpad/demo"},
-		{"path one column", ElidePath(path, 1), "…"},
-		{"path unlimited", ElidePath(path, 0), path},
+		{name: "fits", in: "short", width: 20, want: "short"},
+		{name: "cut", in: "not allowed by any rule", width: 12, want: "not allowed…"},
+		{name: "exact", in: "exactly ten", width: 11, want: "exactly ten"},
+		{name: "one rune", in: "anything", width: 1, want: "…"},
+		{name: "unlimited", in: "anything at all", width: 0, want: "anything at all"},
 	} {
-		if tc.got != tc.want {
-			t.Errorf("%s: got %q, want %q", tc.name, tc.got, tc.want)
-		}
+		t.Run(tc.name, func(t *testing.T) {
+			if got := Elide(tc.in, tc.width); got != tc.want {
+				t.Errorf("Elide(%q, %d) = %q, want %q", tc.in, tc.width, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestElidePathKeepsTheTail(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		in    string
+		width int
+		want  string
+	}{
+		{name: "fits", in: "/a/b", width: 20, want: "/a/b"},
+		{name: "cut", in: longPath, width: 16, want: "…scratchpad/demo"},
+		{name: "one rune", in: longPath, width: 1, want: "…"},
+		{name: "unlimited", in: longPath, width: 0, want: longPath},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := ElidePath(tc.in, tc.width); got != tc.want {
+				t.Errorf("ElidePath(%q, %d) = %q, want %q", tc.in, tc.width, got, tc.want)
+			}
+		})
 	}
 }
 

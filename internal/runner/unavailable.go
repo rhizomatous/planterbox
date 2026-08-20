@@ -8,8 +8,8 @@ import (
 
 // unavailable is a Runner standing in for a runtime that could not be found or
 // reached. Every operation fails with the detection error, so the user sees why
-// rather than a generic exec failure — but plbx still starts, and commands that
-// only read stored records still work.
+// rather than a generic exec failure. plbx still starts, and commands that only
+// read stored records still work.
 type unavailable struct{ err error }
 
 var _ Runner = unavailable{}

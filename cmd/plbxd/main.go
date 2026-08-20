@@ -22,8 +22,8 @@ import (
 // version is set at build time, and must match the plbx that talks to it.
 var version = "dev"
 
-// main does nothing but choose a status, so run's deferred cleanup — releasing
-// the signal handler, removing the socket and pidfile — actually happens.
+// main does nothing but choose a status, so run's deferred cleanup (releasing
+// the signal handler, removing the socket and pidfile) actually happens.
 func main() { os.Exit(run()) }
 
 func run() int {

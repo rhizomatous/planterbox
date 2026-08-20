@@ -18,8 +18,7 @@ func newDoctorCmd() *cobra.Command {
 		Long: "Look at the things plbx needs that are not part of any one sandbox: a " +
 			"container runtime that answers, a daemon on the same build as this " +
 			"binary, and a state directory it can actually write to.\n\n" +
-			"Nothing here is changed by running it. Anything that fails says what " +
-			"would fix it.",
+			"It changes nothing. Anything that fails says what would fix it.",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			checks := doctor.Run(cmd.Context(), buildVersion())

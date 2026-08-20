@@ -54,8 +54,8 @@ func press(t *testing.T, m *Model, key string) *Model {
 // runCmd runs a command, giving up on one that does not finish promptly.
 //
 // Everything worth asserting on resolves immediately against a fake service.
-// The commands that don't are timers — the form's cursor blink, the list
-// refresh — and waiting out their intervals would cost seconds per keypress
+// The commands that don't are timers (the form's cursor blink, the list
+// refresh), and waiting out their intervals would cost seconds per keypress
 // while telling us nothing.
 func runCmd(cmd tea.Cmd) (tea.Msg, bool) {
 	if cmd == nil {

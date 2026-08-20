@@ -40,17 +40,17 @@ func HostEnv(goos string) Env {
 
 // tmpRoot is where the runtime directory goes when the platform names no
 // better place. Literally /tmp, and deliberately not os.TempDir: that reads
-// $TMPDIR, which nix-shell and others set to a fresh directory per shell — so
-// the socket would move every time you opened a new one, and a running daemon
-// would be invisible to the next command.
+// $TMPDIR, which nix-shell and others set to a fresh directory per shell. The
+// socket would move every time you opened one, and a running daemon would be
+// invisible to the next command.
 const tmpRoot = "/tmp"
 
 // RuntimeDir resolves the directory holding the socket, the pidfile, and the
 // daemon's log.
 //
 // PLBX_RUNTIME_DIR wins outright. Otherwise XDG_RUNTIME_DIR where the platform
-// sets one, and a per-user directory under /tmp where it does not — which is
-// the macOS case.
+// sets one, and a per-user directory under /tmp where it does not, which is the
+// macOS case.
 //
 // The /tmp fallback is deliberately short rather than tucked under the state
 // directory: a unix socket path is capped near 104 bytes by the kernel, and

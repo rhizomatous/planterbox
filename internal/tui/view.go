@@ -65,7 +65,7 @@ func (m *Model) render() string {
 	case m.err != nil:
 		b.WriteString(ui.Bad.Render("could not read sandboxes: " + m.err.Error()))
 	case len(m.sandboxes) == 0 && m.building == nil:
-		b.WriteString(ui.Faint.Render("no sandboxes yet — run `plbx run` in a repo to make one"))
+		b.WriteString(ui.Faint.Render("no sandboxes yet: run `plbx run` in a repo to make one"))
 	default:
 		list := m.renderList()
 		b.WriteString(list)
@@ -98,7 +98,7 @@ func (m *Model) renderList() string {
 //
 // It has no record to render from until it exists, so without this the form
 // closes onto an unchanged list and nothing happens for as long as the work
-// takes — which on a first run for an agent is a multi-gigabyte download, and
+// takes. On a first run for an agent that is a multi-gigabyte download, which
 // reads as the action having quietly failed.
 func (m *Model) buildingRow() string {
 	if m.building == nil {
@@ -162,7 +162,7 @@ func (m *Model) renderRow(sb api.Sandbox, selected bool) string {
 	return line
 }
 
-// renderDetail draws the selected sandbox's definition below the list — the
+// renderDetail draws the selected sandbox's definition below the list: the
 // same fields `plbx inspect` prints, minus its heading, since the row above
 // already says which sandbox this is.
 //
@@ -324,10 +324,9 @@ func (m *Model) renderConnectionRow(e proxy.Entry, selected bool) string {
 // sandboxKeys is the reminder line for the sandbox panel, naming what the
 // highlighted sandbox can actually do.
 //
-// A fixed bar offered `s start/stop` against a sandbox that could only be one
-// of those, and offered attach, shell and remove with nothing to apply them
-// to on a fresh install — where `c create` is the only key that does
-// anything and was buried in the middle of the list.
+// A fixed bar would offer `s start/stop` against a sandbox that can only be
+// one of those, and attach, shell and remove on a fresh install with nothing
+// to apply them to, burying `c create` among keys that do nothing.
 func (m *Model) sandboxKeys() string {
 	sb, ok := m.selected()
 	if !ok {

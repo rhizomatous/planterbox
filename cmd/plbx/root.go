@@ -68,7 +68,7 @@ func warnOnVersionSkew(cmd *cobra.Command, svc api.Service) {
 	}
 	info, err := asker.Info(cmd.Context())
 	// a daemon that does not know the call is the oldest kind there is, and
-	// the one this exists to catch — so an unimplemented answer is an answer.
+	// the one this exists to catch, so an unimplemented answer is an answer.
 	// Anything else means the daemon is unwell, which the command itself is
 	// about to say better than a warning could.
 	if err != nil && !errors.Is(err, api.ErrNotImplemented) {
@@ -97,7 +97,7 @@ func newRootCmd(opts ...rootOption) *cobra.Command {
 	root := &cobra.Command{
 		Use:   "plbx",
 		Short: "persistent, isolated container sandboxes for coding agents",
-		Long: "plbx gives each coding agent a long-lived container sandbox. create one, " +
+		Long: "plbx gives each coding agent a long-lived container sandbox. Create one, " +
 			"set it up however you like, and it stays. Packages, shell history, and agent " +
 			"state persist until you remove it.",
 		SilenceUsage:  true,

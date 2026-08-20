@@ -102,7 +102,7 @@ func TestLsJSONRoundTrips(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ls --json: %v", err)
 	}
-	var got []api.Sandbox
+	var got []api.RedactedSandbox
 	if err := json.Unmarshal([]byte(out), &got); err != nil {
 		t.Fatalf("output is not valid JSON: %v\n%s", err, out)
 	}

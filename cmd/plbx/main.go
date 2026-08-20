@@ -62,7 +62,7 @@ func run() int {
 func renderError(w io.Writer, styles fang.Styles, err error) {
 	// A non-zero exit status is not plbx failing. Whatever ran has already
 	// said what it wanted to and returned, and main passes the status
-	// through — an ERROR block over the top would be plbx claiming a failure
+	// through. An ERROR block over the top would be plbx claiming a failure
 	// of its own that never happened. This is what makes `plbx run` and
 	// `plbx exec` as usable in a script as the command would be on its own.
 	var coded interface{ Code() int }

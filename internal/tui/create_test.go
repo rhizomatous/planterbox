@@ -81,12 +81,9 @@ func enter(t *testing.T, m *Model) *Model {
 }
 
 func TestFormAdvancesThroughItsFieldsAndSubmits(t *testing.T) {
-	// the form moves between fields by sending itself messages, and Init
-	// produces one too. Routing only keypresses to it leaves it unstarted and
-	// stuck on the first field with enter doing nothing.
 	// the form defaults its workspace to the working directory, and huh binds
-	// each field's value at init — so the directory has to be right before the
-	// form opens, not assigned onto the struct afterwards.
+	// each field's value at init, so the directory has to be right before the
+	// form opens rather than assigned onto the struct afterwards.
 	t.Chdir(tempDir(t, "myrepo"))
 	fake := api.NewFake()
 
@@ -279,8 +276,8 @@ func runCreate(t *testing.T, m *Model, spec api.Spec) tea.Msg {
 	return nil
 }
 
-// TestCreateReportsWhatItIsDoing covers the gap this closed: the form used to
-// close onto an unchanged list, with nothing to say the work had started.
+// TestCreateReportsWhatItIsDoing keeps the form from closing onto an unchanged
+// list with nothing to say the work has started.
 func TestCreateReportsWhatItIsDoing(t *testing.T) {
 	dir := tempDir(t, "myrepo")
 	m := loaded(t, api.NewFake())
@@ -326,8 +323,8 @@ func TestCreateKeyIsListedInHelp(t *testing.T) {
 	}
 }
 
-// Clone mode is fixed when a sandbox is made, so the dashboard has to be able
-// to choose it — and has to default to the same thing the CLI does.
+// Clone mode is fixed when a sandbox is made, so the dashboard has to offer
+// the choice, and has to default to the same thing the CLI does.
 func TestFormDefaultsToADirectMountAndCanChooseClone(t *testing.T) {
 	for _, tc := range []struct {
 		name      string

@@ -23,7 +23,7 @@ func newPolicyCmd(g *globals) *cobra.Command {
 		Use:   "policy",
 		Short: "control what sandboxes are allowed to reach",
 		Long: "Egress policy is set here and nowhere else. A sandbox has no route out " +
-			"except through plbx's proxy, and the proxy answers to this policy — so a " +
+			"except through plbx's proxy, and the proxy answers to this policy, so a " +
 			"repository cannot ask for its own permissions.\n\n" +
 			"Changes apply to every sandbox from its next connection.",
 		Args: cobra.NoArgs,
@@ -46,7 +46,12 @@ func newPolicyLsCmd(g *globals) *cobra.Command {
 		Use:     "ls",
 		Aliases: []string{"list"},
 		Short:   "show the current policy",
-		Args:    cobra.NoArgs,
+		Long: "Show the preset in force and the rules layered over it, allows and " +
+			"denies listed apart.\n\n" +
+			"Only rules you added appear. A preset's own allowances stay behind the " +
+			"preset, which is what lets you switch preset without carrying the old " +
+			"one's list along.",
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return g.withService(cmd, func(ctx context.Context, svc api.Service) error {
 				p, err := effectivePolicy(ctx, svc)
@@ -124,7 +129,11 @@ func newPolicyRmCmd(g *globals) *cobra.Command {
 	return &cobra.Command{
 		Use:   "rm PATTERN...",
 		Short: "drop a rule, leaving the preset to decide",
-		Args:  cobra.MinimumNArgs(1),
+		Long: "Remove rules, so the preset decides those hosts again.\n\n" +
+			"A pattern has to match the rule as it was written: dropping " +
+			"`*.example.com` leaves a rule for `example.com` alone. `plbx policy ls` " +
+			"prints them as they are stored.",
+		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return g.withService(cmd, func(ctx context.Context, svc api.Service) error {
 				p, err := effectivePolicy(ctx, svc)
@@ -159,7 +168,7 @@ func newPolicyCheckCmd(g *globals) *cobra.Command {
 		Use:   "check TARGET",
 		Short: "ask what the policy would do, without connecting",
 		Long: "Report whether a sandbox could reach TARGET, and which rule decides it. " +
-			"Nothing is connected to; this reads the policy only.",
+			"Nothing is connected to; it reads the policy and answers.",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return g.withService(cmd, func(ctx context.Context, svc api.Service) error {
@@ -194,9 +203,9 @@ func newPolicyLogCmd(g *globals) *cobra.Command {
 			"Every connection is listed with the rule or preset that decided it, so a " +
 			"denial says what to allow. --denied narrows it to the refusals, which is " +
 			"usually what you want when something inside a sandbox has just failed.\n\n" +
-			"Repeats are folded together and counted: an agent retrying a host it " +
-			"cannot reach says the same thing a hundred times, and the hundred is worth " +
-			"knowing without being read. Name a sandbox to see only its own.",
+			"Repeats are folded into one line with a count, so an agent retrying the " +
+			"same unreachable host a hundred times costs you one line and a number. " +
+			"Name a sandbox to see only its own.",
 		Example: "  plbx policy log\n" +
 			"  plbx policy log --denied\n" +
 			"  plbx policy log myrepo\n" +
@@ -239,10 +248,10 @@ func newPolicyLogCmd(g *globals) *cobra.Command {
 func newPolicyPresetCmd(g *globals) *cobra.Command {
 	return &cobra.Command{
 		Use:   "preset [NAME]",
-		Short: "show or change the starting posture",
+		Short: "show or change the baseline your rules layer over",
 		Long: "Change the preset, keeping the rules layered over it. With no argument, " +
 			"reports the current one.\n\n" +
-			"Presets: " + presetNames(),
+			"Presets:\n" + presetHelp(),
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return g.withService(cmd, func(ctx context.Context, svc api.Service) error {
@@ -282,8 +291,8 @@ func newPolicyPresetCmd(g *globals) *cobra.Command {
 // plbx's business rather than the reader's.
 //
 // It never writes. Asking what the policy is, or what it would do, should not
-// be the thing that decides it — and the answer to `policy allow x` is to
-// allow x, not to ask which preset it should be allowed under.
+// be the thing that decides it, and the answer to `policy allow x` is to allow
+// x rather than to ask which preset it should be allowed under.
 func effectivePolicy(ctx context.Context, svc api.Service) (proxy.Policy, error) {
 	p, err := svc.Policy(ctx)
 	switch {
@@ -330,4 +339,18 @@ func presetNames() string {
 		names = append(names, string(p))
 	}
 	return strings.Join(names, ", ")
+}
+
+// presetHelp lists the presets with what each one allows, since the name alone
+// does not say where `balanced` draws its line.
+func presetHelp() string {
+	width := 0
+	for _, p := range proxy.Presets {
+		width = max(width, len(p))
+	}
+	lines := make([]string, 0, len(proxy.Presets))
+	for _, p := range proxy.Presets {
+		lines = append(lines, fmt.Sprintf("  %-*s  %s", width, p, p.Description()))
+	}
+	return strings.Join(lines, "\n")
 }

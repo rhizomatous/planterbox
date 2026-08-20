@@ -6,36 +6,42 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- `plbx policy preset --help` lists what each preset allows, instead of just naming the three.
+- `plbx policy ls`, `plbx policy rm`, `plbx daemon start` and `plbx daemon status` now have real help text. They previously fell back to their one-line summary.
+- Shorter, plainer help throughout, and `-f/--force` on `plbx rm` now says it skips the confirmation as well as the running check.
+
 ## [0.9.0] - 2026-08-18
 
 ### Added
 
-- `plbx doctor` checks the health of your installation, and informs you how to fix if anything's broken.
-- The dashboard's create form now refers to agents by company and harness: `Claude Code · Anthropic`, rather than just `claude`.
-- The create form now states what name will be produced if you leave it blank and go with the default.
-- A running sandbox's row now shows its uptime, when the terminal has room for it.
+- `plbx doctor` checks the health of your installation and tells you how to fix what it finds.
+- The dashboard's create form refers to agents by company and harness: `Claude Code · Anthropic`, rather than just `claude`.
+- The create form states what name a blank field will produce.
+- A running sandbox's row shows its uptime, when the terminal has room for it.
 - `f` in the dashboard's network tab filters the log to the selected sandbox.
 
 ### Changed
 
-- The dashboard's key reminder now only shows the possible interactions based on your cursor. Previously, it offered all options at all times, even when they were not valid.
+- The dashboard's key hints show only the actions valid for the cursor, rather than every action at all times.
 - Sandbox shells have briefer names: `agent@myrepo:myrepo$`, rather than `agent@myrepo:/Users/you/src/myrepo$`.
 
 ### Fixed
 
-- Creating a sandbox from the dashboard now shows a loading state during creation, instead of a non-interactive empty state.
-- Creating a sandbox from the dashboard now jumps the cursor to it.
+- Creating a sandbox from the dashboard shows a loading state, instead of a non-interactive empty state.
+- Creating a sandbox from the dashboard moves the cursor to it.
 
 ## [0.8.0] - 2026-08-16
 
 ### Added
 
-- `plbx create` and `plbx run` now report that they're pulling an image, instead of stiting silently until completion.
+- `plbx create` and `plbx run` now report that they're pulling an image, instead of sitting silently until it finishes.
 - `plbx create` now echoes the definition before it builds anything.
 - `plbx rm --all`
-- `plbx policy log SANDBOX` nnow arrows the log to one sandbox, and `--json` emits it as JSON.
+- `plbx policy log SANDBOX` narrows the log to one sandbox, and `--json` emits it as JSON.
 - `plbx daemon restart` and `plbx daemon status` commands.
-- Every command now warns when the daemon answering it is a different build from the CLI.
+- Every command warns when the daemon answering it is a different build from the CLI.
 - `plbx inspect` reports how long a running sandbox has been up.
 
 ### Changed
@@ -51,8 +57,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - `plbx ls` now shows the ports each sandbox publishes.
 - `plbx create` ends by saying how to attach to what it just made.
-- `ls`, `exec`, `inspect`, `start`, `setup` and `policy log` now have real help text, instead of repeating their one-line summary.
-- Added examples in the help for `create`, `run`, `exec`, `cp`, `ls` and `policy log`.
+- `ls`, `exec`, `inspect`, `start`, `setup` and `policy log` have real help text, instead of repeating their one-line summary.
+- Examples in the help for `create`, `run`, `exec`, `cp`, `ls` and `policy log`.
 
 ### Changed
 
@@ -62,19 +68,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
-- `plbx exec` against a stopped sandbox printed the container runtime's own error. It now informs you that the sandbox is not running, and states how to start it.
+- `plbx exec` against a stopped sandbox printed the container runtime's own error. It now says the sandbox is not running, and how to start it.
 - `plbx run` and `plbx exec`, when the thing they ran exited non-zero, now only pass through the status, so both are usable in a script that reads stderr.
 - `plbx exec --no-tty` hung after the command exited when run from a terminal. The status now comes back as it should.
-- Paths and prose that were trimmed to fit are now ellipsized. They are also cut from whichever end matters least: paths lose their front, prose loses its tail. This means that long workspace paths are now easier to read.
+- Paths and prose trimmed to fit are ellipsized, and cut from whichever end matters least: paths lose their front, prose loses its tail.
 - The error message when invoking a sandbox that does not exist now points you at `plbx ls`.
 - Flag descriptions no longer mangle initialisms into title case like `Cpu`.
-- `--dry-run` mistakenly wrote to your real sandbox records on `create` or `rm`. Now it doesn't.
+- `--dry-run` wrote to your real sandbox records on `create` or `rm`.
 
 ## [0.6.2] - 2026-08-14
 
 ### Fixed
 
-- The error formatter mistakenly mangled sandbox names and directories with title case formatting. Instead, errors now quote these identifiers verbatim.
+- The error formatter mangled sandbox names and directories with title case. Errors now quote them verbatim.
 
 ## [0.6.1] - 2026-08-14
 
@@ -95,36 +101,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - `jard create --clone` gives a sandbox an isolated copy of your repository instead of your repository.
-- A clone-mode sandbox becomes a `jard-<name>` remote in your repository, This allows so `git fetch jard-<name>` to pull the sandbox's work back into the host repo if `jard setup ssh` has been run..
+- A clone-mode sandbox becomes a `jard-<name>` remote in your repository, so `git fetch jard-<name>` pulls its work back. Requires `jard setup ssh`.
 - Published ports can be bound to a specific host address rather than every interface.
 
 ### Fixed
 
-- Agents could not start under the `balanced` preset due to blocked domains. Harness vendors' own domains are now allowed beside their APIs.
+- Agents could not start under the `balanced` preset, because their vendors' own domains were blocked. Those are now allowed beside the APIs.
 
 ## [0.4.0] - 2026-08-12
 
 ### Added
 
-- Added a TUI dashboard, which `jard` with no arguments now opens. This displays each sandbox, its status, live CPU and memory for the running sandboxes, and interactive controls.
-- A dramatically expanded CLI, including `create`, `ls`, `start`, `stop`, `rm`, `inspect`, `exec`, `cp`, and `agents` commands.
-- Sandboxes are now persistent. `jard run` in a directory creates one the first time, then reattaches to it every time after. The packages, shell history, and agent state you left behind will still be in place. You may also reattach to a workspace by name.
-- Added a background daemon, `jardd`, which owns sandbox state and lifecycle.
-- Network policy has been overhauled, including a `jard policy` CLI command, `balanced` (default) / `open` / `locked-down` presets, logging, and a dashboard.
+- A TUI dashboard, which `jard` with no arguments opens: each sandbox, its status, live CPU and memory for the running ones, and interactive controls.
+- `create`, `ls`, `start`, `stop`, `rm`, `inspect`, `exec`, `cp`, and `agents` commands.
+- Persistent sandboxes. `jard run` in a directory creates one the first time and reattaches every time after, with the packages, shell history, and agent state you left behind. Reattaching by name works too.
+- A background daemon, `jardd`, which owns sandbox state and lifecycle.
+- Overhauled network policy: a `jard policy` command, `balanced` (default) / `open` / `locked-down` presets, logging, and a dashboard.
 - SSH support via `jard setup ssh`. Run `ssh <name>.jard` to open a shell in a sandbox. VSCode over SSH is supported by default.
 - Support for setting resource limits, environment, and published ports at create time: `--cpus` / `-m/--memory` / `-p/--publish` / `-e/--env`.
-- Allow publishing ports from a sandbox with `jard ports`, including editing live sandboxes with `--publish`/`--unpublish`. Only TCP is supported.
+- Publish ports from a sandbox with `jard ports`, including on live sandboxes via `--publish`/`--unpublish`. TCP only.
 - Base images for claude, codex, opencode, and a bare shell.
 - Shell completions, via `jard completion`, and a man page, via `jard man`.
 
 ### Changed
 
-- Workspaces are now mounted read-write by default, the primary and any others alike. Add a `:ro` suffix to mount one read-only.
-- CLI output is now styled, and rewritten to be more informative. Unknown flags produce usage rather than a stack of parser output.
+- Workspaces mount read-write by default, the primary and any others alike. Add a `:ro` suffix to mount one read-only.
+- CLI output is styled and rewritten to say more. Unknown flags produce usage rather than a stack of parser output.
 
 ### Removed
 
-- `jard` is no longer tied to Nix. There is no more `flake.nix` requirement, nor auto-entry to a Nix dev shell.
+- `jard` is no longer tied to Nix: no `flake.nix` requirement, no auto-entry to a Nix dev shell.
 - The `jardiniere.toml` config file is removed.
 - ssh-agent forwarding, host git identity injection, and seeding the agent's settings from the host are removed.
 
@@ -132,14 +138,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - `jard rm` refuses a running sandbox unless `--force` is given.
 - `jard rm` now correctly deletes the sandbox's home volume.
-- Create-time settings passed to `jard run` for a sandbox that already exists now warn, rather than being silently ignored.
+- Create-time settings passed to `jard run` for a sandbox that already exists warn, rather than being silently ignored.
 
 ## [0.3.0] - 2026-08-04
 
 ### Added
 
 - CLI flags for every `jardiniere.toml` key, so any run can be tuned without a config file.
-- Seed the configured agent's user settings from the host. Preferences like editor theme no longer need to be reconfigured each run.
+- Seed the configured agent's user settings from the host, so preferences like editor theme survive between runs.
 - Support relative mount sources, resolved against the target `--dir` (e.g. `../backend:/work/backend:rw`).
 
 ### Fixed
@@ -170,7 +176,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
-- Corrected the Go module path from `github.com/vivshaw/jardiniere` to `github.com/rhizomatous/planterbox` so it matches the repository host and `go install github.com/rhizomatous/planterbox@latest` resolves.
+- Corrected the Go module path from `github.com/vivshaw/jardiniere` to `github.com/rhizomatous/planterbox`, so `go install github.com/rhizomatous/planterbox@latest` resolves.
 
 ## [0.1.0] - 2026-07-19
 

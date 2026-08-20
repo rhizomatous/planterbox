@@ -23,11 +23,10 @@ type RedactedSandbox struct {
 // Redact returns sb as the CLI prints it: the whole record, except that the
 // environment it was given is named rather than quoted.
 //
-// A sandbox holds live credentials — `docs/concessions.md` says so — and the
-// two places they can be read are not the same exposure. The store is a 0700
-// file someone has to go looking for. JSON output is piped, redirected into
-// CI logs, and pasted into issues without anyone deciding to. Only one of
-// those should carry the value.
+// A sandbox holds live credentials, and the two places they can be read are
+// not the same exposure. The store is a 0700 file someone has to go looking
+// for. JSON output is piped, redirected into CI logs, and pasted into issues
+// without anyone deciding to. Only one of those should carry the value.
 //
 // Not a MarshalJSON on Spec: the store marshals the same type, and it has to
 // keep what it is storing.

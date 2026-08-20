@@ -73,7 +73,7 @@ RUN userdel -r ubuntu 2>/dev/null || true \
 # The xterm title on the line below it keeps \w: a window title has room, and
 # nothing else is competing for it.
 #
-# This is /home/agent, which a sandbox's volume takes over on first use — so it
+# This is /home/agent, which a sandbox's volume takes over on first use, so it
 # reaches new sandboxes and leaves existing ones with the prompt they already
 # have. It is the agent's own file either way, and editing it is allowed.
 RUN sed -i "/PS1='/s/\\\\w/\\\\W/g" /home/agent/.bashrc
@@ -92,7 +92,7 @@ RUN printf '%s\n' \
 #
 # The agent's own binary deliberately does not go here. /home/agent is where the
 # sandbox mounts its volume, and a volume is populated from the image only the
-# first time it is used — anything under it is frozen at that moment. An agent
+# first time it is used, so anything under it is frozen at that moment. An agent
 # installed here would never be updated by a newer image; it would take deleting
 # the sandbox. So agents install to /usr/local below, outside the volume, where
 # pulling a new image is enough.

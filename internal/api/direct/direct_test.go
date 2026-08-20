@@ -423,7 +423,7 @@ func TestStartRepublishesAndStopTakesThemDown(t *testing.T) {
 }
 
 // A sandbox whose ports could not be published has still started, and the
-// record has to say so — otherwise the next command acts on a stale status.
+// record has to say so, or the next command acts on a stale status.
 func TestStartRecordsRunningEvenWhenPublishingFails(t *testing.T) {
 	svc, rn := testService(t)
 	ctx := context.Background()

@@ -393,7 +393,7 @@ func TestDaemonNearReportsNothingWhenThereIsNoDaemon(t *testing.T) {
 }
 
 // tempDir is t.TempDir with the symlinks resolved out of it. On macOS it hands
-// back a path under /var, which is itself a link to /private/var — so a test
+// back a path under /var, which is itself a link to /private/var, so a test
 // comparing against a resolved path would fail on the wrapper rather than on
 // anything it meant to check.
 func tempDir(t *testing.T) string {

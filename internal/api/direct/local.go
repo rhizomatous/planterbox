@@ -74,8 +74,9 @@ func Open(ctx context.Context, opts Options) (*Service, error) {
 		serviceOpts = append(serviceOpts, WithConnectionLog(opts.ConnectionLog))
 	}
 
-	// a runtime we can't reach isn't necessarily fatal. hand back a runner that fails every
-	// call with this error, so a failure only surfaces on the first command that needs a runner.
+	// a runtime we can't reach isn't fatal on its own. hand back a runner that
+	// fails every call with this error, so it surfaces on the first command
+	// that actually needs one.
 	rt, err := detect(ctx)
 	switch {
 	case err == nil:

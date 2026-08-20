@@ -1,6 +1,6 @@
 // Package runner is plbx's adapter boundary over the container runtimes.
-// docker, podman, OrbStack, and colima differ enough — rootless podman most of
-// all — to want one seam, and a fake behind the same interface is what lets the
+// docker, podman, OrbStack, and colima differ enough (rootless podman most of
+// all) to want one seam, and a fake behind the same interface is what lets the
 // rest of plbx be unit-tested with no live runtime.
 //
 // No runtime-specific type crosses this line.

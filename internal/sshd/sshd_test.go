@@ -13,7 +13,7 @@ import (
 // socketDir gives a directory short enough to put a unix socket in.
 //
 // t.TempDir() embeds the test's own name under $TMPDIR, and a nix shell points
-// that at a generated directory — together they run past the ~104 byte cap the
+// that at a generated directory. Together they run past the ~104 byte cap the
 // kernel puts on a socket path, and the bind fails with "invalid argument".
 // The same cap is why the daemon's runtime directory is /tmp/planterbox-<uid>.
 func socketDir(t *testing.T) string {

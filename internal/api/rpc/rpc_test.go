@@ -376,8 +376,8 @@ func TestExecReportsAMissingSandbox(t *testing.T) {
 
 func TestEverySentinelHasItsOwnCode(t *testing.T) {
 	// decoding takes the first entry whose code matches, so a duplicate would
-	// hand callers a different error than the daemon raised — and it would
-	// look right, because the message survives either way.
+	// hand callers a different error than the daemon raised, and it would look
+	// right, because the message survives either way.
 	seen := map[codes.Code]error{}
 	for _, s := range sentinels {
 		if other, dup := seen[s.code]; dup {

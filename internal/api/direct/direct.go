@@ -127,7 +127,7 @@ func (s *Service) Start(ctx context.Context, ref api.Ref) error {
 	}
 	// publishing is separate from the start, and after the state is written.
 	// A sandbox whose ports were refused is running all the same, and a record
-	// that said otherwise would be the lie.
+	// saying otherwise would be wrong.
 	return s.publish(ctx, started)
 }
 

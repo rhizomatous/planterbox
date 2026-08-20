@@ -14,9 +14,9 @@ const imageRepo = "ghcr.io/rhizomatous"
 // what command runs it.
 type Agent struct {
 	Name string
-	// Title is what the agent calls itself, and Vendor who makes it. The
-	// registry knew neither, so every surface offering a choice offered four
-	// slugs — which is fine once you know them and no help at all before.
+	// Title is what the agent calls itself, Vendor who makes it. Every surface
+	// offering a choice shows both, because a slug alone means nothing to
+	// someone who hasn't used plbx before.
 	Title   string
 	Vendor  string
 	Image   string
@@ -49,9 +49,7 @@ var agents = []Agent{
 		Name: "opencode", Title: "OpenCode", Vendor: "SST",
 		Image: imageRepo + "/plbx-opencode:latest", Command: []string{"opencode"},
 	},
-	// shell has no agent to start; it is the bare sandbox, and the one to reach
-	// for when you want to test the lifecycle without an agent in the way. No
-	// vendor, because nobody makes a shell.
+	// shell is the bare sandbox: no agent to start, and nobody to credit.
 	{
 		Name: "shell", Title: "A plain shell",
 		Image: imageRepo + "/plbx-shell:latest", Command: []string{"bash", "-l"},

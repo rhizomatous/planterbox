@@ -12,9 +12,9 @@ import (
 //
 // Each sandbox gets its own network, and with egress control on it is an
 // internal one: no route off the host, and no route to another sandbox. The
-// only thing else on it is the relay, which is
-// attached to every sandbox network and to one ordinary network of its own, and
-// which forwards to the proxy on the host and nowhere else.
+// only other thing on it is the relay, which is attached to every sandbox
+// network and to one ordinary network of its own, and which forwards to the
+// proxy on the host and nowhere else.
 //
 // The relay exists because an internal network cannot reach the host at all on
 // macOS, where containers live inside the runtime's own VM. See
@@ -79,7 +79,7 @@ func (o *OCI) RemoveNetworkInvocation(sandbox string) Invocation {
 }
 
 // EnsureNetwork creates a sandbox's network, tolerating one that already
-// exists — a sandbox that is being recreated keeps the same name.
+// exists: a sandbox being recreated keeps the same name.
 func (o *OCI) EnsureNetwork(ctx context.Context, sandbox string) error {
 	_, err := o.exec.Output(ctx, o.CreateNetworkInvocation(sandbox))
 	if err != nil && !isAlreadyExists(err) {
@@ -91,9 +91,9 @@ func (o *OCI) EnsureNetwork(ctx context.Context, sandbox string) error {
 // RemoveNetwork drops a sandbox's network, tolerating one already gone.
 //
 // The relay is detached first. It is attached to every sandbox's network, and
-// a runtime refuses to remove a network that still has endpoints on it — so
-// without this, removing any sandbox fails once egress control is on, and
-// fails after the container is already gone.
+// a runtime refuses to remove a network that still has endpoints on it. Without
+// this, removing any sandbox fails once egress control is on, and fails after
+// the container is already gone.
 func (o *OCI) RemoveNetwork(ctx context.Context, sandbox string) error {
 	_, err := o.exec.Output(ctx, o.invoke("network", "disconnect", "--force",
 		SandboxNetwork(sandbox), relayName))

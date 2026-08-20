@@ -13,13 +13,13 @@ func TestParseWorkspace(t *testing.T) {
 		wantHost string
 		wantRO   bool
 	}{
-		{"absolute path defaults to read-write", "/home/viv/demo", "/home/viv/demo", false},
-		{"read-only suffix", "/home/viv/shared:ro", "/home/viv/shared", true},
-		{"explicit read-write suffix", "/home/viv/demo:rw", "/home/viv/demo", false},
-		{"relative resolves against base", "../shared", "/home/viv/shared", false},
-		{"relative with mode", "../shared:ro", "/home/viv/shared", true},
-		{"dot is the base itself", ".", "/home/viv/demo", false},
-		{"trailing slash is cleaned", "/home/viv/demo/", "/home/viv/demo", false},
+		{name: "absolute path defaults to read-write", arg: "/home/viv/demo", wantHost: "/home/viv/demo", wantRO: false},
+		{name: "read-only suffix", arg: "/home/viv/shared:ro", wantHost: "/home/viv/shared", wantRO: true},
+		{name: "explicit read-write suffix", arg: "/home/viv/demo:rw", wantHost: "/home/viv/demo", wantRO: false},
+		{name: "relative resolves against base", arg: "../shared", wantHost: "/home/viv/shared", wantRO: false},
+		{name: "relative with mode", arg: "../shared:ro", wantHost: "/home/viv/shared", wantRO: true},
+		{name: "dot is the base itself", arg: ".", wantHost: "/home/viv/demo", wantRO: false},
+		{name: "trailing slash is cleaned", arg: "/home/viv/demo/", wantHost: "/home/viv/demo", wantRO: false},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -58,20 +58,21 @@ func TestParsePort(t *testing.T) {
 		arg  string
 		want api.Port
 	}{
-		{"3000", api.Port{Host: 3000, Sandbox: 3000}},
-		{"8080:80", api.Port{Host: 8080, Sandbox: 80}},
-		{"80/tcp", api.Port{Host: 80, Sandbox: 80}},
-		{"65535", api.Port{Host: 65535, Sandbox: 65535}},
+		{arg: "3000", want: api.Port{Host: 3000, Sandbox: 3000}},
+		{arg: "8080:80", want: api.Port{Host: 8080, Sandbox: 80}},
+		{arg: "80/tcp", want: api.Port{Host: 80, Sandbox: 80}},
+		{arg: "65535", want: api.Port{Host: 65535, Sandbox: 65535}},
 	}
 	for _, tc := range cases {
-		got, err := parsePort(tc.arg)
-		if err != nil {
-			t.Errorf("parsePort(%q): %v", tc.arg, err)
-			continue
-		}
-		if got != tc.want {
-			t.Errorf("parsePort(%q) = %+v, want %+v", tc.arg, got, tc.want)
-		}
+		t.Run(tc.arg, func(t *testing.T) {
+			got, err := parsePort(tc.arg)
+			if err != nil {
+				t.Fatalf("parsePort(%q): %v", tc.arg, err)
+			}
+			if got != tc.want {
+				t.Errorf("parsePort(%q) = %+v, want %+v", tc.arg, got, tc.want)
+			}
+		})
 	}
 }
 
@@ -101,13 +102,13 @@ func TestParseCopyPath(t *testing.T) {
 		wantSandbox string
 		wantPath    string
 	}{
-		{"sandbox reference", "demo:/home/agent/a", "demo", "/home/agent/a"},
-		{"sandbox with relative inner path", "demo:notes.md", "demo", "notes.md"},
-		{"bare host path", "/tmp/a", "", "/tmp/a"},
-		{"relative host path", "./a", "", "./a"},
-		{"host path with a colon", "/tmp/od:d/a", "", "/tmp/od:d/a"},
-		{"dot-slash escapes an ambiguous name", "./demo:x", "", "./demo:x"},
-		{"trailing colon is a host path", "demo:", "", "demo:"},
+		{name: "sandbox reference", arg: "demo:/home/agent/a", wantSandbox: "demo", wantPath: "/home/agent/a"},
+		{name: "sandbox with relative inner path", arg: "demo:notes.md", wantSandbox: "demo", wantPath: "notes.md"},
+		{name: "bare host path", arg: "/tmp/a", wantSandbox: "", wantPath: "/tmp/a"},
+		{name: "relative host path", arg: "./a", wantSandbox: "", wantPath: "./a"},
+		{name: "host path with a colon", arg: "/tmp/od:d/a", wantSandbox: "", wantPath: "/tmp/od:d/a"},
+		{name: "dot-slash escapes an ambiguous name", arg: "./demo:x", wantSandbox: "", wantPath: "./demo:x"},
+		{name: "trailing colon is a host path", arg: "demo:", wantSandbox: "", wantPath: "demo:"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

@@ -79,8 +79,8 @@ func newSetupCmd() *cobra.Command {
 		Short: "wire plbx into the tools around it",
 		Long: "Connect plbx to the programs you already use, so a sandbox is reachable " +
 			"from outside plbx's own commands.\n\n" +
-			"There is one so far: `plbx setup ssh` teaches ssh about your sandboxes, " +
-			"which is also what editors that open a remote folder need.",
+			"`plbx setup ssh` teaches ssh about your sandboxes, which is also what " +
+			"editors that open a remote folder need.",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error { return cmd.Help() },
 	}
@@ -135,6 +135,6 @@ func newSetupSSHCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&path, "config", "", "which ssh config to edit (default: ~/.ssh/config)")
-	cmd.Flags().BoolVar(&toStdout, "print", false, "write the block to stdout instead of editing anything")
+	cmd.Flags().BoolVar(&toStdout, "print", false, "write the block to stdout instead of editing your config")
 	return cmd
 }

@@ -54,8 +54,8 @@ func detect(ctx context.Context, requireReachable bool) (Runtime, error) {
 
 	if len(installedButDown) > 0 {
 		return Runtime{}, fmt.Errorf(
-			"found %s but its daemon is not reachable — is the VM/engine running? "+
-				"(start OrbStack/Docker Desktop, or `podman machine start`)",
+			"found %s but its daemon is not reachable: start the engine, "+
+				"with OrbStack, Docker Desktop, or `podman machine start`",
 			strings.Join(installedButDown, ", "),
 		)
 	}

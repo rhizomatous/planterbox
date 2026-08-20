@@ -120,7 +120,7 @@ func applyPorts(current, added []api.Port, removed []int) []api.Port {
 }
 
 // startedWithoutPorts reports a start that could not publish. The sandbox is
-// running either way, so this is said rather than returned — a start that
+// running either way, so this is said rather than returned: a start that
 // reported failure would send the user looking for a sandbox that is right
 // there.
 func startedWithoutPorts(cmd *cobra.Command, name string, err error) {

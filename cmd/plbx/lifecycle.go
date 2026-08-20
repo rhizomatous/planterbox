@@ -51,8 +51,8 @@ func refArgs(args []string) ([]api.Ref, error) {
 }
 
 // act resolves a ref, applies fn, and reports the outcome under the sandbox's
-// own name — which a by-path ref does not carry, and which reads far better
-// than echoing an absolute path back at the user.
+// own name, which a by-path ref does not carry and which reads better than an
+// absolute path echoed back at the user.
 func act(
 	g *globals, cmd *cobra.Command, args []string,
 	verb string, style lipgloss.Style,
@@ -90,9 +90,9 @@ func act(
 //
 // A leading "--" is dropped. Separating a command from the flags in front of
 // it is what "--" is for, `docker exec` and `kubectl exec` both take it, and
-// anyone who has typed either will type it here — but it arrives as an
-// ordinary argument, so without this the runtime is asked to run a program
-// called "--" and says it cannot find one.
+// anyone who has typed either will type it here. It arrives as an ordinary
+// argument, so without this the runtime is asked to run a program called "--"
+// and says it cannot find one.
 func execCommand(args []string) ([]string, error) {
 	if len(args) > 0 && args[0] == "--" {
 		args = args[1:]
@@ -127,8 +127,7 @@ func newStartCmd(g *globals) *cobra.Command {
 		Long: "Start a sandbox and leave it running, without handing it your terminal. " +
 			"Use it to bring a sandbox up for `plbx exec`, for ssh, or for the ports it " +
 			"publishes.\n\n" +
-			"`plbx run` starts a sandbox too, and attaches the agent to it. This is the " +
-			"same thing without the second half.\n\n" +
+			"`plbx run` does this too, and attaches the agent afterwards.\n\n" +
 			"Defaults to the sandbox for the current directory.",
 		Args: cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -154,10 +153,10 @@ func newRmCmd(g *globals) *cobra.Command {
 		Short:   "delete a sandbox and everything in it",
 		Long: "Delete a sandbox, its container, and its home volume. Anything you installed " +
 			"inside is gone; your workspace files on the host are untouched.\n\n" +
-			"You are asked to confirm, and a running sandbox is refused outright unless " +
-			"--force is given. --force also answers the question, which is what a script " +
-			"wants: without a terminal there is nobody to ask, so plbx refuses instead " +
-			"of assuming.",
+			"You are asked to confirm first, and a running sandbox is refused outright " +
+			"unless --force is given. --force answers the question too, which is what a " +
+			"script needs: with no terminal there is nobody to ask, so plbx refuses " +
+			"rather than assume.",
 		Args: cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if all && len(args) > 0 {
@@ -206,7 +205,7 @@ func newRmCmd(g *globals) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().BoolVarP(&force, "force", "f", false, "remove even while running")
+	cmd.Flags().BoolVarP(&force, "force", "f", false, "delete without asking, and even while running")
 	cmd.Flags().BoolVar(&all, "all", false, "remove every sandbox")
 	return cmd
 }
@@ -264,11 +263,11 @@ func newInspectCmd(g *globals) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "inspect [SANDBOX]",
-		Short: "show a sandbox's full definition and state",
+		Short: "show a sandbox's definition and state",
 		Long: "Show what a sandbox was built from and what it is doing now: its agent, " +
 			"image, workspaces, and the ports it publishes.\n\n" +
 			"Most of this is fixed when the sandbox is created and cannot be changed " +
-			"afterwards — ports are the exception.\n\n" +
+			"afterwards. Ports are the exception.\n\n" +
 			"--json prints the same record unformatted, except that it names the " +
 			"environment rather than quoting it: a sandbox holds live credentials, " +
 			"and this output gets piped and pasted.\n\n" +

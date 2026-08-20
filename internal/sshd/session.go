@@ -110,7 +110,7 @@ func resizes(ctx context.Context, pty ssh.Pty, windows <-chan ssh.Window) <-chan
 // envAllowed are the variables a client may set on a session.
 //
 // An allowlist rather than a blocklist. The variables worth refusing are the
-// ones that change what runs — PATH, NODE_OPTIONS, LD_PRELOAD — and the ones
+// ones that change what runs (PATH, NODE_OPTIONS, LD_PRELOAD) and the ones
 // carrying credentials, and neither set can be enumerated: every runtime adds
 // its own hook variable, and a credential can be called anything. So the
 // sandbox's own environment stands, and a client adjusts only what cannot

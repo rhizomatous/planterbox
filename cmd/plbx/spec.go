@@ -17,9 +17,8 @@ import (
 // gives it.
 //
 // An image already present says nothing and returns at once, so this costs a
-// warm create nothing. A cold one is minutes of a multi-gigabyte download,
-// and it used to spend all of them silent — which reads as a hang, because
-// there is nothing to distinguish it from one.
+// warm create nothing. A cold one is minutes of a multi-gigabyte download, and
+// minutes of silence read as a hang, because nothing distinguishes them.
 func fetchImage(ctx context.Context, cmd *cobra.Command, svc api.Service, image string) error {
 	lines, err := svc.PullImage(ctx, image)
 	if err != nil {
@@ -67,12 +66,12 @@ func (f *specFlags) bind(cmd *cobra.Command) {
 	fl := cmd.Flags()
 	fl.StringVar(&f.name, "name", "", "sandbox name (default: the workspace directory's name)")
 	fl.StringVar(&f.image, "image", "", "base image to start from (default: the agent's own)")
-	fl.Float64Var(&f.cpus, "cpus", 0, "limit on CPU, in cores (default: unlimited)")
+	fl.Float64Var(&f.cpus, "cpus", 0, "limit on CPU cores (default: unlimited)")
 	fl.StringVarP(&f.memory, "memory", "m", "", "memory limit, e.g. 8GiB (default: unlimited)")
 	fl.StringArrayVarP(&f.ports, "publish", "p", nil, "publish a port, host:sandbox or a bare port (repeatable)")
 	fl.StringArrayVarP(&f.env, "env", "e", nil, "environment variable, NAME=VALUE (repeatable)")
 	fl.BoolVar(&f.clone, "clone", false,
-		"work in a private clone; mount your repository read-only instead of read-write")
+		"work in a private clone, with your repository mounted read-only")
 }
 
 // parsePorts reads the --publish flags.

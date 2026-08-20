@@ -22,7 +22,7 @@ import (
 // So the dial happens inside the sandbox, in an exec, and the channel is wired
 // to its stdio. bash opens the socket: /dev/tcp is a bash builtin rather than a
 // program, so this needs nothing installed that the image contract does not
-// already promise — the login shell is bash for the same reason.
+// already promise. The login shell is bash for the same reason.
 //
 // This is what an editor's remote attach uses, and what makes `ssh -L` reach a
 // service in a sandbox without publishing it to the whole host.

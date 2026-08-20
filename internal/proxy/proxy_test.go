@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -16,8 +17,9 @@ import (
 )
 
 // These run a real proxy over a real socket against a real upstream. The
-// address guard and name resolution are redirected at the loopback stub, since
-// the guard would otherwise refuse it on sight — which is the guard working.
+// address guard and name resolution are redirected at the loopback stub, which
+// the guard would otherwise refuse on sight. That refusal is the guard
+// working.
 
 // upstream starts a stub origin server and returns its host:port.
 func upstream(t *testing.T, handler http.HandlerFunc) string {
@@ -302,28 +304,29 @@ func TestParseTarget(t *testing.T) {
 		port      int
 		wantErr   bool
 	}{
-		{"example.com:443", 80, "example.com", 443, false},
-		{"example.com", 80, "example.com", 80, false},
-		{"example.com", 443, "example.com", 443, false},
-		{"[2001:db8::1]:443", 80, "2001:db8::1", 443, false},
-		{"", 80, "", 0, true},
-		{"example.com:0", 80, "", 0, true},
-		{"example.com:99999", 80, "", 0, true},
+		{authority: "example.com:443", def: 80, host: "example.com", port: 443, wantErr: false},
+		{authority: "example.com", def: 80, host: "example.com", port: 80, wantErr: false},
+		{authority: "example.com", def: 443, host: "example.com", port: 443, wantErr: false},
+		{authority: "[2001:db8::1]:443", def: 80, host: "2001:db8::1", port: 443, wantErr: false},
+		{authority: "", def: 80, host: "", port: 0, wantErr: true},
+		{authority: "example.com:0", def: 80, host: "", port: 0, wantErr: true},
+		{authority: "example.com:99999", def: 80, host: "", port: 0, wantErr: true},
 	}
 	for _, tc := range cases {
-		got, err := parseTarget(tc.authority, tc.def)
-		if tc.wantErr {
-			if err == nil {
-				t.Errorf("parseTarget(%q) should have failed", tc.authority)
+		t.Run(fmt.Sprintf("%s with default %d", tc.authority, tc.def), func(t *testing.T) {
+			got, err := parseTarget(tc.authority, tc.def)
+			if tc.wantErr {
+				if err == nil {
+					t.Errorf("parseTarget(%q) = %v, want an error", tc.authority, got)
+				}
+				return
 			}
-			continue
-		}
-		if err != nil {
-			t.Errorf("parseTarget(%q): %v", tc.authority, err)
-			continue
-		}
-		if got.Host != tc.host || got.Port != tc.port {
-			t.Errorf("parseTarget(%q) = %v, want %s:%d", tc.authority, got, tc.host, tc.port)
-		}
+			if err != nil {
+				t.Fatalf("parseTarget(%q): %v", tc.authority, err)
+			}
+			if got.Host != tc.host || got.Port != tc.port {
+				t.Errorf("parseTarget(%q) = %v, want %s:%d", tc.authority, got, tc.host, tc.port)
+			}
+		})
 	}
 }

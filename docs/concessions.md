@@ -4,10 +4,10 @@ things planterbox wanted to do, couldn't, and does differently instead.
 
 each entry records what was intended, what turned out to be true, what we do
 about it, and what would have to change for the original plan to become
-possible again. the point is that a later revisit starts from evidence rather
-than from re-running the same experiments.
+possible again. a later revisit starts from evidence rather than from
+re-running the same experiments.
 
-this is not a list of bugs or of work not yet done — `docs/next/plan.md` covers
+this is not a list of bugs or of work not yet done; `docs/next/plan.md` covers
 those. it is a list of places where a deliberate, defensible choice cost us
 something real.
 
@@ -24,8 +24,8 @@ The plan's phase 3 says:
 > egress
 
 with the proxy daemon-resident, alongside the policy engine, the connection
-log, and — at the time — an OS keychain the proxy would inject credentials
-from. The plan claims this gets us network parity with `sbx`:
+log, and (at the time) an OS keychain the proxy would inject credentials from.
+The plan claims this gets us network parity with `sbx`:
 
 > **network** — parity with `sbx` is achievable, because policy enforcement
 > lives in the host proxy rather than the isolation layer
@@ -40,7 +40,7 @@ network:
 
 | from an `--internal` network | result |
 | --- | --- |
-| resolve and fetch `example.com` | fails — DNS itself does not resolve |
+| resolve and fetch `example.com` | fails; DNS itself does not resolve |
 | connect to the bridge gateway (`192.168.117.1`) | `Connection refused` |
 | resolve `host.docker.internal` | no answer |
 | connect to `host.docker.internal`'s address (`0.250.250.254`) | `Network unreachable` |
@@ -53,8 +53,8 @@ does leave a sandbox with no way out, DNS included. But a host-resident proxy
 is not reachable from inside one, so it cannot be the sandbox's egress.
 
 `Connection refused` on the gateway is the tell. The packet arrived somewhere
-and was actively refused, which means the gateway is not the macOS host at all
-— it is a bridge interface inside the Linux VM that OrbStack runs containers
+and was actively refused, which means the gateway is not the macOS host at
+all, but a bridge interface inside the Linux VM that OrbStack runs containers
 in. Our daemon is a macOS process. There is a VM boundary between the two that
 `--internal` cuts.
 
@@ -71,9 +71,10 @@ between.
 
 We are a guest in someone else's VM. Docker Desktop and OrbStack own the Linux
 VM our containers live in, and we do not get to configure its routing. This is
-the direct cost of not shipping a runtime — which is a requirement, not an
-oversight. `sbx` requires its own hypervisor and is Apple-silicon-only on macOS
-and KVM-only on Linux; we deliberately run on whatever is already installed.
+the direct cost of not shipping a runtime, which is a requirement rather than
+an oversight. `sbx` requires its own hypervisor and is Apple-silicon-only on
+macOS and KVM-only on Linux; we deliberately run on whatever is already
+installed.
 
 ### what we do instead
 
@@ -94,10 +95,10 @@ host proxy. Egress enforcement still lives in one host-side place.
 
 Keeping the proxy on the host is not merely tidiness, even though the thing
 that most needed it has since been deferred. Stored credentials want to be
-injected at the proxy so that raw values never enter the sandbox, and a
-container cannot read the macOS keychain — so a proxy pushed into a container
-would have to be dragged back out to build them. See
-[credentials live inside the sandbox](#credentials-live-inside-the-sandbox).
+injected at the proxy so raw values never enter the sandbox, and a container
+cannot read the macOS keychain: a proxy pushed into a container would have to
+be dragged back out to build them. See [credentials live inside the
+sandbox](#credentials-live-inside-the-sandbox).
 
 ### what it costs
 
@@ -131,11 +132,11 @@ VM we created can be given a NIC routed straight at the host proxy, the relay
 disappears, and the topology becomes the one phase 3 originally described.
 
 Worth checking at that point, and not before: whether Linux can already skip
-the relay today. There the bridge gateway is a real host interface rather than
+the relay. There the bridge gateway is a real host interface rather than
 something inside a VM, so an internal network can very likely reach a host
 proxy directly. We use one topology on both platforms because two is twice the
-surface to get wrong, and bugs collect in whichever half is used less — but if
-the Linux path ever needs to be native, it is probably a short change.
+surface to get wrong, and bugs collect in whichever half is used less. If the
+Linux path ever needs to be native, it is probably a short change.
 
 ## credentials live inside the sandbox
 
@@ -155,8 +156,8 @@ with a done-when that named the point of the exercise:
 > a sandbox can reach the Anthropic API with no `ANTHROPIC_API_KEY` anywhere
 > inside it
 
-The threat is a compromised agent — a prompt injection, a malicious dependency
-— reading your API key and using it or exfiltrating it. A key the sandbox never
+The threat is a compromised agent (a prompt injection, a malicious dependency)
+reading your API key and using it or exfiltrating it. A key the sandbox never
 holds cannot be taken from it.
 
 ### what is actually true
@@ -173,9 +174,9 @@ certificate. That is a purchase and an identity, not a piece of work.
 **cgo is off the table, so the keychain is awkward to reach at all.**
 `.goreleaser.yaml` sets `CGO_ENABLED=0` and cross-compiles darwin binaries on
 an ubuntu runner, so the Security framework is not linkable. What is left is
-shelling out to `/usr/bin/security`, which takes the secret on argv where other
-processes running as you can see it, or hand-rolled FFI that CI — also ubuntu —
-could never exercise.
+shelling out to `/usr/bin/security`, which takes the secret on argv where
+other processes running as you can see it, or hand-rolled FFI that CI, also
+ubuntu, could never exercise.
 
 **The daemon needs unattended reads, which undoes most of what the keychain is
 for.** `plbxd` injects without a human present, so any ACL that prompts is
@@ -185,14 +186,15 @@ encryption at rest and unavailability while the machine is locked. Real, but a
 good deal less than "the OS protects your keys" suggests.
 
 **Injection into HTTPS means intercepting it.** The headline case,
-`api.anthropic.com`, is CONNECT-tunnelled — the proxy copies bytes it cannot
+`api.anthropic.com`, is CONNECT-tunnelled: the proxy copies bytes it cannot
 read. Adding a header means terminating TLS: a plbx CA, leaf certificates
 minted per host, and then getting the sandbox to trust it. That last part is
 the expensive one. It needs a bind-mounted root, `update-ca-certificates` as
 root on every start, and `NODE_EXTRA_CA_CERTS`, `REQUESTS_CA_BUNDLE`,
 `CURL_CA_BUNDLE` and `GIT_SSL_CAINFO` besides, because node and python read
-their own bundles rather than the system store. It has to work against whatever
-`--image` was given. Almost none of it can be tested without a live runtime.
+their own bundles rather than the system store. It has to work against
+whatever `--image` was given. Almost none of it can be tested without a live
+runtime.
 
 And the fifth thing, which is why the phase was deferred rather than trimmed:
 **storage without injection does not address the threat.** A key resolved from
@@ -216,16 +218,16 @@ the sandbox against a host you have already allowed.
 - **the sandbox holds live credentials.** Anything running in it can read them
   out of its own environment. This is the gap the phase existed to close, and
   it is open.
-- **a key cannot be rotated.** `-e` lands in `Spec.Env`, and a spec is fixed at
-  create time. Changing a key means `plbx rm` and recreating the sandbox,
-  discarding everything it persists — which is the entire reason the sandbox is
+- **a key cannot be rotated.** `-e` lands in `Spec.Env`, and a spec is fixed
+  at create time. Changing a key means `plbx rm` and recreating the sandbox,
+  discarding everything it persists, which is the entire reason the sandbox is
   persistent.
 - **it is plaintext on disk, and stays there.** The store writes the spec as
   JSON under the state directory, and the runtime bakes it into the container.
   Revoking the key upstream removes it from neither.
 - **one copy per sandbox.** Five sandboxes are five places to update.
 - **no registry credentials at all.** Pulling from a private registry has no
-  mechanism, which is unrelated to any of the above — those are used host-side
+  mechanism, which is unrelated to any of the above: those are used host-side
   by the runner and never enter a sandbox.
 
 ### what would let us revisit
@@ -234,16 +236,15 @@ A **Developer ID certificate**, which unblocks the keychain, and with it the
 `macOS signing & notarization` entry in the plan's deferred list. Everything
 else follows from having somewhere trustworthy to put a secret.
 
-Two things worth knowing before starting again, so the next attempt does not
-re-derive them:
+Two things the next attempt should not have to re-derive:
 
 **A useful subset lands well before interception does.** Resolving a secret at
-attach time and passing it in `ExecRequest.Env` — rather than freezing it into
-the spec at create — fixes rotation, the plaintext on disk, and the one-copy-
+attach time and passing it in `ExecRequest.Env`, rather than freezing it into
+the spec at create, fixes rotation, the plaintext on disk, and the one-copy-
 per-sandbox problem, with no CA and no changes to the images. It makes no
-security claim, and should not be sold as one, but it removes three of the five
-costs above. Registry pull credentials are entirely unblocked by it, since they
-never reach a sandbox in the first place.
+security claim, and should not be sold as one, but it removes three of the
+five costs above. Registry pull credentials are entirely unblocked by it,
+since they never reach a sandbox in the first place.
 
 **Base-URL redirection is much cheaper than interception, for the model APIs
 specifically.** Handing the sandbox `ANTHROPIC_BASE_URL` pointed at the relay

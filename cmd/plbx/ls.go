@@ -24,8 +24,8 @@ func newLsCmd(g *globals) *cobra.Command {
 		Short:   "list sandboxes",
 		Long: "List every sandbox, running or not, with the ports it publishes and the " +
 			"workspace it was made for.\n\n" +
-			"A stopped sandbox still holds everything you installed in it. Removing one " +
-			"is the only thing that discards that.",
+			"A stopped sandbox still holds everything you installed in it. Only " +
+			"`plbx rm` discards that.",
 		Example: "  plbx ls\n" +
 			"  plbx ls --quiet\n" +
 			"  plbx ls --json",

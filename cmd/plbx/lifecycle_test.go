@@ -160,7 +160,7 @@ func TestInspectJSONRoundTrips(t *testing.T) {
 	if err != nil {
 		t.Fatalf("inspect --json: %v", err)
 	}
-	var sb api.Sandbox
+	var sb api.RedactedSandbox
 	if err := json.Unmarshal([]byte(out), &sb); err != nil {
 		t.Fatalf("output is not valid JSON: %v\n%s", err, out)
 	}
@@ -204,9 +204,8 @@ func TestCpRefusesACopyNamingNoSandbox(t *testing.T) {
 	}
 }
 
-// TestHelpNamesEveryAgent covers what `plbx agents` used to: the list is only
-// useful where AGENT is typed, so it lives in the help of the two commands
-// that take one.
+// TestHelpNamesEveryAgent holds the agent list where AGENT is typed: the help
+// of the two commands that take one, which is the only place it is useful.
 func TestHelpNamesEveryAgent(t *testing.T) {
 	for _, cmd := range []string{"create", "run"} {
 		out, err := runCLI(t, api.NewFake(), cmd, "--help")
@@ -231,18 +230,20 @@ func TestCutEnv(t *testing.T) {
 		value string
 		ok    bool
 	}{
-		{"FOO=bar", "FOO", "bar", true},
-		{"FOO=", "FOO", "", true},
-		{"FOO=a=b", "FOO", "a=b", true},
-		{"=bar", "", "", false},
-		{"FOO", "", "", false},
+		{in: "FOO=bar", name: "FOO", value: "bar", ok: true},
+		{in: "FOO=", name: "FOO", value: "", ok: true},
+		{in: "FOO=a=b", name: "FOO", value: "a=b", ok: true},
+		{in: "=bar", name: "", value: "", ok: false},
+		{in: "FOO", name: "", value: "", ok: false},
 	}
 	for _, tc := range cases {
-		name, value, ok := cutEnv(tc.in)
-		if name != tc.name || value != tc.value || ok != tc.ok {
-			t.Errorf("cutEnv(%q) = %q, %q, %v; want %q, %q, %v",
-				tc.in, name, value, ok, tc.name, tc.value, tc.ok)
-		}
+		t.Run(tc.in, func(t *testing.T) {
+			name, value, ok := cutEnv(tc.in)
+			if name != tc.name || value != tc.value || ok != tc.ok {
+				t.Errorf("cutEnv(%q) = %q, %q, %v; want %q, %q, %v",
+					tc.in, name, value, ok, tc.name, tc.value, tc.ok)
+			}
+		})
 	}
 }
 

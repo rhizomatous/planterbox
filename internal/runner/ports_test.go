@@ -51,7 +51,7 @@ func TestPortsInvocationRunsTheRelayImage(t *testing.T) {
 }
 
 // Every sandbox is alone on its own network, whether or not egress control is
-// on. Only the isolation is conditional — the network itself is what lets the
+// on. Only the isolation is conditional: the network itself is what lets the
 // forwarder find the sandbox by name.
 func TestEverySandboxGetsItsOwnNetwork(t *testing.T) {
 	spec := api.Spec{Name: "demo", Image: "base:1"}
@@ -61,8 +61,8 @@ func TestEverySandboxGetsItsOwnNetwork(t *testing.T) {
 		o        *OCI
 		internal bool
 	}{
-		{"with egress control", portsOCI(&scriptedExecutor{}), true},
-		{"without", testOCI(), false},
+		{name: "with egress control", o: portsOCI(&scriptedExecutor{}), internal: true},
+		{name: "without", o: testOCI(), internal: false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			if net, ok := argsAfter(tc.o.CreateInvocation(spec).Args, "--network"); !ok || net != SandboxNetwork("demo") {
@@ -126,7 +126,7 @@ func TestPublishNoPortsOnlyClears(t *testing.T) {
 }
 
 // The forwarder sits on the sandbox's network, so it has to come off before
-// that network can be removed — the same ordering the relay needs.
+// that network can be removed, the same ordering the relay needs.
 func TestRemoveDropsTheForwarderBeforeTheNetwork(t *testing.T) {
 	exec := &scriptedExecutor{}
 	if err := portsOCI(exec).Remove(context.Background(), "plbx-demo", "demo", false); err != nil {

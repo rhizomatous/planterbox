@@ -20,8 +20,8 @@ func TestRootPerPlatformDefaults(t *testing.T) {
 		goos string
 		want string
 	}{
-		{"linux", filepath.Join("/home/viv", ".local", "share", "planterbox", "sandboxes")},
-		{"darwin", filepath.Join("/home/viv", "Library", "Application Support", "planterbox", "sandboxes")},
+		{goos: "linux", want: filepath.Join("/home/viv", ".local", "share", "planterbox", "sandboxes")},
+		{goos: "darwin", want: filepath.Join("/home/viv", "Library", "Application Support", "planterbox", "sandboxes")},
 	}
 	for _, tc := range cases {
 		t.Run(tc.goos, func(t *testing.T) {

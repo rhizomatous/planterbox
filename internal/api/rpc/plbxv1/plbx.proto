@@ -30,7 +30,7 @@ service Sandboxes {
 
   // Exec runs a command in a sandbox with its stdio streamed both ways. The
   // client's first frame must be a Start; the daemon owns the session, which
-  // is what lets it hold a pty and what the SSH gateway will attach to.
+  // is what lets it hold a pty.
   rpc Exec(stream ExecClientFrame) returns (stream ExecServerFrame);
 
   rpc GetPolicy(GetPolicyRequest) returns (GetPolicyResponse);

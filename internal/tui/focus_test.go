@@ -7,9 +7,9 @@ import (
 	"github.com/rhizomatous/planterbox/internal/api"
 )
 
-// TestCreateMovesTheCursorToWhatItMade covers the papercut: you fill in a
-// form, and the selection is still on whatever you had highlighted before —
-// so the next key acts on the wrong sandbox.
+// TestCreateMovesTheCursorToWhatItMade keeps the next keypress off the wrong
+// sandbox: a selection left where it was before the form opened acts on
+// whatever happened to be highlighted.
 func TestCreateMovesTheCursorToWhatItMade(t *testing.T) {
 	m := loaded(t, api.NewFake(), sandbox("alpha", api.StatusRunning))
 	if m.cursor != 0 {

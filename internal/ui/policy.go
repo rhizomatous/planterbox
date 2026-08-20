@@ -32,9 +32,9 @@ func RenderPolicy(p proxy.Policy) string {
 		return strings.Join(append(lines, "", "  "+Faint.Render("no rules of your own; the preset decides everything")), "\n")
 	}
 
-	// allows and denies read as two lists rather than one interleaved one,
-	// because a deny beats an allow however they were ordered — showing them
-	// mixed would imply a precedence that does not exist.
+	// allows and denies read as two lists rather than one interleaved one: a
+	// deny beats an allow however they were ordered, and showing them mixed
+	// would imply a precedence that does not exist.
 	allowed, denied := splitRules(p.Rules)
 	lines = append(lines, "")
 	if len(allowed) > 0 {

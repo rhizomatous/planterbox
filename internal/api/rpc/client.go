@@ -44,9 +44,9 @@ func NewClient(conn *grpc.ClientConn) *Client {
 // Close releases the connection to the daemon. It does not stop the daemon.
 func (c *Client) Close() error { return c.conn.Close() }
 
-// Info reports what the daemon is. It is not part of [api.Service] — the
-// in-process implementation has no daemon to describe — so it lives here,
-// where the only callers that can ask are the ones talking to one.
+// Info reports what the daemon is. It is not part of [api.Service], since the
+// in-process implementation has no daemon to describe, so it lives here where
+// the only callers that can ask are the ones talking to one.
 func (c *Client) Info(ctx context.Context) (api.DaemonInfo, error) {
 	resp, err := c.svc.Info(ctx, &plbxv1.InfoRequest{})
 	if err != nil {

@@ -16,17 +16,17 @@ import (
 
 // TestSentenceCaseLeavesTheRestOfTheWordAlone guards the reason this exists at
 // all: fang's own transform title-cases the first word, and Unicode title
-// casing treats a hyphen as a word boundary — so a hyphenated sandbox name
-// came back as a name nobody has.
+// casing treats a hyphen as a word boundary, so a hyphenated sandbox name
+// comes back as a name nobody has.
 func TestSentenceCaseLeavesTheRestOfTheWordAlone(t *testing.T) {
 	for _, tc := range []struct{ in, want string }{
-		{"foo-bar: sandbox not found", "Foo-bar: sandbox not found"},
-		{"a-b-c-d: nope", "A-b-c-d: nope"},
-		{"plain: sandbox not found", "Plain: sandbox not found"},
-		{"Already capital", "Already capital"},
-		{"ünicode leads", "Ünicode leads"},
-		{"", ""},
-		{"x", "X"},
+		{in: "foo-bar: sandbox not found", want: "Foo-bar: sandbox not found"},
+		{in: "a-b-c-d: nope", want: "A-b-c-d: nope"},
+		{in: "plain: sandbox not found", want: "Plain: sandbox not found"},
+		{in: "Already capital", want: "Already capital"},
+		{in: "ünicode leads", want: "Ünicode leads"},
+		{in: "", want: ""},
+		{in: "x", want: "X"},
 	} {
 		if got := sentenceCase(tc.in); got != tc.want {
 			t.Errorf("sentenceCase(%q) = %q, want %q", tc.in, got, tc.want)
@@ -47,7 +47,7 @@ var initialisms = map[string]bool{
 }
 
 // TestDescriptionsSurviveFangsTitleCasing checks every string fang renders
-// through its FlagDescription style — command Short lines and flag usage.
+// through its FlagDescription style: command Short lines and flag usage.
 // That style title-cases the first word and fang exposes no way to unset it
 // for help output, so the strings have to be written around it: an initialism
 // in the leading position comes back lower-cased after its first letter.

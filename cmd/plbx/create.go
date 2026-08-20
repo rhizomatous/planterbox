@@ -19,7 +19,7 @@ func newCreateCmd(g *globals) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create [AGENT] [PATH...]",
 		Short: "create a sandbox without starting it",
-		Long: "Create a sandbox for the given agent over the given workspaces, without " +
+		Long: "Create a sandbox for an agent over one or more workspaces, without " +
 			"starting it. " + agentList() + " The workspace defaults to the current " +
 			"directory.\n\n" +
 			"The first workspace is the primary: it becomes the sandbox's working " +

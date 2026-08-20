@@ -1,10 +1,9 @@
 // Package doctor answers "is this installation going to work", by checking the
 // things plbx needs that live outside any one sandbox.
 //
-// It sits below the presentation layer rather than in it because the checks
-// reach the container runtime and the store directly, which `cmd/plbx` is not
-// allowed to do — and rightly, since neither is a sandbox operation. What the
-// CLI gets back is a list of findings to render.
+// It sits below the presentation layer because the checks reach the container
+// runtime and the store directly, which `cmd/plbx` is not allowed to do. What
+// the CLI gets back is a list of findings to render.
 package doctor
 
 import (
@@ -107,7 +106,7 @@ func checkVersions(cli, daemonVersion string) Check {
 }
 
 // checkStateDir proves the sandbox records can actually be written, rather
-// than that a directory exists — a read-only or wrongly-owned one looks
+// than that a directory exists: a read-only or wrongly-owned one looks
 // entirely healthy until the first create.
 func checkStateDir() Check {
 	env, err := store.HostEnv(runtime.GOOS)

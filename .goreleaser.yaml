@@ -1,4 +1,4 @@
-# goreleaser config — https://goreleaser.com
+# goreleaser config: https://goreleaser.com
 # build & publish plbx for macOS and Linux on tag push.
 # test locally without publishing: `make release-check`.
 version: 2
@@ -87,10 +87,10 @@ homebrew_casks:
     # publish only when a tap token is configured; otherwise skip so a
     # release never fails for a missing secret.
     #
-    # `index .Env` rather than `.Env.HOMEBREW_TAP_TOKEN`: the latter errors on a
-    # variable that is absent rather than reading as empty, so a local
-    # `make release-check` failed here on a machine with no tap token — which is
-    # every machine, that being the point of a dry run.
+    # `index .Env` rather than `.Env.HOMEBREW_TAP_TOKEN`: the latter errors on
+    # a variable that is absent rather than reading as empty, which fails a
+    # local `make release-check` on any machine with no tap token. That is every
+    # machine, it being the point of a dry run.
     skip_upload: '{{ if index .Env "HOMEBREW_TAP_TOKEN" }}false{{ else }}true{{ end }}'
     homepage: https://github.com/rhizomatous/planterbox
     description: a Nix-based sandbox for running coding agents in isolated containers

@@ -469,9 +469,9 @@ func TestEgressEnvOverridesWhateverTheSpecAsksFor(t *testing.T) {
 
 func TestWithoutEgressNothingIsRestricted(t *testing.T) {
 	// --dry-run and the in-process path have no daemon holding a proxy. The
-	// sandbox still gets a network of its own — that is what its port
-	// forwarder resolves it on — but nothing about it is restricted, and
-	// there is no proxy to point the sandbox at.
+	// sandbox still gets a network of its own, which is what its port
+	// forwarder resolves it on, but nothing about it is restricted and there
+	// is no proxy to point the sandbox at.
 	o := testOCI()
 	inv := o.CreateInvocation(api.Spec{Name: "demo", Image: "base:1"})
 
@@ -531,7 +531,7 @@ func TestRemoveDropsTheNetworkToo(t *testing.T) {
 func TestRemoveDetachesTheRelayBeforeDroppingTheNetwork(t *testing.T) {
 	// the relay is attached to every sandbox's network, and a runtime refuses
 	// to remove a network that still has endpoints. Without the detach, every
-	// removal fails — and fails after the container is already gone, leaving a
+	// removal fails, and fails after the container is already gone, leaving a
 	// record for a sandbox that no longer exists.
 	e := &scriptedExecutor{}
 	if err := testEgressOCI(WithExecutor(e)).Remove(context.Background(), "plbx-demo", "demo", false); err != nil {
@@ -561,12 +561,12 @@ func TestRemoveDetachesTheRelayBeforeDroppingTheNetwork(t *testing.T) {
 
 // A sandbox's network is named after the sandbox, but its container id is a
 // name only until the first start and a hash forever after. Deriving one from
-// the other left the relay attaching to a network that did not exist, so every
-// start after the first one failed.
+// the other attaches the relay to a network that does not exist, and every
+// start after the first fails.
 func TestStartAttachesTheRelayBySandboxName(t *testing.T) {
 	for _, tc := range []struct{ name, id string }{
-		{"before the first start, when the id is the container's name", "plbx-demo"},
-		{"after it, when the runtime has replaced that with a hash", "9f8c1b2a3d4e5f60718293a4b5c6d7e8f9012345678990abcdef0123456789ab"},
+		{name: "before the first start, when the id is the container's name", id: "plbx-demo"},
+		{name: "after it, when the runtime has replaced that with a hash", id: "9f8c1b2a3d4e5f60718293a4b5c6d7e8f9012345678990abcdef0123456789ab"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			exec := &scriptedExecutor{out: []byte("true\n")}
@@ -605,7 +605,7 @@ func TestStartAddressesTheContainerByItsRuntimeHandle(t *testing.T) {
 }
 
 // Clone mode's whole promise is that nothing the agent does reaches your
-// files, so every workspace mounts read-only — not just the one it clones.
+// files, so every workspace mounts read-only, not just the one it clones.
 func TestCloneModeMountsEveryWorkspaceReadOnly(t *testing.T) {
 	spec := api.Spec{
 		Name:  "demo",

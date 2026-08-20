@@ -31,7 +31,10 @@ func newDaemonStartCmd(g *globals) *cobra.Command {
 	return &cobra.Command{
 		Use:   "start",
 		Short: "start the daemon, if it isn't already running",
-		Args:  cobra.NoArgs,
+		Long: "Start the daemon, and report its process id. One already running is " +
+			"left alone.\n\n" +
+			"You rarely need this. Any command that needs a daemon starts one.",
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
 			env := daemon.HostEnv(runtime.GOOS)
@@ -68,7 +71,7 @@ func newDaemonStopCmd() *cobra.Command {
 func newDaemonRestartCmd(g *globals) *cobra.Command {
 	return &cobra.Command{
 		Use:   "restart",
-		Short: "stop the daemon and start it again",
+		Short: "restart the daemon, which is what picks up an upgrade",
 		Long: "Stop the daemon and start a new one. Sandboxes are containers in their " +
 			"own right and keep running throughout.\n\n" +
 			"This is what picks up an upgrade: plbx starts the daemon on demand, and " +
@@ -93,9 +96,9 @@ func newDaemonRestartCmd(g *globals) *cobra.Command {
 	}
 }
 
-// daemonVersionLabel names the build a daemon reports, or says plainly that it
-// could not say — which only a daemon predating the call can do, and is
-// therefore an answer about its age.
+// daemonVersionLabel names the build a daemon reports, or says it could not
+// say. Only a daemon predating the call can fail to answer, so that silence is
+// itself an answer about its age.
 func daemonVersionLabel(v string) string {
 	if v == "" {
 		return "unknown (too old to say)"
@@ -120,14 +123,20 @@ func versionSkew(daemonVersion string) string {
 			"plbx daemon restart picks up the current one."
 	}
 	return "plbx is " + cli + " and the daemon is " + daemonVersion +
-		". They will disagree wherever the two builds do — plbx daemon restart fixes it."
+		". They will disagree wherever the two builds do. plbx daemon restart fixes it."
 }
 
 func newDaemonStatusCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "status",
 		Short: "report whether the daemon is running, and where",
-		Args:  cobra.NoArgs,
+		Long: "Report whether a daemon is running, and if so its build, process id, " +
+			"and uptime. The socket and log path are printed either way, so there is " +
+			"somewhere to look when it is not running.\n\n" +
+			"A daemon on a different build from this binary is called out here: plbx " +
+			"starts one on demand, and it keeps the build it was started from until " +
+			"`plbx daemon restart` replaces it.",
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
 			env := daemon.HostEnv(runtime.GOOS)

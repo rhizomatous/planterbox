@@ -35,9 +35,9 @@ func TestRedactNamesTheEnvironmentAndKeepsEverythingElse(t *testing.T) {
 		}
 	}
 	// names stay, sorted, so a reader can still see what was set
-	for _, want := range []string{`"ANTHROPIC_API_KEY"`, `"B_TOKEN"`, `"demo"`, `"base:1"`, `"running"`, `"3000"`} {
-		if !strings.Contains(got, strings.Trim(want, `"`)) {
-			t.Errorf("redaction lost %s: %s", want, got)
+	for _, want := range []string{"ANTHROPIC_API_KEY", "B_TOKEN", "demo", "base:1", "running", "3000"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("redaction lost %q: %s", want, got)
 		}
 	}
 	if i, j := strings.Index(got, "ANTHROPIC_API_KEY"), strings.Index(got, "B_TOKEN"); i > j {

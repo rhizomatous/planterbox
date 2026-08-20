@@ -14,7 +14,7 @@ import (
 // user attaches to, so attaching and coming back is one continuous loop rather
 // than a trip back to the shell.
 //
-// Without a terminal to draw on — piped, redirected, or run from a script — it
+// Without a terminal to draw on (piped, redirected, or run from a script) it
 // prints the listing instead. `plbx | grep` doing something useful beats it
 // failing on a missing TTY.
 func runDashboard(cmd *cobra.Command, g *globals) error {

@@ -29,7 +29,7 @@ type Fake struct {
 
 var _ Service = (*Fake)(nil)
 
-// NewFake returns an empty fake service.
+// NewFake returns a fake holding the given sandboxes.
 func NewFake(sandboxes ...Sandbox) *Fake {
 	return &Fake{Sandboxes: sandboxes}
 }

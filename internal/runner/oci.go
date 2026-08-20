@@ -103,9 +103,9 @@ func (o *OCI) Create(ctx context.Context, spec api.Spec) (ID, error) {
 // with no way out and nothing said about why.
 //
 // The sandbox's name is a parameter rather than something read back out of id.
-// id is whatever the runtime last called the container, which is the name
-// before its first start and a hash after it — while the network, like the
-// home volume, is named after the sandbox and stays that way.
+// id is whatever the runtime last called the container: the name before its
+// first start, a hash after it. The network, like the home volume, is named
+// after the sandbox and stays that way.
 func (o *OCI) Start(ctx context.Context, id ID, sandbox string) error {
 	if o.egressUpstream != "" {
 		if err := o.EnsureRelay(ctx, sandbox, o.relayImage, o.egressUpstream); err != nil {
@@ -133,8 +133,8 @@ func (o *OCI) Stop(ctx context.Context, id ID) error {
 //
 // The volume's name comes from the sandbox's, never from id. Once a sandbox
 // has been started, the id on record is the runtime's own hash, and a volume
-// name derived from that names nothing — the removal then succeeds against
-// something that does not exist and the real volume is left behind.
+// name derived from that names nothing. The removal then succeeds against
+// something that does not exist, and the real volume is left behind.
 func (o *OCI) Remove(ctx context.Context, id ID, sandbox string, force bool) error {
 	args := []string{"rm", "--volumes"}
 	if force {
@@ -205,10 +205,9 @@ const statsFormat = "{{.CPUPerc}}\t{{.MemUsage}}"
 
 // PullImage fetches image unless the runtime already has it.
 //
-// `create` pulls implicitly, which is why nothing here did before — but it
-// does it with its output buffered, so a first run sat silent for however
-// long a multi-gigabyte agent image takes. Doing it as its own step is what
-// gives that wait something to show.
+// `create` pulls implicitly, but with its output buffered, so a first run
+// sits silent for however long a multi-gigabyte agent image takes. Pulling as
+// its own step is what gives that wait something to show.
 func (o *OCI) PullImage(ctx context.Context, image string) (<-chan string, error) {
 	if _, err := o.exec.Output(ctx, o.ImageInspectInvocation(image)); err == nil {
 		done := make(chan string)

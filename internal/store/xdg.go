@@ -29,7 +29,7 @@ func HostEnv(goos string) (Env, error) {
 // Root resolves where sandbox records live.
 //
 // PLBX_STATE_DIR wins outright. Otherwise XDG_DATA_HOME is honored on every
-// platform — Linux by convention, macOS because anyone who sets it means it —
+// platform (Linux by convention, macOS because anyone who sets it means it),
 // falling back to ~/Library/Application Support on macOS and ~/.local/share
 // elsewhere.
 func Root(env Env) (string, error) {

@@ -40,7 +40,7 @@ type Model struct {
 	// connections is what the proxy has decided, newest last.
 	connections []proxy.Entry
 	// connCursor is the selected decision, and connSeq the newest one already
-	// seen — the feed is polled, so it asks only for what is new.
+	// seen: the feed is polled, so it asks only for what is new.
 	connCursor int
 	// connFilter narrows the network panel to the selected sandbox. Off by
 	// default: the whole point of the panel is noticing a denial you were not
@@ -58,9 +58,9 @@ type Model struct {
 	pending string
 	// create is the open new-sandbox form, or nil when the list has focus.
 	create *createForm
-	// building is the sandbox a create is working on. It has no record yet,
-	// so it cannot be marked in the listing the way a running action on an
-	// existing sandbox is — and without it the form simply closes and
+	// building is the sandbox a create is working on. It has no record yet, so
+	// it cannot be marked in the listing the way a running action on an
+	// existing sandbox is, and without it the form closes onto a list where
 	// nothing happens for as long as the work takes.
 	building *api.Spec
 	// buildStep is what that work is doing, since fetching an image and

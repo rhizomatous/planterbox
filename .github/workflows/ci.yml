@@ -4,7 +4,7 @@ name: CI
 #   - use `pull_request`, so runs from forks get a read-only token and no
 #     access to secrets.
 #   - use least privilege for granted perms.
-#   - (in GH settings) fork PRs are held for maintainer approval before any 
+#   - (in GH settings) fork PRs are held for maintainer approval before any
 #     code runs.
 #   - (in GH settings) require actions to be pinned to a commit SHA
 on:

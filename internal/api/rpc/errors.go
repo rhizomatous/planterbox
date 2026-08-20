@@ -19,7 +19,7 @@ import (
 // claim about gRPC semantics; nothing outside this package reads them.
 //
 // Without this, every error would arrive as an opaque string and the checks
-// that drive behaviour — the TUI's ErrRunning guard, create's ErrExists — would
+// that drive behaviour (the TUI's ErrRunning guard, create's ErrExists) would
 // silently stop matching.
 var sentinels = []struct {
 	err  error

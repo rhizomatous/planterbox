@@ -54,11 +54,10 @@ func (hostExecutor) Output(ctx context.Context, inv Invocation) ([]byte, error) 
 // Session takes one of two shapes, decided by what it is handed.
 //
 // When stdin is already this process's terminal, the child inherits it and the
-// runtime talks to a real tty with nothing copied in between — the in-process
-// CLI's case, and byte-for-byte what plbx did before a daemon existed. When it
-// isn't, and a terminal was asked for, one is allocated here and pumped: the
-// daemon's case, where the terminal is on the far end of a socket and the
-// runtime would otherwise refuse `-t` outright.
+// runtime talks to a real tty with nothing copied in between: the in-process
+// CLI's case. When it isn't, and a terminal was asked for, one is allocated
+// here and pumped: the daemon's case, where the terminal is on the far end of
+// a socket and the runtime would otherwise refuse `-t` outright.
 func (hostExecutor) Session(ctx context.Context, inv Invocation, streams api.Streams, tty bool) (int, error) {
 	cmd := exec.CommandContext(ctx, inv.Path, inv.Args...)
 
@@ -81,10 +80,10 @@ func (hostExecutor) Session(ctx context.Context, inv Invocation, streams api.Str
 // exec.Cmd.Wait waits for its own stdin-copying goroutine whenever Stdin is
 // not an *os.File, and through the daemon it never is: it is the read end of a
 // pipe fed by the client's socket, which stays open as long as the client's
-// terminal does. A terminal sends no EOF, so the command would exit, the
-// copier would stay blocked on a read, and Wait would never return —
-// `plbx exec --no-tty` from a real terminal hung exactly there. Owning the
-// copy leaves Wait waiting only for the process.
+// terminal does. A terminal sends no EOF, so the command exits, the copier
+// stays blocked on a read, and Wait never returns: `plbx exec --no-tty` from
+// a real terminal hangs exactly there. Owning the copy leaves Wait waiting
+// only for the process.
 func pipedStdinSession(cmd *exec.Cmd, inv Invocation, stdin io.Reader) (int, error) {
 	w, err := cmd.StdinPipe()
 	if err != nil {
@@ -114,7 +113,7 @@ func ptySession(cmd *exec.Cmd, inv Invocation, streams api.Streams) (int, error)
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true, Setctty: true}
 
 	// size the terminal before the child exists. A pty opens at 0x0, and a
-	// full-screen program reads its dimensions once at startup — arriving a
+	// full-screen program reads its dimensions once at startup, so arriving a
 	// moment later leaves it laid out against nothing.
 	if size, ok := pendingSize(streams.Resize); ok {
 		_ = pty.Setsize(ptmx, &pty.Winsize{Rows: size.Rows, Cols: size.Cols})

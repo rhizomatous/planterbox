@@ -14,7 +14,8 @@ func TestVersionSkewSpeaksUpOnlyWhenTheBuildsDisagree(t *testing.T) {
 		t.Errorf("a matching daemon should say nothing, got %q", got)
 	}
 
-	// a daemon too old to answer at all: the case that cost an afternoon.
+	// a daemon too old to answer at all still has to be named and pointed
+	// at the fix.
 	old := versionSkew("")
 	if !strings.Contains(old, "predates") || !strings.Contains(old, "daemon restart") {
 		t.Errorf("an unanswering daemon should be called out and pointed at the fix, got %q", old)

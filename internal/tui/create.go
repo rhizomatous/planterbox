@@ -81,8 +81,8 @@ func (c *createForm) nameDescription() string {
 }
 
 // agentOptions offers each agent by the name it calls itself, and yields the
-// slug the rest of plbx uses. A list of four slugs is fine once you know them
-// and no help at all before.
+// slug the rest of plbx uses. A slug alone means nothing to someone who has
+// not used plbx before.
 func agentOptions() []huh.Option[string] {
 	agents := api.Agents()
 	options := make([]huh.Option[string], 0, len(agents))

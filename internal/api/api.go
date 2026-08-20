@@ -19,28 +19,22 @@ import (
 
 // sentinel errors callers are expected to match with errors.Is.
 var (
-	// ErrNotFound means no sandbox matched the given reference.
-	ErrNotFound = errors.New("sandbox not found")
-	// ErrExists means a sandbox already claims that name.
-	ErrExists = errors.New("sandbox already exists")
-	// ErrRunning means the operation refused to act on a live sandbox.
-	ErrRunning = errors.New("sandbox is running")
-	// ErrNotImplemented marks surface that is declared but not yet built.
+	ErrNotFound       = errors.New("sandbox not found")
+	ErrExists         = errors.New("sandbox already exists")
+	ErrRunning        = errors.New("sandbox is running")
 	ErrNotImplemented = errors.New("not implemented")
 	// ErrNoPolicy means no egress policy has been chosen yet, which is how a
 	// first run knows to ask.
 	ErrNoPolicy = errors.New("no network policy has been set")
-	// ErrRemoteNotAdded means a clone-mode sandbox was created but the remote
-	// pointing at it could not be written to your repository. The sandbox
-	// exists and works; the shortcut for fetching from it does not.
+	// ErrRemoteNotAdded is its own sentinel because the sandbox exists and
+	// works; what failed is the remote your repository fetches from.
 	ErrRemoteNotAdded = errors.New("could not add the sandbox as a git remote")
-	// ErrCloneFailed means a clone-mode sandbox could not make its clone. It
-	// is separate because the sandbox is running and usable; what is missing
-	// is the copy the agent was meant to work in.
+	// ErrCloneFailed is its own sentinel because the sandbox is running and
+	// usable; what is missing is the copy the agent was meant to work in.
 	ErrCloneFailed = errors.New("could not make the sandbox's clone")
-	// ErrPortsUnavailable means a sandbox's ports could not be published,
-	// usually because the host already has something on one of them. It is
-	// separate because a start that hits it has still started the sandbox.
+	// ErrPortsUnavailable is its own sentinel because a start that hits it has
+	// still started the sandbox. Usually the host already holds one of the
+	// ports.
 	ErrPortsUnavailable = errors.New("ports could not be published")
 )
 
@@ -81,9 +75,8 @@ type Service interface {
 	// line at a time and closing when it is done. An image already present
 	// yields nothing at all, because nothing has to happen.
 	//
-	// Separate from Create because it is the slow half and the only half with
-	// anything to report: a first run waits minutes here and no time at all
-	// in the step that follows.
+	// Separate from Create because it is the slow half, and the only half
+	// with anything to report.
 	PullImage(ctx context.Context, image string) (<-chan string, error)
 
 	// Connections returns the proxy's decisions recorded after since. Passing
@@ -130,8 +123,8 @@ func (r Ref) String() string {
 //
 // Everything in it is an argument to the runtime's create: changing any of it
 // means building a different container, which costs everything the old one held
-// outside its home volume. Ports are deliberately absent — they are not part of
-// the container at all. See [Sandbox.Ports].
+// outside its home volume. Ports are deliberately absent: they are not part of
+// the container. See [Sandbox.Ports].
 type Spec struct {
 	Name       string            `json:"name"`
 	Agent      string            `json:"agent,omitempty"`
@@ -140,10 +133,9 @@ type Spec struct {
 	Resources  Resources         `json:"resources,omitzero"`
 	Env        map[string]string `json:"env,omitempty"`
 	// Clone gives the sandbox a private clone of the primary workspace rather
-	// than write access to it. The host repository is mounted read-only and
-	// the agent works in a copy, so nothing it does can reach your tree — not
-	// a stray edit, and not a .git/hooks script that runs on your machine the
-	// next time you commit.
+	// than write access to it. The host repository is mounted read-only, so
+	// nothing the agent does reaches your tree: not a stray edit, not a
+	// .git/hooks script that would run on your machine later.
 	Clone     bool      `json:"clone,omitempty"`
 	CreatedAt time.Time `json:"created_at"`
 }
@@ -151,10 +143,8 @@ type Spec struct {
 // CloneDir is where a clone-mode sandbox keeps its copy of the primary
 // workspace.
 //
-// Under the home volume, so it persists, and not at the workspace's own path,
-// which the read-only mount of the original occupies. Clone mode gives up
-// paths that resolve identically on both sides; that is the cost of the
-// original being unreachable.
+// Under the home volume so it persists, and not at the workspace's own path,
+// which the read-only mount of the original occupies.
 func (s Spec) CloneDir() string {
 	primary := s.Primary().Host
 	if primary == "" {
@@ -184,9 +174,9 @@ func (s Spec) Primary() Workspace {
 // path it has on the host, so paths in errors and build output resolve on both
 // sides.
 //
-// A sandbox can have several workspaces. The first is the primary: it becomes the
-// sandbox's working directory, and it is the path reattach matches on. The rest
-// are along for the ride, and are usually read-only.
+// A sandbox can have several workspaces. The first is the primary: it becomes
+// the sandbox's working directory, and it is the path reattach matches on. The
+// rest are extras, usually read-only.
 type Workspace struct {
 	Host     string `json:"host"`
 	ReadOnly bool   `json:"read_only,omitempty"`
@@ -204,9 +194,8 @@ type Port struct {
 	Sandbox int    `json:"sandbox"`
 	Proto   string `json:"proto,omitempty"` // "tcp", which is also the default
 	// Bind is the host address to publish on. Empty means every interface,
-	// which is what a runtime does by default and what someone publishing a
-	// dev server usually wants. "127.0.0.1" keeps it on this machine — which
-	// anything unauthenticated needs, and plbx's own git-daemon uses.
+	// the runtime's own default. "127.0.0.1" keeps it on this machine, which
+	// is what anything unauthenticated needs; plbx's git-daemon uses it.
 	Bind string `json:"bind,omitempty"`
 }
 
@@ -222,8 +211,7 @@ func (p Port) Address() string {
 	return s
 }
 
-// State is what plbx observed about a sandbox. It is derived from the
-// runtime.
+// State is what plbx last observed about a sandbox, derived from the runtime.
 type State struct {
 	Status      Status    `json:"status"`
 	ContainerID string    `json:"container_id,omitempty"`
@@ -256,10 +244,10 @@ type Sandbox struct {
 
 // DaemonInfo is what a running daemon reports about itself.
 //
-// The version matters because plbx autostarts plbxd and the daemon then
-// outlives the upgrade that replaced it — so a CLI talking to a daemon from
-// the previous build is what installing a new version normally produces, and
-// nothing else about it looks wrong.
+// The version matters because plbx autostarts plbxd, and the daemon outlives
+// the upgrade that replaced it. A CLI talking to a daemon from the previous
+// build is the normal result of installing a new version, and nothing else
+// about it looks wrong.
 type DaemonInfo struct {
 	Version   string    `json:"version"`
 	StartedAt time.Time `json:"started_at,omitzero"`
@@ -309,7 +297,7 @@ type Stats struct {
 }
 
 // MemoryPercent is memory use as a share of the limit, or 0 when no limit is
-// known — which is what an unlimited sandbox reports.
+// known, which is what an unlimited sandbox reports.
 func (s Stats) MemoryPercent() float64 {
 	if s.MemoryLimit <= 0 {
 		return 0
@@ -328,7 +316,7 @@ type Path struct {
 func (p Path) InSandbox() bool { return p.Sandbox != "" }
 
 // CopyRef picks the sandbox a copy runs against. Exactly one side may name one:
-// two sandbox paths have no host leg to route through, and neither is a
+// two sandbox paths have no host leg to route through, and zero is a
 // host-to-host copy that has nothing to do with plbx.
 func CopyRef(src, dst Path) (Ref, error) {
 	switch {

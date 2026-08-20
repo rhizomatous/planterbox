@@ -85,9 +85,9 @@ func TestSessionCarriesStdinToTheCommand(t *testing.T) {
 func TestSessionCarriesStdinThroughAPTY(t *testing.T) {
 	// the command decides when it is done, not the input running out: a pty
 	// has no EOF to deliver, because its slave stays open after the reader
-	// feeding the master is spent. `cat` here would wait forever, and so would
-	// it on a real terminal — which is exactly why the CLI only asks for a tty
-	// when stdin actually is one.
+	// feeding the master is spent. `cat` here would wait forever, as it would
+	// on a real terminal, which is why the CLI only asks for a tty when stdin
+	// actually is one.
 	out, _ := session(t, shell("read line; echo got:$line"),
 		api.Streams{Stdin: strings.NewReader("typed in\n")}, true)
 	if !strings.Contains(out, "got:typed in") {
@@ -109,13 +109,20 @@ func TestSessionKeepsStderrSeparateWithoutATTY(t *testing.T) {
 }
 
 func TestSessionReportsTheCommandsExitCode(t *testing.T) {
-	for _, tty := range []bool{false, true} {
-		// a command exiting non-zero is its own answer, not a plbx failure,
-		// and that has to hold on both paths.
-		_, code := session(t, shell("exit 7"), api.Streams{}, tty)
-		if code != 7 {
-			t.Errorf("tty=%v: exit code = %d, want 7", tty, code)
-		}
+	// a command exiting non-zero is its own answer, not a plbx failure, and
+	// that has to hold on both paths.
+	for _, tc := range []struct {
+		name string
+		tty  bool
+	}{
+		{name: "pipes", tty: false},
+		{name: "pty", tty: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if _, code := session(t, shell("exit 7"), api.Streams{}, tc.tty); code != 7 {
+				t.Errorf("exit code = %d, want 7", code)
+			}
+		})
 	}
 }
 

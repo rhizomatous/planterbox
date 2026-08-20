@@ -42,10 +42,9 @@ func Open(dir string) (*Store, error) {
 //
 // This is what --dry-run runs against. Reads have to stay real, because
 // rendering what plbx would do to an existing sandbox means knowing what that
-// sandbox is — but nothing rendered should survive the command, and before
-// this a dry-run create left a record behind and a dry-run rm took one away.
-// Writes still validate; only the write itself is dropped, so a dry run still
-// reports the arguments it would have refused.
+// sandbox is, and nothing rendered may survive the command. Writes still
+// validate; only the write itself is dropped, so a dry run still reports the
+// arguments it would have refused.
 func OpenReadOnly(dir string) (*Store, error) {
 	return &Store{dir: dir, readOnly: true}, nil
 }

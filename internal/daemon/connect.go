@@ -88,8 +88,8 @@ func Info(ctx context.Context, env Env) (api.DaemonInfo, bool) {
 // Start launches a daemon and waits for it to answer.
 //
 // The child is detached into its own session so it outlives the command that
-// started it, and its output goes to a log in the runtime directory — a daemon
-// that dies at startup should leave a reason behind rather than writing over
+// started it, and its output goes to a log in the runtime directory: a daemon
+// that dies at startup should leave a reason behind rather than write over
 // whatever the user was looking at.
 func Start(ctx context.Context, env Env, stateDir string) error {
 	socket, err := Socket(env)
@@ -217,8 +217,8 @@ func findDaemon() (string, error) {
 // A package manager puts plbx on $PATH as a link into wherever it really
 // unpacked the release: Homebrew links /opt/homebrew/bin/plbx to a Caskroom
 // directory holding both binaries. os.Executable does not resolve that link,
-// so the resolved directory is tried first — it is the one install the two
-// binaries actually share — and the as-invoked directory after it, for a plbx
+// so the resolved directory is tried first, since it is the install the two
+// binaries actually share, and the as-invoked directory after it, for a plbx
 // reached by a link someone made themselves.
 func daemonNear(self string) (string, bool) {
 	dirs := []string{filepath.Dir(self)}

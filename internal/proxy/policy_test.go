@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"fmt"
 	"net/netip"
 	"strings"
 	"testing"
@@ -12,21 +13,23 @@ func TestMatchesExactHost(t *testing.T) {
 		host    string
 		want    bool
 	}{
-		{"example.com", "example.com", true},
-		{"example.com", "other.com", false},
-		{"example.com", "sub.example.com", false},
-		{"example.com", "notexample.com", false},
+		{pattern: "example.com", host: "example.com", want: true},
+		{pattern: "example.com", host: "other.com", want: false},
+		{pattern: "example.com", host: "sub.example.com", want: false},
+		{pattern: "example.com", host: "notexample.com", want: false},
 		// a trailing dot is the same name in DNS, and resolvers send both.
-		{"example.com", "example.com.", true},
+		{pattern: "example.com", host: "example.com.", want: true},
 		// hostnames are case-insensitive, and a policy that misses on case
 		// would deny requests the user believes they allowed.
-		{"Example.COM", "example.com", true},
-		{"example.com", "EXAMPLE.com", true},
+		{pattern: "Example.COM", host: "example.com", want: true},
+		{pattern: "example.com", host: "EXAMPLE.com", want: true},
 	}
 	for _, tc := range cases {
-		if got := Matches(tc.pattern, Target{Host: tc.host, Port: 443}); got != tc.want {
-			t.Errorf("Matches(%q, %q) = %v, want %v", tc.pattern, tc.host, got, tc.want)
-		}
+		t.Run(tc.pattern+" vs "+tc.host, func(t *testing.T) {
+			if got := Matches(tc.pattern, Target{Host: tc.host, Port: 443}); got != tc.want {
+				t.Errorf("Matches(%q, %q) = %v, want %v", tc.pattern, tc.host, got, tc.want)
+			}
+		})
 	}
 }
 
@@ -37,16 +40,18 @@ func TestMatchesWildcardCoversSubdomainsButNotTheApex(t *testing.T) {
 		host string
 		want bool
 	}{
-		{"a.example.com", true},
-		{"a.b.example.com", true},
-		{"example.com", false},
-		{"notexample.com", false},
-		{"example.com.evil.test", false},
+		{host: "a.example.com", want: true},
+		{host: "a.b.example.com", want: true},
+		{host: "example.com", want: false},
+		{host: "notexample.com", want: false},
+		{host: "example.com.evil.test", want: false},
 	}
 	for _, tc := range cases {
-		if got := Matches("*.example.com", Target{Host: tc.host, Port: 443}); got != tc.want {
-			t.Errorf("Matches(*.example.com, %q) = %v, want %v", tc.host, got, tc.want)
-		}
+		t.Run(tc.host, func(t *testing.T) {
+			if got := Matches("*.example.com", Target{Host: tc.host, Port: 443}); got != tc.want {
+				t.Errorf("Matches(*.example.com, %q) = %v, want %v", tc.host, got, tc.want)
+			}
+		})
 	}
 }
 
@@ -61,25 +66,24 @@ func TestMatchesBareStarCoversEverything(t *testing.T) {
 func TestMatchesPorts(t *testing.T) {
 	cases := []struct {
 		pattern string
+		host    string
 		port    int
 		want    bool
 	}{
-		{"example.com:443", 443, true},
-		{"example.com:443", 80, false},
+		{pattern: "example.com:443", host: "example.com", port: 443, want: true},
+		{pattern: "example.com:443", host: "example.com", port: 80, want: false},
 		// no port means every port.
-		{"example.com", 443, true},
-		{"example.com", 80, true},
-		{"*.example.com:8080", 8080, true},
-		{"*.example.com:8080", 443, false},
+		{pattern: "example.com", host: "example.com", port: 443, want: true},
+		{pattern: "example.com", host: "example.com", port: 80, want: true},
+		{pattern: "*.example.com:8080", host: "a.example.com", port: 8080, want: true},
+		{pattern: "*.example.com:8080", host: "a.example.com", port: 443, want: false},
 	}
 	for _, tc := range cases {
-		got := Matches(tc.pattern, Target{Host: "example.com", Port: tc.port})
-		if strings.HasPrefix(tc.pattern, "*.") {
-			got = Matches(tc.pattern, Target{Host: "a.example.com", Port: tc.port})
-		}
-		if got != tc.want {
-			t.Errorf("Matches(%q, port %d) = %v, want %v", tc.pattern, tc.port, got, tc.want)
-		}
+		t.Run(fmt.Sprintf("%s vs %s:%d", tc.pattern, tc.host, tc.port), func(t *testing.T) {
+			if got := Matches(tc.pattern, Target{Host: tc.host, Port: tc.port}); got != tc.want {
+				t.Errorf("Matches(%q, %s:%d) = %v, want %v", tc.pattern, tc.host, tc.port, got, tc.want)
+			}
+		})
 	}
 }
 
@@ -112,8 +116,8 @@ func TestLockedDownAllowsNothingUntilTold(t *testing.T) {
 }
 
 func TestBalancedAllowsTheWorkAnAgentActuallyDoes(t *testing.T) {
-	// the phase is done when balanced is usable for real work, so these are
-	// the requests that has to mean.
+	// balanced has to be usable for real work, and these are the requests that
+	// means.
 	p := New(PresetBalanced)
 	for _, host := range []string{
 		"api.anthropic.com",
@@ -168,7 +172,7 @@ func TestBalancedDeniesEditorTelemetry(t *testing.T) {
 
 // An agent does more than call the model API: it signs in and checks what it
 // is entitled to, and a preset that allows only the API is one it will not
-// start under. platform.claude.com is where Claude Code stopped.
+// start under. platform.claude.com is the one Claude Code stops without.
 func TestBalancedAllowsAnAgentToStart(t *testing.T) {
 	p := New(PresetBalanced)
 	for _, host := range []string{

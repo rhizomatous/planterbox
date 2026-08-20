@@ -80,9 +80,9 @@ func Serve(ctx context.Context, opts Options) error {
 
 	// everything the daemon needs is stood up before the socket is, because
 	// the socket is what tells the world it is ready. Bound first, a daemon
-	// that then fails to start its proxy would spend its last moments
-	// accepting connections it is about to drop — which is what a client sees
-	// as an unexplained EOF rather than as the error that actually happened.
+	// that then fails to start its proxy would spend its last moments accepting
+	// connections it is about to drop, which a client sees as an unexplained
+	// EOF rather than as the error that actually happened.
 	connections := proxy.NewLog(0)
 	svc, err := direct.Open(ctx, direct.Options{
 		StateDir:      opts.StateDir,
@@ -267,7 +267,7 @@ func serveProxy(ctx context.Context, addr string, svc *direct.Service, log *prox
 //
 // It listens on a unix socket rather than a port, so nothing about it is
 // reachable from off this machine, and its sessions are execs rather than
-// connections — which is what lets it reach a sandbox that has no route in.
+// connections, which is what lets it reach a sandbox that has no route in.
 func serveSSH(opts Options, svc *direct.Service) (*sshd.Server, error) {
 	socket, err := sshPathFor(opts)
 	if err != nil {
